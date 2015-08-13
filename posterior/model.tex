@@ -144,14 +144,12 @@ in \refeq{like-expanded} but in our case $\vecth$ doesn't appear
 explicitly, so we can just plug in
 $P\given{\data}{\vecL}$ from~\refeq{like-L}.
 
-\subsection{Extracting information from \tardis}
-
 To complete the specification of the likelihood, we need to formulate
 $P\given{\vecL}{\vecth}$; i.e., what we learn about the luminosities
 in each bin from \tardis. A simplified account of how \tardis{} is run
 follows, then I will show how to phrase this in statistical terms.
 
-\subsubsection{Running \tardis}
+\subsection{Running \tardis}
 \todo{This is still rudimentary}
 \begin{compactenum}[(I)]
   \item Adjust the temperature of an inner shell to approximately match
@@ -174,7 +172,7 @@ I usually omit the superscript $\in \{\real, \virt\}$ on $n_i$,
 $\lumi$, and dependent quantities but equations hold for both unless
 noted otherwise.
 
-\subsubsection{Statistical model}
+\subsection{Statistical model}
 
 Some preliminary assumptions:
 \begin{compactenum}[(a)]
@@ -213,10 +211,16 @@ then the law of total probability gives
   \label{eq:lum}
   P(\Lumi | \vecth) = \sum_{N_i=0}^{\infty} P(\Lumi | N_i, \vecth) P(N_i | \vecth)
 \end{equation}
+
+\subsubsection{Luminosity distributions}
+
 The first term in \refeq{lum} gives the luminosity in bin $i$ given
-$N_i$ packets, so $\Lumi = \sum_{j=1}^{N_i} \Lumi^j$ where $\Lumi^j$ is
-the luminosity of packet $j$ in bin $i$. Obviously $P(\Lumi | 0,
-\vecth) = \delta(\Lumi)$.
+$N_i$ packets, so $\Lumi = \sum_{j=1}^{N_i} \Lumi^j$ where $\Lumi^j$
+is the luminosity of packet $j$ in bin $i$. Obviously $P(\Lumi | 0,
+\vecth) = \delta(\Lumi)$. The crucial term is
+$P\given{L_i}{N_i=1,\vecth}$: it is the distribution of luminosity of
+a single packet in bin $i$ and determines all other terms with
+$N_i>1$.
 
 We thought hard and found it a fair assumption that the distribution
 of $l_{ij}$ is actually independent of the frequency thus independent
@@ -257,7 +261,7 @@ simplicity, we could use a maximum-likelihood fit and simply plug in
 the result neglecting the uncertainty on $\vecnu$. This should be OK
 as we usually have many packets; i.e., $N \gg 1$.
 
-With $P(r|\vecth)$ fixed, we can now look at sums luminosities. The
+With $P(r|\vecth)$ fixed, we can now look at sums of luminosities. The
 standard result is that if $r_1, r_2 \sim P(r|\vecth)$ then
 \begin{equation}
   \label{eq:convolution}
@@ -276,10 +280,13 @@ Note that for the convolutions, we would have to use the approximate
 bypass the extra uncertainty induced by assuming $P(r | \vecth) =
 \genbetapr(r | \vecnu(\vecth))$ and fixed $\vecnu$.
 
-For $P(N_i | \vecth)$, the second term in \eqref{eq:lum}, we assume
-$N_i$ follows a Poisson distribution whose rate parameter $\lambda_i =
-\lambda_i(\vecth)$ has to be inferred from the simulation. We can use
-the law of total probability
+\subsubsection{Poisson noise}
+
+Let us now consider $P(N_i | \vecth)$, the second term in
+\eqref{eq:lum}. As stated before, we assume the number of packets in
+the given simulation follows a Poisson distribution whose rate
+parameter $\lambda_i = \lambda_i(\vecth)$ has to be inferred from the
+observed $n_i$. We can use the law of total probability
 \begin{equation}
   P(N_i | \vecth) = \int \rmdx{\lambda_i} P(\lambda_i | \vecth) \poisson(N_i | \lambda_i, \vecth)
 \end{equation}
