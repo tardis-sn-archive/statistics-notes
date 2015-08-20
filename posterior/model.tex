@@ -93,7 +93,7 @@ $P(\vecth | \data)$, is given by  Bayes' theorem as
   \label{eq:Bayes-full}
   P\given{\vecth}{\data} = \frac{P\given{\data}{\vecth} P(\vecth)}{\int \rmdx{\vecth} P\given{\data}{\vecth} P(\vecth)} \,.
 \end{equation}
-Technically, we should write every propability (density) as
+Technically, we should write every probability (density) as
 conditional on a specific statistical model $M$,
 e.g. $P\given{\vecth}{\data, M}$.  At present, we are not interested
 in comparing different models but rather in extracting the parameters
@@ -262,7 +262,7 @@ luminosity, a sharp peak, and a clear cutoff at high luminosity.
 For virtual packets, the luminosity distribution seems to depend
 mildly on the frequency.  We do not know $P(\Lumi | 1, \vecth)$ before
 we do the simulation and we do not know its functional form
-either. But we want to minimize the assumptions on the form. Hence
+either. But we want to minimize the assumptions on the form. Hence we
 seek a nonparametric description of the samples. Obviously, if we
 observe $n_i=0$ or $n_i=1$, we cannot infer the distribution $P(\Lumi
 | 1, \vecth)$ from such little information. If we may assume that
@@ -272,7 +272,7 @@ form a handful of larger bins, say $10-100$, in which we assume the
 distribution is constant and we have enough packets, at least $\sum_i
 n_i \gtrsim 500$. The I propose we use Gaussian kernel density
 estimation (KDE) to obtain a smooth estimate of $P(\Lumi | 1, \vecth)$
-that we can evaluate at arbitray $\Lumi$. In python, the easiest way
+that we can evaluate at arbitrary $\Lumi$. In python, the easiest way
 to do this is via \texttt{scipy.stats.gaussian\_kde}. The fastest to
 my knowledge is \texttt{figtree} but the difference will be mostly
 irrelevant unless there $\sum_i n_i = 10^5$ packets in a combination
@@ -284,7 +284,7 @@ of two variables as the convolution
   \label{eq:sum-of-2}
   P(\Lumi | N_i=2, \vecth) = \int \rmdx{l} P(\Lumi -l | N_i=1, \vecth) P(l | N_i=1, \vecth).
 \end{align}
-For $N_i =k$, we would repeat the procedure convolving $P(\cdot |
+For $N_i =k$, we would repeat the procedure convoluting $P(\cdot |
 N_i=k-1, \vecth)$ and $P(\Lumi | N_i=1, \vecth)$ and each time we
 would need a new KDE estimate and we would have to repeat the integral
 for different values of $\Lumi$. This quickly gets out of hand and I
@@ -306,7 +306,7 @@ such that
   \label{eq:clt}
   P(\Lumi | N_i, \vecth) \approx \gaussian \given{\Lumi}{N_i \times E[l], N_i \times V[l]}
 \end{align}
-and the expecation value and variance have to be estimated by the mean
+and the expectation value and variance have to be estimated by the mean
 and variance of the samples $\{l_j\}$. In fact, this paper~\cite{bohm_statistics_2014}
 shows that the \emph{scaled Poisson} is a more accurate approximation
 given the first and second moment. But the resulting integral can't be
@@ -361,9 +361,9 @@ The mode and variance of $P(N_i | \vecth)$ are
 \end{align}
 Why is the variance $\sim 2 n_i$ and not $n_i$ as one would expect for Poisson? Variances are additive and we get one factor of $n_i$ from the Poisson in \refeq{poisson-post-pred} and another one from \refeq{poisson-post}.
 
-For $n_i=0$, the distribution diverges at zero, a consequence of the
-Jeffreys prior.  For $n_i \gtrsim 30$, the distribution can be well
-approximated by a Gaussian
+For $n_i=0$, the distribution peaks at zero at a value of $70\%$, a
+number sensitive to the choice of prior $P(\lambda_i)$.  For $n_i \gtrsim 30$, the
+distribution can be well approximated by a Gaussian
 \begin{align}
   \label{eq:poisson-gauss-approx}
   P(N_i | \vecth) \approx \gaussian \given{N_i}{n_i-1, 2 n_i + 1}
@@ -472,18 +472,20 @@ exercise for the reader.
 The strategy would be to look at each bin separately. If $n_i \gtrsim
 5$, use the large-$n_i$ approach from above. Else start at $N_i=1$ and
 sum the numerical integrals until it is $10^{-4}$ of the maximum
-term. For 10000 bins, this works can be parallelized easily.
+term. For 10000 bins, this work can be parallelized easily. It's all
+elementary function, so this can be done in \texttt{C} without too
+much effort.
 
 For the real packets, I compared the general approach to the Gaussian
 large-$n_i$ approximation, using numerical integration in both cases
-in \texttt{mathematica}. For $n_i=1\dots5$, the difference is slighly
+in \texttt{mathematica}. For $n_i=1\dots5$, the difference is slightly
 less than 10\%. From $n_i=10$ to 15, it drops from 5\% to 3\% level,
 and for $n_i=100$, both approaches agree to within $10^{-4}$. Laplace
 can be used from $n_i=5$ on. In all cases except $n_i=100$, the
 Gaussian approximation is systematically \emph{below} the general
 result.
 
-If we are ok with less than 10\% error, we can employ the Gaussian
+If we are OK with less than 10\% error, we can employ the Gaussian
 approximation from $n_i\ge5$, which means we neglect the 3rd and
 higher moments of the luminosity distribution. If the virtual packets
 are even more skewed than the real packets, we might need to start at
@@ -602,7 +604,7 @@ The most straightforward approach is to incorporate them as hard cuts
 into the prior, leading to a new normalization. We will have to refine
 this strategy if the regions of high posterior probability turn out to
 be very close to the cuts. Formally, suppose $V$ is the subvolume of
-the unit simplex in which all constraints are satistfied. Outside of
+the unit simplex in which all constraints are satisfied. Outside of
 $V$, we set $P(\vecth) \equiv 0$. In the code, a sequence of
 \texttt{if} statements incorporates the constraints. If any is
 violated, the prior on the log scale is $-\infty$ and no tardis
