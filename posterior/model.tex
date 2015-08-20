@@ -41,6 +41,16 @@
 \newcommand{\vecth}{\ensuremath{{\vec{\theta}}}}
 \newcommand{\vecu}{\ensuremath{{\vec{u}}}}
 
+
+\DeclareMathOperator{\erf}{erf}
+\newcommand{\mui}{\mu_i}
+% \newcommand{\Ni}{N_i}
+% \newcommand{\ni}{n_i}
+\newcommand{\sigi}{\sigma_i^2}
+\DeclareMathOperator{\sgn}{sgn}
+\newcommand{\El}{E[l]}
+\newcommand{\Vl}{V[l]}
+
 %%% refs
 \def \refeq#1{(\ref{eq:#1})}
 \def \refsec#1{sec.~\ref{#1}}
@@ -212,73 +222,95 @@ then the law of total probability gives
   P(\Lumi | \vecth) = \sum_{N_i=0}^{\infty} P(\Lumi | N_i, \vecth) P(N_i | \vecth)
 \end{equation}
 
+All involved integrals are (assumed) absolutely convergent so we can
+exchange the order of summation and integration, so we can combine
+\refeq{like-expanded} and \refeq{lum} and we have to compute for each bin
+\begin{align}
+  \label{eq:sum-integral}
+  \sum_{N_i=0}^{\infty} \int \rmdx{\Lumi} \gaussian\given{\Lumi}{\mu_i, \sigma_i^2}
+  P(\Lumi | N_i, \vecth) P(N_i | \vecth).
+\end{align}
+
 \subsubsection{Luminosity distributions}
 
-The first term in \refeq{lum} gives the luminosity in bin $i$ given
-$N_i$ packets, so $\Lumi = \sum_{j=1}^{N_i} \Lumi^j$ where $\Lumi^j$
-is the luminosity of packet $j$ in bin $i$. Obviously $P(\Lumi | 0,
-\vecth) = \delta(\Lumi)$. The crucial term is
-$P\given{L_i}{N_i=1,\vecth}$: it is the distribution of luminosity of
-a single packet in bin $i$ and determines all other terms with
-$N_i>1$.
+The first term in \refeq{lum}, $P(\Lumi | N_i, \vecth)$, gives the
+probability of luminosity $\Lumi$ in bin $i$ given $N_i$ packets, so
+$\Lumi = \sum_{j=1}^{N_i} \Lumi^j$ where $\Lumi^j$ is the luminosity
+of packet $j$ in bin $i$. Obviously $P(\Lumi | 0, \vecth) =
+\delta(\Lumi)$. The crucial term is
+\begin{align}
+  \label{eq:single-lum}
+  P\given{\Lumi}{1, \vecth} \equiv P\given{L_i}{N_i=1,\vecth};
+\end{align}
+it is the distribution of luminosity of a single packet in bin $i$ and
+determines all other terms with $N_i>1$ because $\forall j, L_i^j$ has
+the same distribution $P\given{L_i}{1,\vecth}$.
 
-We thought hard and found it a fair assumption that the distribution
-of $l_{ij}$ is actually independent of the frequency thus independent
-of $i$ and $j$ and we can drop the subscripts for simplicity, $l_{ij}
-\to r$. The reason is that each packet initially gets the same
-luminosity and so far it seems the amount of luminosity it gains or
-loses is independent of the frequency. The question then is what is
-the functional form $P(r | \vecth) \equiv P(\Lumi | N_i=1, \vecth)
-$. The distributions $P(\Lumi | N_i, \vecth)$ with $N_i > 1$ can be
-determined from the case of $N_i=1$ using convolutions for small $N_i$
-and the central limit theorem for $N_i \ge 15$.
+For the real packets, it seems that $P(\Lumi | 1, \vecth)$ is
+independent of the frequency bin $i$. A histogram is shown in
+\reffig{hist}.  The prominent features are a long tail at low
+luminosity, a sharp peak, and a clear cutoff at high luminosity.
 
-An approximation of $P(r | \vecth)$---a histogram of the luminosities
-of all packets that leave the supernova---is shown in
-\reffig{hist}.
 \begin{figure*}[h]
   \begin{center}
     \includegraphics[width=\textwidth]{fit}
   \end{center}
-  \caption{
-  }
+  \caption{Distribution of luminosities of real packets.}
   \label{fig:hist}
 \end{figure*}
-The prominent features are a long tail at low luminosity, a sharp
-peak, and a clear cutoff at high luminosity.  After researching quite
-a bit, I found a flexible unimodal univariate distribution that can
-accomodate this skewed distribution, it is the generalized \betap{}
-distribution that depends on the hyperparameters $\vecnu \equiv (a, s,
-\alpha, \gamma, \beta)$
-\begin{equation}
-  \label{eq:betaprime}
-  P(r | \vecth) = \genbetapr(r | \vecnu(\vecth)) \equiv \frac{1}{B(\alpha, \gamma)} \left|\frac{\beta}{s} \right| \left( \frac{r - a}{s} \right)^{\alpha \beta - 1} \left(1+\left( \frac{r - a}{s} \right)^{\beta} \right)^{-\alpha - \gamma} \,.
-\end{equation}
 
-Since we assume it is the same in all bins we can then use the entire
-set of samples that depend on $\vecth$ to infer $\vecnu | \vecth$. For
-simplicity, we could use a maximum-likelihood fit and simply plug in
-the result neglecting the uncertainty on $\vecnu$. This should be OK
-as we usually have many packets; i.e., $N \gg 1$.
+For virtual packets, the luminosity distribution seems to depend
+mildly on the frequency.  We do not know $P(\Lumi | 1, \vecth)$ before
+we do the simulation and we do not know its functional form
+either. But we want to minimize the assumptions on the form. Hence
+seek a nonparametric description of the samples. Obviously, if we
+observe $n_i=0$ or $n_i=1$, we cannot infer the distribution $P(\Lumi
+| 1, \vecth)$ from such little information. If we may assume that
+$P(\Lumi | 1, \vecth)$ varies only little with $i$, we may pool
+together luminosities $l_{ij}, j=1 \dots n_i$, of adjacent bins to
+form a handful of larger bins, say $10-100$, in which we assume the
+distribution is constant and we have enough packets, at least $\sum_i
+n_i \gtrsim 500$. The I propose we use Gaussian kernel density
+estimation (KDE) to obtain a smooth estimate of $P(\Lumi | 1, \vecth)$
+that we can evaluate at arbitray $\Lumi$. In python, the easiest way
+to do this is via \texttt{scipy.stats.gaussian\_kde}. The fastest to
+my knowledge is \texttt{figtree} but the difference will be mostly
+irrelevant unless there $\sum_i n_i = 10^5$ packets in a combination
+of bins.
 
-With $P(r|\vecth)$ fixed, we can now look at sums of luminosities. The
-standard result is that if $r_1, r_2 \sim P(r|\vecth)$ then
-\begin{equation}
-  \label{eq:convolution}
-  z_2 = r_1 + r_2 \sim \int \rmdx{r} P(r|\vecth) P(z_2 - r|\vecth) \,.
-\end{equation}
-Sums of $N_i$ terms are computed in identical fashion by convolution
-of $P(r|\vecth)$ with the distribution of the sum with $N_i-1$
-terms. For $N_i \gtrsim 15$, the central limit theorem applies and
-\begin{equation}
+Given the KDE estimate, we could compute the distribution for the sum
+of two variables as the convolution
+\begin{align}
+  \label{eq:sum-of-2}
+  P(\Lumi | N_i=2, \vecth) = \int \rmdx{l} P(\Lumi -l | N_i=1, \vecth) P(l | N_i=1, \vecth).
+\end{align}
+For $N_i =k$, we would repeat the procedure convolving $P(\cdot |
+N_i=k-1, \vecth)$ and $P(\Lumi | N_i=1, \vecth)$ and each time we
+would need a new KDE estimate and we would have to repeat the integral
+for different values of $\Lumi$. This quickly gets out of hand and I
+fear the errors due to KDE assumptions add up. In my attempts with
+\texttt{mathematica}, the probability for many values of $\Lumi$ was
+negative and the whole procedure is slow. Let's forget about it.
+
+The more model-independent and faster approach is to use the
+luminosity samples $\{l_j: j=1 \dots \sum n_i\}$ for all bins $i$ that
+are combined. We can create samples of the sum of $N_i=2$ luminosities
+by adding $l_1+l_2, l_3 + l_4 \dots$ and similarly for larger
+$N_i$.
+
+\subsubsection*{Approximation for large $n_i$}
+
+For $N \gtrsim 15$, we can just use the central limit theorem
+such that
+\begin{align}
   \label{eq:clt}
-  P(\Lumi | N_i, \vecth) \approx \gaussian \left(\Lumi | N_i * E_{P(r|\vecth)}[r], \sqrt{N_i * V_{P(r|\vecth)}[r]} \right)
-\end{equation}
-Note that for the convolutions, we would have to use the approximate
-\genbetapr{} distribution but for the mean and std. deviation in
-\refeq{clt}, we should use the sample mean and std. deviation to
-bypass the extra uncertainty induced by assuming $P(r | \vecth) =
-\genbetapr(r | \vecnu(\vecth))$ and fixed $\vecnu$.
+  P(\Lumi | N_i, \vecth) \approx \gaussian \given{\Lumi}{N_i \times E[l], N_i \times V[l]}
+\end{align}
+and the expecation value and variance have to be estimated by the mean
+and variance of the samples $\{l_j\}$. In fact, this paper~\cite{bohm_statistics_2014}
+shows that the \emph{scaled Poisson} is a more accurate approximation
+given the first and second moment. But the resulting integral can't be
+solved exactly, so for easier calculation we stick with the Gaussian.
 
 \subsubsection{Poisson noise}
 
@@ -286,24 +318,32 @@ Let us now consider $P(N_i | \vecth)$, the second term in
 \eqref{eq:lum}. As stated before, we assume the number of packets in
 the given simulation follows a Poisson distribution whose rate
 parameter $\lambda_i = \lambda_i(\vecth)$ has to be inferred from the
-observed $n_i$. We can use the law of total probability
+observed $n_i = n_i(\vecth)$. We can use the law of total probability
 \begin{equation}
+  \label{eq:poisson-post-pred}
   P(N_i | \vecth) = \int \rmdx{\lambda_i} P(\lambda_i | \vecth) \poisson(N_i | \lambda_i, \vecth)
 \end{equation}
-\todo{postpone the integral over $\lambda$ then use result for
-  compound Poisson distr. and finally integrate. Hopefully this can
-  still all be done analytically} and Bayes' theorem
+and Bayes' theorem
 \begin{equation}
+  \label{eq:poisson-post}
   P(\lambda_i | \vecth) \propto \poisson(n_i | \lambda_i) P_0(\lambda_i)
 \end{equation}
-If we choose Jeffrey's prior $P_0(\lambda_i) \propto
-1/\sqrt{\lambda_i}$ then we get the analytical
+If we choose the noninformative and improper Jeffreys prior
+$P_0(\lambda_i) \propto 1/\sqrt{\lambda_i}$ then we get the analytical
 result~\cite[Eq. 5]{Aggarwal:2011aa}
-\begin{equation}
-  P\given{N_i}{n_i} = \frac{n_i! [2 (N_i + n_i)]!}{4^{N_i} N_i! (2 n_i)! (N_i + n_i)!}
-\end{equation}
-where $n_i = n_i(\vecth)$ is the number of packets in bin $i$ actually
-observed in the simulation at hand.  In essence, $P(N_i | \vecth)$ is
+\begin{align}
+  \label{eq:post-pred-analytical}
+  P\given{N_i}{\vecth} &= \frac{n_i! [2 (N_i + n_i)]!}{2^{N_i+n_i+1/2}4^{N_i} N_i! (2 n_i)! (N_i + n_i)!}\\
+  &= \frac{(N_i + n_i + 1)_{N_i + n_i}}{(n_i + 1)_{n_i} \sqrt{2}\, 2^{3N_i + n_i}N_i!}
+\end{align}
+where
+\begin{align}
+  \label{eq:pochhammer}
+  (a)_k \equiv a (a + 1) \dots (a + k - 1)
+\end{align}
+is the Pochhammer symbol.
+
+In essence, $P(N_i | \vecth)$ is
 the posterior predictive distribution to have $N_i$ packets given that
 the simulation spit out $n_i(\vecth)$ packages. So $n_i$ is known,
 while $N_i$ is a random variable and we take into account its
@@ -311,6 +351,143 @@ uncertainty by summing over $N_i$ in \refeq{lum}. This is relevant for bins wher
 2 packets, it is not so unlikely we could have gotten one package. But
 of course with only half the packages, the expectation for the sum of
 luminosities changes significantly.
+
+\subsubsection*{Approximation for large $n_i$}
+
+The mode and variance of $P(N_i | \vecth)$ are
+\begin{align}
+  \label{eq:poisson-mode-variance}
+  \arg \max P(N_i | \vecth) = n_i -1, && V[N_i] = 2 n_i + 1.
+\end{align}
+Why is the variance $\sim 2 n_i$ and not $n_i$ as one would expect for Poisson? Variances are additive and we get one factor of $n_i$ from the Poisson in \refeq{poisson-post-pred} and another one from \refeq{poisson-post}.
+
+For $n_i=0$, the distribution diverges at zero, a consequence of the
+Jeffreys prior.  For $n_i \gtrsim 30$, the distribution can be well
+approximated by a Gaussian
+\begin{align}
+  \label{eq:poisson-gauss-approx}
+  P(N_i | \vecth) \approx \gaussian \given{N_i}{n_i-1, 2 n_i + 1}
+\end{align}
+
+\subsection{Putting it all together}
+
+Now it is time to combine all the equations above to see what actually
+needs to be implemented. The likelihood is
+\begin{align}
+  \label{eq:all-likelihood}
+  P\given{\data}{\vecth} &= \prod_{i=1}^{N_b} \int \rmdx{\Lumi} P\given{\Lumi}{\vecth}   P\given{\data}{\Lumi}\\
+  &= \prod_{i=0}^{N_b} \sum_{N_i=0}^\infty \int \rmdx{\Lumi} P \given{\Lumi}{N_i}
+  P\given{N_i}{\vecth} P\given{\Lumi}{\mui, \sigi}
+\end{align}
+
+
+\subsubsection*{Large $n_i$}
+
+If many packets are observed in bin $i$, then with good approximation
+everything is Gaussian and we can evaluate the integral over $\Lumi$
+analytically: the convolution of two Gaussians is another Gaussian
+with variances added.
+
+\begin{align}
+  \label{eq:all-large-n}
+P\given{\data}{\vecth}  &=  \prod_{i=1}^{N_b} \sum_{N_i=0}^\infty \int \rmdx{\Lumi} \gaussian \given{N_i}{n_i-1, 2 n_i + 1} \gaussian \given{\Lumi}{N_i  E[l], N_i V[l]}\\
+  & \phantom{\prod_{i=1}^{N_b} \sum_{N_i=0}^\infty \int \rmdx{\Lumi}} \times \gaussian \given{\Lumi}{\mu_i, \sigma_i} \nonumber\\
+  & = \prod_{i=1}^{N_b} \sum_{N_i=0}^\infty \gaussian \given{N_i}{n_i-1, 2 n_i + 1} \gaussian \given{N_i \El}{\mu_i, \sigi + N_i \Vl}
+  % &= \frac{\left| \Vl \mui + \El \sigi \right|+ (\Vl \mui + \El \sigi) \erf\left(\frac{\sqrt{N_i} \left| \Vl \mui + \El \sigi \right|}{\sqrt{2 \sigi \Vl (\Vl N_i + \sigi)}}\right)}{}\\
+%   &= \frac{1 + \sgn(\rho) \erf\left(\frac{\sqrt{N_i} \left| \rho \right|}{\sqrt{2 \sigi \Vl \xi}}\right)}{4 \pi \sqrt{(2n_i + 1) \xi}} \exp \left(-\frac{ (N_i \El -\mui)^2}{2  \xi}\right)
+% \\
+%   &\phantom{=} \times \exp \left(\frac{(2n_i+1) (N_i \El)^2 + N_i^3 \Vl - 2(2n_i+1)N_i \El \mui + (2n_i+1) \mu^2}{2 (2n_i + 1) \xi}\right) \nonumber\\
+%   &\phantom{=} \times \exp \left(\frac{(n_i-1)^2 \sigi + (n_i - 1) N_i ((n_i-1)\Vl - 2\sigi) + N_i^2 (-2(n-1)\Vl + \sigi)}{2 (2n_i + 1) \xi}\right) \nonumber
+\end{align}
+% where
+% \begin{align}
+%   \label{eq:rho}
+%   \rho &\equiv  \Vl \mui + \El \sigi\\
+%   \xi &\equiv N_i \Vl  + \sigi
+% \end{align}
+
+For each bin, we have to compute a series. We have three options:
+\begin{enumerate}
+  \item The quick and dirty approach is to approximate $\sum_{N_i}$ by
+  $\int \rmdx{N_i}$ and use \texttt{scipy.integrate.quad} to
+  numerically integrate.
+  \item If the first approach turns out to be too slow, we can just
+  sum up a finite number of terms as the summand quickly falls off for
+  large $N_i$; cf. \reffig{series}. The summand/integrand is unimodal
+  and well behaved. For the numbers I tried, the mode was near $n_i$
+  as implied by the first Gaussian. The mode can be computed
+  analytically but the expression is very long, so I don't show it
+  here. We could start summing from there and grow to the left and
+  right until terms become negligibly small. In my tests in
+  mathematica, I chose the number of terms by eye.
+  \item The third and fastest way would be to compute the mode, then
+  use the Laplace approximation to estimate the integral. This
+  requires the 2nd derivative around the mode, which is available in
+  closed form but too long to report here. Check the mathematica
+  notebook for the explicit results.
+\end{enumerate}
+For tests I did, the first two agreed within 5 or 6 digits, and the
+Laplace approximation good to the 3rd digit, so we might want to go
+with that, as it should be the fastest.
+
+For $N_i \to 0$, the summand is independent of $\El$ and $\Vl$ and
+very small if $n_i$ is large, so there is fortunately no special case
+to take care of.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics{series}
+  \caption{Series summand $\gaussian \given{N_i}{n_i-1, 2 n_i + 1}
+    \gaussian \given{N_i \El}{\mu_i, \sigi + N_i \Vl}$ of
+    \refeq{all-large-n} for various values of $N_i$ and $\mui=5,
+    \sigi=5^2,n_i=15, \El= 0.9 * \mui / n_i, \Vl=0.1$.}
+  \label{fig:series}
+\end{figure}
+
+\subsubsection*{General case}
+
+Plugging in the KDE estimates of $P\given{\Lumi}{N_i}$, we cannot use
+the Laplace approximation because the mode and the derivative there
+are not known. For small $n_i$, typically few terms in the series
+contribute, so the number of numerical integrals can be kept
+small. However, this depends on the experimental uncertainty. If it is
+large, then we have to take into account more terms.
+
+It is worth noting that for $N_i=0$, $\Lumi$ would be the sum of zero
+terms and that is ill defined. So we have to start summing at
+$N_i=1$. But that does not mean that $n_i=0$ is invalid, too. In fact,
+$P(N_i=1 | n_i=0) = 17.7\%$ in our model with the Jeffreys prior. So
+no packets seen means you could have seen a packet with some sizable
+probability. Of course this is a simplification. Looking at a spectrum
+in which the last 1000 bins didn't get a packet and the luminosity
+drops before that, I associate a much smaller probability for $N_i=1$
+in the very last bin than in bin $N_b-1000$. The difference is because
+I take into account extra information: smoothness of the spectrum,
+monotonicity \dots. At present, I don't know how to encode this in the
+model \emph{and} keep it computationally tractable. It is left as an
+exercise for the reader.
+
+\subsubsection*{Recommendation}
+
+The strategy would be to look at each bin separately. If $n_i \gtrsim
+5$, use the large-$n_i$ approach from above. Else start at $N_i=1$ and
+sum the numerical integrals until it is $10^{-4}$ of the maximum
+term. For 10000 bins, this works can be parallelized easily.
+
+For the real packets, I compared the general approach to the Gaussian
+large-$n_i$ approximation, using numerical integration in both cases
+in \texttt{mathematica}. For $n_i=1\dots5$, the difference is slighly
+less than 10\%. From $n_i=10$ to 15, it drops from 5\% to 3\% level,
+and for $n_i=100$, both approaches agree to within $10^{-4}$. Laplace
+can be used from $n_i=5$ on. In all cases except $n_i=100$, the
+Gaussian approximation is systematically \emph{below} the general
+result.
+
+If we are ok with less than 10\% error, we can employ the Gaussian
+approximation from $n_i\ge5$, which means we neglect the 3rd and
+higher moments of the luminosity distribution. If the virtual packets
+are even more skewed than the real packets, we might need to start at
+$n_i \sim 10$.
 
 \section{Priors}
 
@@ -352,7 +529,7 @@ There are two options:
 \end{enumerate}
 Nested sampling is most efficient if the prior is close to the
 posterior as measured by the relative entropy or Kullback-Leibler
-divergence. \todo{cite Skilling} We therefore prefer
+divergence~\cite{skilling_nested_2006}. We therefore prefer
 option~\ref{direct-transform}. While it restricts us to simple forms
 of priors: uniform, Gaussian, or Dirichlet, this, fortunately, is
 enough for our purposes. The explicit transformation is given below,
@@ -378,12 +555,11 @@ Suppose we have $K$ abundances subject to the constraints
   & 0 \leq \theta_k \leq 1, & \sum_{k}\theta_k = 1.
 \end{align}
 In other words, the abundances are defined on the unit simplex.  As
-shown in \todo{cite ``Cruising the simplex''}, we can directly
-transform $\vecu$ with $\dim \vecu = K$ to $\vecth$ as follows. First
-create $K$ Gamma variates with the inverse-transform method, in python
-code $\xi_k = \texttt{scipy.stats.gamma.ppf}(u_k, \alpha_k)$ with the
-shape parameter $\alpha_k$ explained below. Then normalize the samples
-as
+shown in~\cite{betancourt_cruising_2012}, we can directly transform
+$\vecu$ with $\dim \vecu = K$ to $\vecth$ as follows. First create $K$
+Gamma variates with the inverse-transform method, in python code
+$\xi_k = \texttt{scipy.stats.gamma.ppf}(u_k, \alpha_k)$ with the shape
+parameter $\alpha_k$ explained below. Then normalize the samples as
 \begin{equation}
   \label{eq:dirichlet-gamma}
   \theta_k = \frac{\xi_k}{\sum_{k'} \xi_{k'}}.
@@ -408,8 +584,8 @@ The mode of $\theta_k$ is $\frac{\alpha_k - 1}{\sum_k (\alpha_k -
   1)}$, so we should choose $\alpha_k > 1$ if we want a well defined
 mode. For prior ignorance, we want $\alpha_k$ identical. The canonical
 choice of an uninformative distribution is a uniform distribution on
-the unit simplex given by $\alpha_k=1 \, \forall \, k$~\todo{cite
-  posterior predictive hints}.
+the unit simplex given by $\alpha_k=1 \, \forall \,
+k$~\cite{tuyl_posterior_2009}.
 
 Now suppose we want to include the available prior information. The
 actual numbers come from table 5.1 of Wolfgang's thesis. He lists
