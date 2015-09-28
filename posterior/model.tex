@@ -125,35 +125,77 @@ prior $P(\vecth)$ in
 
 \subsection{Incorporating the observations}
 
-Let \Lumi{} denote the predicted or true luminosity in bin $i$ and
-$\vecL$ the ordered collection of luminosities. I assume from a
-telescope, we get the probability of the data $\mathcal{D}$ given
-$\vecth$ only as a function of $\vecL$ where the data are
-implicit---we don't have them---and no correlation between bins is
-given or assumed. The maximum-entropy distribution given only the
-means and standard deviations $\expin, i=1\dots n_b$ is the normal or
-Gaussian distribution, so we set
+Let \Lumi{} denote the true (and unknown) luminosity in bin $i$ and
+and let $\vecL$ represent the ordered collection of luminosities. At a
+telescope, a possible realization of what they can observe (charges in
+CMOS sensor?) is $X$. The physicists operating the telescope have a
+model how the luminosities $\vecL$ and other parameters of the
+telescop, call them $\vecnu$, affect the outcome $X$. Quantitatively,
+in their model they write down $P \given{X}{\vecL, \vecnu}$.  We
+further assume that the telescope people average out the effect of
+their nuisance parameters to report to us
+\begin{align}
+  \label{eq:aver-like}
+  P \given{X}{\vecL} = \int \rmdx{\vecnu} P \given{X}{\vecL, \vecnu} P(\vecnu) .
+\end{align}
+Once the telescope performs the measurement, they actually observe
+$X=\data$ and they tell us that $P \given{X=\data}{\vecL}$---viewed as
+a function of $\vecL$---can be approximated by a product of Gaussians
+characterized by the numbers $\expin, i=1 \dots n_b$:
 \begin{equation}
   \label{eq:like-L}
-  P(\mathcal{D} | \vecL) = \prod_{i=1}^{n_b} \gaussian\given{\Lumi}{\mu_i, \sigma_i^2}.
+  P(X=\mathcal{D} | \vecL) \propto \prod_{i=1}^{n_b} \gaussian\given{\Lumi}{\mu_i, \sigma_i^2}.
 \end{equation}
+Note that for a different realization of $X$, $ P \given{X}{\vecL}$
+might need to be approximated by a functional form different from a
+product Gaussian. But this is of no concern to us because we only care
+about what was actually observed; i.e., $X=\data$. The numbers
+$\expin$ of course depend on $X$ (and the effect of $\vecnu$!). There
+is a $\propto$ sign in \refeq{like-L} because the lhs sign is a
+probability density for $X$ but not for $\vecL$. We don't know what
+$\data$ actually is: the telescope people don't tell us and we don't
+need to know as long as we only care about the dependence on
+$\vecL$. For our purposes, all we need are the values $\expin$ to plug
+into \refeq{like-L} under the given assumptions. We can ignore the
+normalization unless we compare different models in \tardis{}
+that give rise to different normalization constants.
 
-In principle, $\vecL(\vecth)$ is a deterministic function of
-$\vecth$. But we are unable to calculate it as is; that's why we have
-to estimate it from the \tardis{} simulation resulting in a
-distribution $P\given{\vecL}{\vecth}$. To use Bayes'
-theorem~\refeq{Bayes-full}, we need $P\given{\data}{\vecth}$ but we
-only have $P\given{\data}{\vecL}$. The link between these three
-densities is the law of total probability:
+To use Bayes' theorem~\refeq{Bayes-full}, we need
+$P\given{\data}{\vecth}$ but we only have $P\given{\data}{\vecL}$. The
+link is the law of total probability:
 \begin{align}
   \label{eq:like-expanded}
-  P\given{\data}{\vecth} &= \int \rmdx{\vecL} P\given{\vecL}{\vecth} P\given{\data}{\vecL}.
+  P\given{X}{\vecth} &= \int \rmdx{\vecL} P\given{X}{\vecL, \vecth} P\given{\vecL}{\vecth} .
 \end{align}
-Note that in principle it should say $P\given{\data}{\vecL, \vecth}$
-in \refeq{like-expanded} but in our case $\vecth$ doesn't appear
-explicitly, so we can just plug in
-$P\given{\data}{\vecL}$ from~\refeq{like-L}.
+We \emph{assume} that our parameters of interest, $\vecth$, do \emph{not}
+affect $X$ in any other way than through $\vecL$; i.e., $\vecth$
+doesn't appear explicitly
+\begin{align}
+  \label{eq:no-expl-L}
+  P\given{X}{\vecL, \vecth} = P\given{X}{\vecL}.
+\end{align}
+and we can reuse \refeq{aver-like} on the rhs.  In principle, $\vecL$
+is a deterministic function of $\vecth$, $\vecL = f(\vecth)$. But we
+are unable to simply evaluate this function; that's why we have to
+estimate it from the \tardis{} simulation resulting in a distribution
+$P\given{\vecL}{\vecth} \ne \delta(\vecL - f(\vecth))$. Specifically,
+the outcome of \tardis{} depends on the random number seed and the
+fact that only a finite number of (effective) photons are
+simulated. In the limit of infinite number of photons,
+$P\given{\vecL}{\vecth} \to \delta(\vecL - f(\vecth))$. Note that this
+does not mean that we know the true value of the luminosity in bin $i$
+for a given supernova. Instead it means that there is no uncertainty
+due to the finite simulation size. Whatever \tardis{} spits out
+depends on the physics assumptions coded up in \tardis{} and there can
+still be systematic shifts.
 
+Putting together equations~\refeq{like-L}--\refeq{no-expl-L}, the
+likelihood is
+\begin{align}
+  \label{eq:like-summary}
+  \likelihood(\vecth) \propto \int \rmdx{\vecL} \prod_{i=1}^{n_b}
+  \gaussian\given{\Lumi}{\mu_i, \sigma_i^2} P\given{\vecL}{\vecth}
+\end{align}
 To complete the specification of the likelihood, we need to formulate
 $P\given{\vecL}{\vecth}$; i.e., what we learn about the luminosities
 in each bin from \tardis. A simplified account of how \tardis{} is run
