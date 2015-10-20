@@ -1,0 +1,153 @@
+\documentclass[a4,12pt]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[proportional]{libertine}
+\usepackage[libertine]{newtxmath}
+
+% Import the natbib package and sets a bibliography  and citation styles
+\usepackage[numbers]{natbib}
+\bibliographystyle{plainnat}
+% \setcitestyle{numbers}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{paralist}
+\usepackage{xcolor}
+
+%%% math
+\newcommand{\betap}{\ensuremath{\beta^\prime}}
+\newcommand{\data}{\ensuremath{\mathcal{D}}}
+\newcommand{\expin}{\ensuremath{\lbrace\mu_i, \sigma_i\rbrace}}
+\DeclareMathOperator{\Dirichlet}{Dirichlet}
+\newcommand{\given}[2]{\ensuremath{(#1 | #2)}}
+\newcommand{\gaussian}{\ensuremath{\mathcal{N}}}
+\newcommand{\genbetapr}{\ensuremath{\mathrm{GenBetaPrime}}}
+\newcommand{\likelihood}{\ensuremath{\mathcal{L}}}
+\newcommand{\lumi}{\ensuremath{\ell_i}}
+\newcommand{\Lumi}{\ensuremath{L_i}}
+\newcommand{\real}{\ensuremath{{\rm real}}}
+\newcommand{\virt}{\ensuremath{{\rm virt}}}
+\newcommand{\Nreal}{\ensuremath{N_\real}}
+\newcommand{\Nvirt}{\ensuremath{N_\virt}}
+\newcommand{\poisson}{\ensuremath{\mathrm{Poisson}}}
+\newcommand{\rmdx}[1]{\mbox{d} #1 \,} % differential
+
+\renewcommand{\vec}[1]{\boldsymbol{#1}}
+\newcommand{\vecalpha}{\ensuremath{\vec{\alpha}}}
+\newcommand{\vecL}{\ensuremath{\vec{L}}}
+\newcommand{\vecmu}{\ensuremath{\vec{\mu}}}
+\newcommand{\vecnu}{\ensuremath{\vec{\nu}}}
+\newcommand{\vecth}{\ensuremath{{\vec{\theta}}}}
+\newcommand{\vecu}{\ensuremath{{\vec{u}}}}
+
+
+\DeclareMathOperator{\erf}{erf}
+\newcommand{\mui}{\mu_i}
+% \newcommand{\Ni}{N_i}
+% \newcommand{\ni}{n_i}
+\newcommand{\sigi}{\sigma_i^2}
+\DeclareMathOperator{\sgn}{sgn}
+\newcommand{\El}{E[l]}
+\newcommand{\Vl}{V[l]}
+
+%%% refs
+\def \refeq#1{(\ref{eq:#1})}
+\def \refsec#1{sec.~\ref{sec:#1}}
+\def \refapp#1{app.~\ref{#1}}
+\def \reffig#1{fig.~\ref{fig:#1}}
+
+%%% comments
+\newcommand{\todo}[1]{{\textsc{\color{red}#1}}}
+
+%%% codes
+\newcommand{\tardis}{TARDIS}
+
+\title{Incorporating simulation uncertainty}
+\author{Frederik Beaujean}
+
+\begin{document}
+\maketitle
+
+\noindent
+\emph{I here try to formulate the problem in a way that abstracts
+  nearly all the physics. Discussing with you helped a lot and I think
+  I straightened it out now. I work with the supernova experts at the
+  ESO and I am responsible for the statistics part.}
+
+\section*{Overview}
+My goal is to do a fit comparing a luminosity spectrum obtained from a
+telescope to the model prediction. The spectrum describes the
+intensity of light of various wavelenghts emitted by a distant
+supernova. Our parameters of interest $\vecth$ include the abundance
+of various elements produced during the supernova explosion. These
+elements produce dips and other absorption features in the
+spectrum.
+
+The main difficulty is that I cannot compute the luminosity
+$L(\vecth)$ directly. I have to start an expensive simulation to
+compute the spectrum for the $\sim 2000$ bins. The simulation is
+multithreaded and takes about 100s for a single evaluation on the
+16-core machines at our C2PAP compute cluster. I was told that some
+parts are not trivially parallel so it doesn't make much sense to
+scale the simulation to multiple machines. Our simulation is a much
+simplified version of a full-blown code that takes weeks on hundreds
+of cores. Ultimately our simulation propagates $N$ photons through the
+supernova. The simulation uncertainty on $L$ would tend to zero for $N
+\to \infty$. But we can only afford $N \approx 40000$.
+
+It seems to me this is a general problem a lot of people have so I
+searched for a Bayesian solution but found only some frequentist
+recipes that require a lot of simulated photons in each wavelenght
+bin. But I want to be able to treat the case with low counts as well.
+
+\section*{Statistical model}
+
+Bayes' theorem
+
+\begin{align}
+  P\given{\vecth}{\data} \propto P\given{\data}{\vecth} P(\vecth)
+\end{align}
+For most of $\vecth$ we have relevant prior information but I won't
+discuss $P(\vecth)$ further. Regarding $P\given{\data}{\vecth}$, I
+have to state that we don't have the actual data $\data$, that is the
+counts etc. We only get the likelihood as a function of $L$,
+$P\given{\data}{L}$.
+
+In our model, the true luminosity is a given function $f(\vecth)$ that
+we cannot evaluate. But for a given random-number seed $\xi$, our
+simulation represented by $g(\vecth, \xi)$ yields an estimator of
+$L$. I want to marginalize over $\xi$ to take into account the
+uncertainty from the simulation.
+\begin{align}
+  \label{eq:xi-int}
+  P\given{\data}{\vecth} = \int \rmdx{\xi}  P(\xi) P\given{\data}{\vecth, \xi}
+\end{align}
+Formally I change variables from $\xi$ to $L=g(\vecth, \xi)$ for fixed $\vecth$
+\begin{align}
+  P\given{\data}{\vecth} = \int \rmdx{L} \left(\frac{\rmdx{g(\vecth, \xi)}}{\rmdx{\xi}} \right)^{-1} P(\xi(L)) P\given{\data}{\vecth, L}
+\end{align}
+Now I combine the first terms as a distribution over $L$ for fixed
+$\vecth$ and I use the fact that $P\given{\data}{\vecth, L}$ doesn't
+explicitly depend on $\vecth$ to obtain the final expression
+\begin{align}
+  \label{eq:L-int}
+  P\given{\data}{\vecth} = \int \rmdx{L} P(L| \vecth) P\given{\data}{L}
+\end{align}
+I can incorporate the distribution from the telescope
+$P\given{\data}{L}$ but now I need to account for the uncertainty from
+the simulation through $P(L|\vecth)$. For $N \to \infty$, $P(L| \vecth) \to \delta(L -
+L(\vecth))$.
+
+What is won?  but A naive approach would be to approximate
+\refeq{xi-int} by repeating the simulation for many $\xi$ but that's
+expensive and we want to avoid it. Instead, I want to put in my
+knowledge about the simulation to get an approximation for $P(L|
+\vecth)$ to either solve \refeq{L-int} analytically or by 1D
+quadrature which is much faster because both distributions under the
+integral sign are assumed much faster to evaluate than $g(\vecth,
+\xi)$.
+
+\end{document}
