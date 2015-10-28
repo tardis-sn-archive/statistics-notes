@@ -53,8 +53,7 @@
 
 %%% refs
 \def \refeq#1{(\ref{eq:#1})}
-\def \refsec#1{sec.~\ref{#1}}
-\def \refSec#1{Sec.~\ref{#1}}
+\def \refsec#1{sec.~\ref{sec:#1}}
 \def \refapp#1{app.~\ref{#1}}
 \def \reffig#1{fig.~\ref{fig:#1}}
 
@@ -70,21 +69,24 @@
 \begin{document}
 \maketitle
 
-\section{Input and Output}
+\section{Overview}
+
+\subsubsection*{Notation}
+I try to be consistent with standard notation in statistics and
+denote random variables by capital letters and numbers that are
+observed by lower case.
 
 \subsubsection*{What we are given}
 \begin{itemize}
-\item data $\data \sim \expin =$ set of input values from
-  telescope for each frequency bin $i=1 \dots n_b$;
+  \item $\expin =$ the set of input values from the telescope for each
+  frequency bin $i=1 \dots n_b$. For the interpretation, see below in
+  \refsec{likelihood}.
 \item \tardis{} depends on the parameters $\vecth$ and
   produces $n_\real$ real photon packets that leave the supernova and
   $n_\virt$ virtual photon packets. When we bin the packets in the same
   frequency bins as \expin, the sum of luminosities in bin $i$ is
   $\lumi^\real$ and $\lumi^\virt$.
 \end{itemize}
-I try to be mostly consistent with standard notation in statistics and
-denote random variables---eventually they will be integrated out---by
-capital letters and numbers that are observed by lower case.
 
 \subsubsection*{What we want}
 The posterior distribution of $\vecth$ given the data $\data$,
@@ -115,7 +117,7 @@ prior $P(\vecth)$ in
 %   \label{eq:post}
 %   P(\vecth | \mathcal{D}) &\propto P(\mathcal{D} | \vecth) P_0(\vecth)
 % \end{align}
-\section{Likelihood}
+\section{Likelihood}\label{sec:likelihood}
 
 \subsubsection*{Goals}
 \begin{itemize}
@@ -324,7 +326,8 @@ Given the KDE estimate, we could compute the distribution for the sum
 of two variables as the convolution
 \begin{align}
   \label{eq:sum-of-2}
-  P(\Lumi | N_i=2, \vecth) = \int \rmdx{l} P(\Lumi -l | N_i=1, \vecth) P(l | N_i=1, \vecth).
+  P(\Lumi | N_i=2, \vecth) = \int \rmdx{l} P(\Lumi -l | N_i=1, \vecth) P(l | N_i=1, \
+vecth).
 \end{align}
 For $N_i =k$, we would repeat the procedure convoluting $P(\cdot |
 N_i=k-1, \vecth)$ and $P(\Lumi | N_i=1, \vecth)$ and each time we
