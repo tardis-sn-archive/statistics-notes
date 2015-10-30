@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 from likelihood import *
+from mixture import *
 
 from matplotlib import pyplot as plt
 import numpy as np
@@ -63,15 +64,14 @@ def test_expand_bin():
 
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def hdf5():
     import h5py
-    print("hdf5 called")
     f = h5py.File("real_tardis_250.h5", 'r')
     return f
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def single_run(hdf5):
     # read in a single run
     run = 9
@@ -165,5 +165,17 @@ def test_prob_L_given_theta(single_run):
     prob_L_given_theta(L, single_run.energies, imin, imax, eps=1e-5)
 
 
+def test_interpolator(single_run):
+    samples = single_run.energies[5000:8000]
+    p = PypmcInterpolator(samples, k=23, iterations=500, verbose=True)
+    x = np.linspace(0.97 * samples.min(), 1.03 * samples.max(), 400)
+    y = np.exp(p(x))
+    print((samples.mean(), samples.var(), samples.std()))
+    print(p.mixture.components[0].sigma)
 
+
+    plt.clf()
+    plt.hist(samples, bins=50, normed=True, color='grey', alpha=0.3)
+    plt.plot(x, y)
+    plt.savefig("mixture_test2.pdf")
 
