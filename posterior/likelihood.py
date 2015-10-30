@@ -2,6 +2,9 @@ from astropy.modeling import Model, Parameter
 import math
 import numpy as np
 from scipy.special import gammaln
+from scipy.stats import gaussian_kde
+from scipy.stats import norm as gaussian
+
 
 
 '''
@@ -17,14 +20,14 @@ def log_pochhammer(a, b):
     return gammaln(a+b) - gammaln(a)
 
 
-def log_poisson_posterior_predictive(N, n):
+def poisson_posterior_predictive(N, n):
     '''
     Poisson posterior predictive probability distribution to observe ``N`` given ``n`` on the log scale.
 
     A Jeffrey's prior is assumed for the rate parameter. The derivation is given in arXiv:1112.2593
     '''
-    return log_pochhammer(N + n + 1, N + n) - log_pochhammer(n + 1, n) \
-           - (3 * N + n + 0.5) * math.log(2) - gammaln(N + 1)
+    return math.exp(log_pochhammer(N + n + 1, N + n) - log_pochhammer(n + 1, n) \
+           - (3 * N + n + 0.5) * math.log(2) - gammaln(N + 1))
 
 
 def binary_search_min(data, key, low=None, high=None):
@@ -59,7 +62,7 @@ def binary_search_min(data, key, low=None, high=None):
 
 def binary_search_max(data, key, low=None, high=None):
     '''
-    Find the index of the largest element in ``data`` that is <= ``key``.
+    Find the index of the first element in ``data`` that is > ``key``.
     '''
 
     # update low and high until element found
@@ -87,6 +90,62 @@ def binary_search_max(data, key, low=None, high=None):
     return low
 
 
+def binary_search_min_max(data, minkey, maxkey, low=None, high=None):
+    '''
+    Find the indices of the smallest element exceeding ``minkey`` and of the
+    first element exceeding ``maxkey``.
+
+    :param data:
+    :param minkey:
+    :param maxkey:
+    :param low:
+    :param high:
+    :return:
+    '''
+    imin = binary_search_min(data, minkey, low, high)
+    imax = binary_search_max(data, maxkey, imin, high)
+    return (imin, imax)
+
+
+def expand_bin(N, imin, imax, K):
+    '''
+    Expand bin defined by lower index ``imin`` and upper index ``imax``
+    to contain ``N`` elements. The indices range from 0 to K.
+
+    Attempt to add elements symmetrically on either side. This stops once a
+    boundary is hit. If ``len(data) < N``, less element are in the expanded bin.
+
+    :param K: 1D data
+    :param imin:
+    :param imax:
+    :param N:
+    :return: tuple (jmin, jmax)
+    '''
+    assert imin >= 0
+    assert imax >= imin
+    assert imax <= K
+    assert N >= 0
+    assert K >= 0
+
+    # combine less elements if data not long enough
+    N = min(N, K)
+
+    # elements already in
+    n = imax - imin
+
+    # grow to the left first, try to add rest of needed elements, then
+    # repeat on the right. If not enough, add more to the left
+    jmultimin = max(0, imin - (N - n) // 2)
+    jmultimax = min(K, imax + (N - (imax - jmultimin)))
+    missing = N- (jmultimax - jmultimin)
+    if missing > 0:
+        jmultimin = max(0, jmultimin - missing)
+
+    assert jmultimax - jmultimin == N
+
+    return (jmultimin, jmultimax)
+
+
 def bin_indices(flux, data):
     '''
 
@@ -96,7 +155,7 @@ def bin_indices(flux, data):
     '''
     pass
 
-def prob_L_given_N(L, N, lsamples):
+def prob_L_given_N_empirical(N, lsamples):
     '''
     Approximate probability of luminosity ``L`` from generating sums of ``N`` samples
     from ``lsamples`` and interpolating the probability density through Gaussian kernel
@@ -111,53 +170,101 @@ def prob_L_given_N(L, N, lsamples):
     '''
 
     # todo move loop to cython/C
-    # generate the samples of sums of N
-    Nsamples = np.array(len(lsamples) // N, dtype=lsamples.dtype)
-    for i in range(len(Nsamples)):
-        Nsamples[i] = lsamples[i:i+N].sum()
+    summed_samples = np.empty(len(lsamples) // N, dtype=lsamples.dtype)
+    assert len(summed_samples) > 1, "Need more than one sample for KDE"
+    for i in range(len(summed_samples)):
+        summed_samples[i] = lsamples[i:i+N].sum()
 
-    
+    return gaussian_kde(summed_samples, bw_method='scott')
 
-def prob_L_given_theta(L, nu, lsamples, imin, imax, nmultibin=1000):
+def prob_L_given_N(N, lsamples, mean, variance, N_critical=10):
+    '''
+    Redirector to prob_L_given_N_empirical or prob_L_given_N_CLT depending on ``N``.
+
+    '''
+
+    assert N > 0
+
+    if N >= N_critical:
+        return gaussian(N * mean, math.sqrt(N * variance)).pdf
+    else:
+        kde = prob_L_given_N_empirical(N, lsamples)
+        return lambda L: kde(L)[0] if np.isscalar(L) else kde(L)
+
+
+def prob_L_given_theta(L, lsamples, imin, imax, nsum=400, eps=1e-3):
     '''P(L|\theta) estimated from a single tardis simulation
     for a single bin.
 
     :param L: Luminosity (scalar)
-    :param nu: Array of packet frequencies from tardis
     :param lsamples: Array of packet luminosities from tardis
     :param imin: index of first packet in the frequency bin
     :param imax: index of one-past-the-last element in the frequency bin
-    :return: probability on the log scale
+    :param nsum: number of samples used for KDE interpolation
+    :param eps: Relative precision. The contribution for different possible
+           number of packets observed is truncated when its contribution to
+           the total probability is estimated to be less than ``eps``.
+    :return: probability
     '''
 
     # number of simulated packets and sum of luminosities in the bin i
     ni = imax - imin
     li = lsamples[imin:imax].sum()
 
-    # obtain multibin of luminosities n
+    # obtain multibin of luminosities
     # make it large enough to accurately estimate the distribution
-    # grow to the left first, try to add rest of needed elements, then
-    # repeat on the right. If not enough, add more to the left
-    nmultibin = min(nmultibin, len(nu))
-    jmultimin = max(0, imin - (nmultibin - ni) // 2)
-    jmultimax = min(len(nu), imax + (nmultibin - (imax - jmultimin)))
-    missing = jmultimax - jmultimin
-    if missing > 0:
-        jmultimin = max(0, jmultimin - missing)
-
-    assert jmultimax-jmultimin == nmultibin
+    jmultimin, jmultimax = expand_bin(nsum, imin, imax, len(lsamples))
     lmultibin = lsamples[jmultimin:jmultimax]
 
     # sample mean and standard deviation
-    mean, sigma = np.mean(lmultibin), np.std(lmultibin)
+    mean, variance = np.mean(lmultibin), np.var(lmultibin)
 
     # approximate the sum over N, the number of packets one could have seen:
     # 1. Start with N=n, this should be the biggest single contribution
-    # 2. Then expand to left and right and add up terms until contribution negligible
+    # 2. Then expand to left and right, add up terms until negligible
     # 3. If N large enough, use central limit theorem
-    log_probN = log_poisson_posterior_predictive(ni, ni)
-    res = log_probN + prob_L_given_N(L, N, lmultibin, mean, sigma)
+    prob_N_up = poisson_posterior_predictive(ni, ni)
+    prob_N_down = prob_N_up
+    res = prob_N_up * prob_L_given_N(ni, lmultibin, mean, variance)(L)
+    go_up = True
+    go_down = True if ni > 1 else False
+    N_up, N_down = ni, ni
 
+    while go_up or go_down:
+        # store contribution of this expansion
+        contrib = 0
+
+        if go_up:
+            # posterior predictive P(N+1|n)/P(N|n) = [2(N+n)+1] / [4 (N+1)]
+            prob_N_up *= (2. * (N_up + ni) + 1) / (4 * (N_up + 1))
+
+            N_up += 1
+            contrib += prob_N_up * prob_L_given_N(N_up, lsamples, mean, variance)(L)
+
+        if go_down:
+            # lowest contribution is from N=1. For N=0 packets, there is
+            # definitely no contribution to the luminosity
+            if N_down == 2:
+                go_down = False
+            # posterior predictive ratio P(N+1|n)/P(N|n) = 4N / [2(N+n)-1]
+            prob_N_down *= (4. * N_down) / (2 * (N_down + ni) - 1)
+
+            N_down -= 1
+            contrib += prob_N_down * prob_L_given_N(N_down, lsamples, mean, variance)(L)
+
+        print("N_up: %d, N_down: %d, res: %g, contrib: %g" %
+              (N_up, N_down, res, contrib))
+
+        # compare contribution and quit
+        if contrib / res < eps:
+            go_down = go_up = False
+
+        assert N_up < 2 * ni
+
+        # always use known contribution
+        res += contrib
+
+    return res
 
 class TARDISBayesianLogLikelihood(Model):
     inputs = ('packet_nu', 'packet_energies')
@@ -175,11 +282,15 @@ class TARDISBayesianLogLikelihood(Model):
         packet_nu = packet_nu[indices]
         packet_energies = packet_energies[indices]
 
+        # log(likelihood)
+        ll = 0
+
+        # todo run in parallel?
         # divide into bins
 
         # todo run in parallel?
         # compute log likelihood for each bin
         for b in bins:
-            prob_L_given_theta(L, packet_nu, packet_energies, b[0], b[1])
+            ll += math.log(prob_L_given_theta(L, packet_nu, packet_energies, b[0], b[1]))
 
-         return 5
+        return ll
