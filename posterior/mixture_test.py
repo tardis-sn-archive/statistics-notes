@@ -11,7 +11,7 @@ samples = np.array([  1.40707615,   1.37031156,   1.42174433,
          1.41321387,   1.38457203])
 
 def test_interpolator():
-    p = PypmcInterpolator(samples, k=1, iterations=500, verbose=True)
+    p = PypmcInterpolator(samples, k=5, iterations=500, verbose=True)
     x = np.linspace(0.9 * samples.min(), 1.1 * samples.max(), 100)
     y = np.exp(p(x))
     print((samples.mean(), samples.var(), samples.std()))

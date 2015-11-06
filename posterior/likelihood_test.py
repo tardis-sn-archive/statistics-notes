@@ -167,10 +167,12 @@ def test_prob_L_given_theta(single_run):
 
 def test_interpolator(single_run):
     samples = single_run.energies[5000:8000]
-    p = PypmcInterpolator(samples, k=23, iterations=500, verbose=True)
+    print('mean', samples.mean(), 'variance', samples.var())
+    print('skew', scipy.stats.skew(samples), 'kurtosis', scipy.stats.kurtosis(samples, fisher=False))
+    return
+    p = PypmcInterpolator(samples, k=3, iterations=500, verbose=True)
     x = np.linspace(0.97 * samples.min(), 1.03 * samples.max(), 400)
     y = np.exp(p(x))
-    print((samples.mean(), samples.var(), samples.std()))
     print(p.mixture.components[0].sigma)
 
 
@@ -178,4 +180,22 @@ def test_interpolator(single_run):
     plt.hist(samples, bins=50, normed=True, color='grey', alpha=0.3)
     plt.plot(x, y)
     plt.savefig("mixture_test2.pdf")
+
+
+def test_max_likelihood(single_run):
+    samples = single_run.energies[5000:5005]
+    plt.clf()
+    plt.hist(samples, bins=50, histtype='stepfilled', alpha=0.5, color='grey')
+
+
+    initial_guess = [1.02 * samples.max(), 0.5, 0.5, 0.5]
+    optim = amoroso_max_likelihood(samples, invert=True)
+    print(optim)
+    print("Crooks:", lawless_to_crooks(*optim.x))
+
+    plt.savefig("max_likelihood.pdf")
+
+
+
+
 

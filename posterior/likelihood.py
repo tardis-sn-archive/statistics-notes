@@ -1,11 +1,11 @@
 from astropy.modeling import Model, Parameter
 import math
+from math import log
 import numpy as np
+import scipy
 from scipy.special import gammaln
 from scipy.stats import gaussian_kde
 from scipy.stats import norm as gaussian
-
-
 
 '''
 Implement likelihood that estimates uncertainty due to tardis simulation
@@ -265,6 +265,79 @@ def prob_L_given_theta(L, lsamples, imin, imax, nsum=400, eps=1e-3):
         res += contrib
 
     return res
+
+def amoroso_log_likelihood(parameters, samples, invert=False):#samples, a, mu, sigma, l):
+    '''
+    -log(likelihood) if all ``samples`` follow an Amoroso distribution in the
+    Lawless parametrization.
+
+    :param parameters: a, mu, sigma, l
+    :param samples: the samples
+
+    :return: log(likelihood), gradient
+    '''
+    a, mu, sigma, l = parameters
+
+    N = len(samples)
+    lsqinv = l**2
+    # scalar
+    res = log(math.fabs(l) / sigma) - gammaln(lsqinv) - mu / (l * sigma) + lsqinv * log(lsqinv)
+    res *= N
+
+    # invert the centering if ``a`` is the maximum instead of a minimum
+    # vector like
+    centered = np.log(a - samples) if invert else np.log(samples - a)
+
+    tmp = np.isnan(centered)
+    if tmp.any():
+        raise ValueError("Encountered nan in centered samples at" +
+                         str(np.where(tmp)[0]))
+
+    v = centered.copy()
+    v *= (1.0 - 1.0 / (l * sigma))
+    tmp = np.exp(-l / sigma * centered)
+    v += (lsqinv * math.exp(l * mu / sigma)) * tmp
+
+    res -= v.sum()
+
+    # invert log(likelihood)
+    return -res #, gradient
+
+def amoroso_max_likelihood(samples, initial_guess=None, invert=None):
+    '''
+    Extract the four parameters of an Amoroso distribution through maximum
+    likelihood.
+
+    The usual parametrization is that of Crooks, `Survey of simple
+    continuous, univariate probability distributions` (2014). But internally,
+    the parametrization due to Lawless is used to improve convergence and the
+    values in that parametrization are returned.
+
+    :param samples: 1D samples
+    :return: (a, mu, sigma, lambda)
+    '''
+    # todo compute sample_moments and solve to get first estimate
+    if initial_guess is None:
+        initial_guess = [samples.max(), 0.5, 0.5, 0.5]
+
+    bounds = [(None, 1.05 * samples.max()),
+              (None, None),
+              (None, None),
+              (0, None)]
+
+    return scipy.optimize.minimize(amoroso_log_likelihood, initial_guess,
+                                   args=(samples, invert),
+                                   bounds=bounds, options=dict(disp=True))
+
+
+def lawless_to_crooks(a, mu, sigma, l):
+    '''Convert the Amoroso parameters from the Lawless to the Crooks
+    parametrization.
+
+    :return: (a, theta, alpha, beta)
+    '''
+    return a, math.exp(mu + sigma / l * math.log(l**2)), 1.0 / l**2, l / sigma
+
 
 class TARDISBayesianLogLikelihood(Model):
     inputs = ('packet_nu', 'packet_energies')
