@@ -303,6 +303,7 @@ def amoroso_log_likelihood(parameters, samples, invert=False):#samples, a, mu, s
     # invert log(likelihood)
     return -res #, gradient
 
+
 def amoroso_max_likelihood(samples, initial_guess=None, invert=None):
     '''
     Extract the four parameters of an Amoroso distribution through maximum
@@ -328,6 +329,57 @@ def amoroso_max_likelihood(samples, initial_guess=None, invert=None):
     return scipy.optimize.minimize(amoroso_log_likelihood, initial_guess,
                                    args=(samples, invert),
                                    bounds=bounds, options=dict(disp=True))
+
+
+def alpha_mu_log_likelihood(parameters, samples, invert=False, max=None):
+    a, alpha, mu, rhat = parameters
+    # print(parameters)
+
+    if a < max or alpha <= 0.0 or mu <= 0 or rhat <= 0:
+        return np.inf
+
+    # data-independent part
+    res = log(alpha) + mu * log(mu) - alpha * mu * log(rhat) - gammaln(mu)
+    res *= len(samples)
+
+    centered = a - samples if invert else samples - a
+    tmp = np.isnan(centered)
+    if tmp.any():
+        raise ValueError("Encountered nan in centered samples at" +
+                         str(np.where(tmp)[0]))
+
+    res += (alpha * mu - 1) * np.log(centered).sum()
+
+    res -= mu / math.pow(rhat, alpha) * np.power(centered, alpha).sum()
+
+    return -res
+
+
+def alpha_mu_max_likelihood(samples, initial_guess=None, invert=None):
+    '''
+    Extract the four parameters of an alpha-mu distribution through maximum
+    likelihood.
+
+    Follow Benevides da Costa, Yacoub and Silveira Santos Filho (2008) and
+    add the additional location parameter ``a``.
+
+    :param samples: 1D samples
+    :return: (a, alpha, mu, rhat)
+    '''
+    #
+    if initial_guess is None:
+        initial_guess = [1.01 * samples.max(), 1.1, 1.03, samples.std()]
+
+    bounds = [(None, 1.05 * samples.max()),
+              (0, None),
+              (0, None),
+              (0, None)]
+
+    return scipy.optimize.minimize(alpha_mu_log_likelihood, initial_guess,
+                                   args=(samples, invert, samples.max()),
+                                   bounds=bounds,
+                                   method="Powell", options=dict(disp=True))
+
 
 
 def lawless_to_crooks(a, mu, sigma, l):

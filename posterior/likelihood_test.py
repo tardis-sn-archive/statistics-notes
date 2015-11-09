@@ -183,15 +183,20 @@ def test_interpolator(single_run):
 
 
 def test_max_likelihood(single_run):
-    samples = single_run.energies[5000:5005]
+    samples = single_run.energies[5000:5400]
+    # normalized for easier numerics
+    samples *= 1e-38
+
     plt.clf()
     plt.hist(samples, bins=50, histtype='stepfilled', alpha=0.5, color='grey')
 
-
-    initial_guess = [1.02 * samples.max(), 0.5, 0.5, 0.5]
-    optim = amoroso_max_likelihood(samples, invert=True)
+    optim = alpha_mu_max_likelihood(samples, invert=True)
     print(optim)
-    print("Crooks:", lawless_to_crooks(*optim.x))
+
+    # initial_guess = [1.02 * samples.max(), 0.5, 0.5, 0.5]
+    # optim = amoroso_max_likelihood(samples, invert=True)
+    # print(optim)
+    # print("Crooks:", lawless_to_crooks(*optim.x))
 
     plt.savefig("max_likelihood.pdf")
 
