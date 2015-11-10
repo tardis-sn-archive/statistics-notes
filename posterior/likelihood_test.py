@@ -166,19 +166,34 @@ def test_prob_L_given_theta(single_run):
 
 
 def test_interpolator(single_run):
-    samples = single_run.energies[5000:8000]
+    samples = single_run.energies[5000:5005]
+    scale = 1e38
+    samples /= scale
+
     print('mean', samples.mean(), 'variance', samples.var())
     print('skew', scipy.stats.skew(samples), 'kurtosis', scipy.stats.kurtosis(samples, fisher=False))
-    return
-    p = PypmcInterpolator(samples, k=3, iterations=500, verbose=True)
-    x = np.linspace(0.97 * samples.min(), 1.03 * samples.max(), 400)
-    y = np.exp(p(x))
-    print(p.mixture.components[0].sigma)
+
+    # p = PypmcInterpolator(samples, k=3, iterations=500, verbose=True)
+    x = np.linspace(0.95 * samples.min(), 1.05 * samples.max(), 400)
+    # y = np.exp(p(x))
+    # print(p.mixture.components[0].sigma)
 
 
     plt.clf()
-    plt.hist(samples, bins=50, normed=True, color='grey', alpha=0.3)
+    plt.hist(samples, bins=50, histtype='stepfilled',
+             normed=True, color='grey', alpha=0.3)
+    # plt.plot(x, y)
+    optim = alpha_mu_max_likelihood(samples)
+    print(optim.x)
+    a, alpha, mu, rhat = optim.x
+    y = [alpha_mu(xi, alpha, mu, rhat, a=a) for xi in x]
+
+    # x = np.linspace(1e-3, 2-1e-3, 400)
+    # y = [alpha_mu(xi, 7./4., 5, -1, a=2) for xi in x]
+    # plt.clf()
+
     plt.plot(x, y)
+
     plt.savefig("mixture_test2.pdf")
 
 
@@ -192,6 +207,8 @@ def test_max_likelihood(single_run):
 
     optim = alpha_mu_max_likelihood(samples, invert=True)
     print(optim)
+
+
 
     # initial_guess = [1.02 * samples.max(), 0.5, 0.5, 0.5]
     # optim = amoroso_max_likelihood(samples, invert=True)

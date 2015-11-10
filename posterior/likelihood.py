@@ -331,29 +331,39 @@ def amoroso_max_likelihood(samples, initial_guess=None, invert=None):
                                    bounds=bounds, options=dict(disp=True))
 
 
-def alpha_mu_log_likelihood(parameters, samples, invert=False, max=None):
+def alpha_mu_log_likelihood(parameters, samples, max=None):
+    '''negative log likelihood because scipy wants to minimize'''
     a, alpha, mu, rhat = parameters
-    # print(parameters)
 
-    if a < max or alpha <= 0.0 or mu <= 0 or rhat <= 0:
+    if a < max or alpha <= 0.0 or mu <= 0:
         return np.inf
 
     # data-independent part
-    res = log(alpha) + mu * log(mu) - alpha * mu * log(rhat) - gammaln(mu)
-    res *= len(samples)
+    res = log(alpha) - gammaln(mu) + mu * log(mu) - log(math.fabs(rhat))
+    if hasattr(samples, 'len'):
+        res *= len(samples)
 
-    centered = a - samples if invert else samples - a
-    tmp = np.isnan(centered)
+    # standardize with location and scale parameter
+    standardized = samples - a
+    standardized /= rhat
+
+    # print(standardized)
+
+    tmp = np.isnan(standardized)
     if tmp.any():
-        raise ValueError("Encountered nan in centered samples at" +
+        raise ValueError("Encountered nan in standardized samples at" +
                          str(np.where(tmp)[0]))
 
-    res += (alpha * mu - 1) * np.log(centered).sum()
+    res += (alpha * mu - 1) * np.log(standardized).sum()
 
-    res -= mu / math.pow(rhat, alpha) * np.power(centered, alpha).sum()
+    res -= mu * np.power(standardized, alpha).sum()
 
+    # negate
     return -res
 
+def alpha_mu(x, alpha, mu, rhat, a=0.0):
+    return np.exp(-alpha_mu_log_likelihood((a, alpha, mu, rhat), x))
+    # return alpha * math.pow(mu, mu) * np.power(x, alpha * mu - 1) / math.pow(rhat, alpha * mu) / math.exp(gammaln(mu)) * np.exp((-mu / math.pow(rhat, alpha)) * np.power(x, alpha))
 
 def alpha_mu_max_likelihood(samples, initial_guess=None, invert=None):
     '''
@@ -364,19 +374,24 @@ def alpha_mu_max_likelihood(samples, initial_guess=None, invert=None):
     add the additional location parameter ``a``.
 
     :param samples: 1D samples
+    :param invert: float; if ``-1``, consider all samples ``<= a``, else
+     all samples `` >= a``.
     :return: (a, alpha, mu, rhat)
     '''
     #
     if initial_guess is None:
         initial_guess = [1.01 * samples.max(), 1.1, 1.03, samples.std()]
+        # for negative skew, use negative scale parameter
+        if scipy.stats.skew(samples) < 0:
+            initial_guess[2] *= -1
 
     bounds = [(None, 1.05 * samples.max()),
-              (0, None),
-              (0, None),
-              (0, None)]
+              (0.0, None),
+              (0.0, None),
+              (0.0, None)]
 
     return scipy.optimize.minimize(alpha_mu_log_likelihood, initial_guess,
-                                   args=(samples, invert, samples.max()),
+                                   args=(samples, samples.max()),
                                    bounds=bounds,
                                    method="Powell", options=dict(disp=True))
 
