@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from astropy.modeling import Model, Parameter
 import math
 from math import log
@@ -331,38 +333,76 @@ def amoroso_max_likelihood(samples, initial_guess=None, invert=None):
                                    bounds=bounds, options=dict(disp=True))
 
 
-def alpha_mu_log_likelihood(parameters, samples, max=None):
+def alpha_mu_moment(k, alpha, mu, rhat=1.0):
+    '''
+    Highly accurate closed-form approximations to the sum of alpha-mu variates and applications, Eq. (2)
+    '''
+    return math.exp(k * log(rhat) + gammaln(mu + k / alpha) - k / alpha * log(mu) - gammaln(mu))
+
+
+def alpha_mu_log_likelihood(parameters, samples, grad=False):
     '''negative log likelihood because scipy wants to minimize'''
     a, alpha, mu, rhat = parameters
+    # print(parameters)
 
-    if a < max or alpha <= 0.0 or mu <= 0:
-        return np.inf
+    gradient = np.zeros(4)
+
+    if grad:
+        error = np.inf, gradient
+    else:
+        error = np.inf
+
+    if alpha <= 1.0 or mu <= 0:
+        return error
 
     # data-independent part
     res = log(alpha) - gammaln(mu) + mu * log(mu) - log(math.fabs(rhat))
+
+    orig_samples = samples
+
+    samples = np.asarray(samples)
+
+    N = 1
     if hasattr(samples, 'len'):
-        res *= len(samples)
+        N = len(samples)
+        res *= N
 
     # standardize with location and scale parameter
     standardized = samples - a
     standardized /= rhat
 
-    # print(standardized)
+    # can't take log of negative number, so stop here
+    if np.isnan(standardized).any():
+        print("returning inf for nan in standardized")
+        return error
 
-    tmp = np.isnan(standardized)
-    if tmp.any():
-        raise ValueError("Encountered nan in standardized samples at" +
-                         str(np.where(tmp)[0]))
+    if (standardized <= 0).any():
+        print("returning inf for negative standardized")
+        # print(samples, a, rhat, standardized)
+        return error
 
+    # add the data-dependent parts
     res += (alpha * mu - 1) * np.log(standardized).sum()
-
     res -= mu * np.power(standardized, alpha).sum()
 
-    # negate
-    return -res
+    if grad:
+        gradient[0] = -(alpha * mu - 1) * (rhat * standardized).sum() \
+                  + alpha * mu / rhat * np.power(standardized, alpha - 1).sum()
+        gradient[1] = N / alpha + mu * np.log(standardized).sum() \
+                  - mu * np.power(standardized, alpha).dot(np.log(standardized))
+        gradient[2] = N * (1.0 + log(mu) + scipy.special.digamma(mu)) \
+                  + alpha * np.log(standardized).sum() - np.power(standardized, alpha).sum()
+        gradient[3] = -N / rhat * alpha * mu + mu * alpha / rhat * standardized.dot(np.power(standardized, alpha - 1))
+
+        return -res, -gradient
+    else:
+        # negate
+        return -res
+
 
 def alpha_mu(x, alpha, mu, rhat, a=0.0):
-    return np.exp(-alpha_mu_log_likelihood((a, alpha, mu, rhat), x))
+    res = alpha_mu_log_likelihood((a, alpha, mu, rhat), x, grad=False)
+    return np.exp(-res)
     # return alpha * math.pow(mu, mu) * np.power(x, alpha * mu - 1) / math.pow(rhat, alpha * mu) / math.exp(gammaln(mu)) * np.exp((-mu / math.pow(rhat, alpha)) * np.power(x, alpha))
 
 def alpha_mu_max_likelihood(samples, initial_guess=None, invert=None):
@@ -380,20 +420,28 @@ def alpha_mu_max_likelihood(samples, initial_guess=None, invert=None):
     '''
     #
     if initial_guess is None:
-        initial_guess = [1.01 * samples.max(), 1.1, 1.03, samples.std()]
+        initial_guess = [1.001 * samples.max(), 1.1, 1.2, samples.std()]
         # for negative skew, use negative scale parameter
         if scipy.stats.skew(samples) < 0:
-            initial_guess[2] *= -1
+            initial_guess[-1] *= -1
 
-    bounds = [(None, 1.05 * samples.max()),
+    bounds = [(None, None),
+              (1.0, None),
               (0.0, None),
-              (0.0, None),
-              (0.0, None)]
+              (0.0, None) if initial_guess[-1] > 0 else (None, 0.0)]
 
-    return scipy.optimize.minimize(alpha_mu_log_likelihood, initial_guess,
-                                   args=(samples, samples.max()),
-                                   bounds=bounds,
-                                   method="Powell", options=dict(disp=True))
+    print("initial guess", initial_guess)
+    # print(bounds)
+    # return
+
+    kwargs = dict(bounds=bounds, jac=True, options=dict(disp=True))
+    # kwargs['method'] = 'L-BFGS-B'; kwargs['options']['factr'] = 10
+    # kwargs['method'] = 'Newton-CG'
+    # kwargs['method'] = 'Powell'
+    # kwargs['method'] = 'CG'
+    # kwargs['method'] = 'COBYLA'; kwargs['options']['rhobeg'] = 0.01 # doesn't stop anymore!
+    kwargs['args'] = (samples, kwargs['jac'])
+    return scipy.optimize.minimize(alpha_mu_log_likelihood, initial_guess, **kwargs)
 
 def alpha_mu_max_likelihood_nlopt(samples):
     import nlopt

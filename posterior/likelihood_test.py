@@ -166,32 +166,29 @@ def test_prob_L_given_theta(single_run):
 
 
 def test_interpolator(single_run):
-    samples = single_run.energies[5000:5005]
+    samples = single_run.energies[5000:6000]
     scale = 1e38
     samples /= scale
 
     print('mean', samples.mean(), 'variance', samples.var())
     print('skew', scipy.stats.skew(samples), 'kurtosis', scipy.stats.kurtosis(samples, fisher=False))
 
-    # p = PypmcInterpolator(samples, k=3, iterations=500, verbose=True)
-    x = np.linspace(0.95 * samples.min(), 1.05 * samples.max(), 400)
-    # y = np.exp(p(x))
-    # print(p.mixture.components[0].sigma)
-
+    x = np.linspace(0.995 * samples.min(), 1.005 * samples.max(), 100)
 
     plt.clf()
     plt.hist(samples, bins=50, histtype='stepfilled',
              normed=True, color='grey', alpha=0.3)
+
+    # need to adjust prior if samples are rescaled by 1e38 because covariance prior too wide (?)
+    # p = PypmcInterpolator(samples, k=3, iterations=500, verbose=True)
+    # y = np.exp(p(x))
+    # print(p.mixture.components[0].sigma)
     # plt.plot(x, y)
+
     optim = alpha_mu_max_likelihood(samples)
-    print(optim.x)
+    print(optim)
     a, alpha, mu, rhat = optim.x
-    y = [alpha_mu(xi, alpha, mu, rhat, a=a) for xi in x]
-
-    # x = np.linspace(1e-3, 2-1e-3, 400)
-    # y = [alpha_mu(xi, 7./4., 5, -1, a=2) for xi in x]
-    # plt.clf()
-
+    y = [alpha_mu(xi, alpha, mu, rhat, a) for xi in x]
     plt.plot(x, y)
 
     plt.savefig("mixture_test2.pdf")
@@ -217,7 +214,17 @@ def test_max_likelihood(single_run):
 
     plt.savefig("max_likelihood.pdf")
 
+def test_alpha_mu():
+    # compare to mathematica output
+    np.testing.assert_approx_equal(alpha_mu(1.2, 1.1, 1.4, 0.4, 0.2), 0.175734, 5)
+    np.testing.assert_approx_equal(alpha_mu(1.38, 1.1, 1.4, -0.02, 1.45), 0.75619, 5)
 
+    plt.figure()
+    x = np.linspace(1e-3, 2-1e-3, 400)
+    y = [alpha_mu(xi, 7./4., 5, -1, a=2) for xi in x]
 
+    plt.plot(x, y)
+    plt.savefig("alpha-mu.pdf")
 
-
+def test_alpha_mu_moments():
+    pass
