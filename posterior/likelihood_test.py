@@ -166,7 +166,7 @@ def test_prob_L_given_theta(single_run):
 
 
 def test_interpolator(single_run):
-    samples = single_run.energies[5000:6000]
+    samples = single_run.energies[5000:5005]
     scale = 1e38
     samples /= scale
 
@@ -187,9 +187,9 @@ def test_interpolator(single_run):
 
     optim = alpha_mu_max_likelihood(samples)
     print(optim)
-    a, alpha, mu, rhat = optim.x
-    y = [alpha_mu(xi, alpha, mu, rhat, a) for xi in x]
-    plt.plot(x, y)
+    # a, alpha, mu, rhat = optim.x
+    # y = [alpha_mu(xi, alpha, mu, rhat, a) for xi in x]
+    # plt.plot(x, y)
 
     plt.savefig("mixture_test2.pdf")
 
@@ -199,13 +199,16 @@ def test_max_likelihood(single_run):
     # normalized for easier numerics
     samples *= 1e-38
 
-    plt.clf()
-    plt.hist(samples, bins=50, histtype='stepfilled', alpha=0.5, color='grey')
+    # plt.clf()
+    # plt.hist(samples, bins=50, histtype='stepfilled', alpha=0.5, color='grey')
+    #
+    optim = alpha_mu_max_likelihood(samples)
+    print(optim)    #
 
-    optim = alpha_mu_max_likelihood(samples, invert=True)
-    print(optim)
-
-
+    # x = np.linspace(1.001, 1.5, 20)
+    # y = [-alpha_mu_log_likelihood([1.45, -0.03, alphai, 1.0], samples) for alphai in x]
+    # plt.clf()
+    # plt.plot(x, y)
 
     # initial_guess = [1.02 * samples.max(), 0.5, 0.5, 0.5]
     # optim = amoroso_max_likelihood(samples, invert=True)
@@ -214,14 +217,24 @@ def test_max_likelihood(single_run):
 
     plt.savefig("max_likelihood.pdf")
 
+def test_amoroso_binned_max_likelihood(single_run):
+
+    samples = single_run.energies[5000:6000]
+    scale = 1e38
+    samples /= scale
+
+    optim = amoroso_binned_max_log_likelihood(samples)
+    print(optim)
+
+
 def test_alpha_mu():
     # compare to mathematica output
     np.testing.assert_approx_equal(alpha_mu(1.2, 1.1, 1.4, 0.4, 0.2), 0.175734, 5)
     np.testing.assert_approx_equal(alpha_mu(1.38, 1.1, 1.4, -0.02, 1.45), 0.75619, 5)
 
     plt.figure()
-    x = np.linspace(1e-3, 2-1e-3, 400)
-    y = [alpha_mu(xi, 7./4., 5, -1, a=2) for xi in x]
+    # x = np.linspace(1e-3, 2-1e-3, 400)
+    # y = [alpha_mu(xi, 7./4., 5, -1, a=2) for xi in x]
 
     plt.plot(x, y)
     plt.savefig("alpha-mu.pdf")

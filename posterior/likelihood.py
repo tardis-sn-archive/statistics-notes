@@ -5,7 +5,7 @@ import math
 from math import log
 import numpy as np
 import scipy
-from scipy.special import gammaln
+from scipy.special import gammaincc, gammaln
 from scipy.stats import gaussian_kde
 from scipy.stats import norm as gaussian
 
@@ -342,32 +342,39 @@ def alpha_mu_moment(k, alpha, mu, rhat=1.0):
 
 def alpha_mu_log_likelihood(parameters, samples, grad=False):
     '''negative log likelihood because scipy wants to minimize'''
-    a, alpha, mu, rhat = parameters
-    # print(parameters)
+    a, rhat, alpha, mu = parameters
 
     gradient = np.zeros(4)
 
     if grad:
-        error = np.inf, gradient
+        error = 1e10, gradient
     else:
-        error = np.inf
+        error = 1e10
 
-    if alpha <= 1.0 or mu <= 0:
+    if alpha < 0.0:
+        print("Returning error for alpha < 1")
+        return error
+
+    if mu <= 0.0:
+        print("Returning error for negative mu")
+        return error
+
+    if rhat == 0.0:
+        print("Returng error for zero rhat")
         return error
 
     # data-independent part
     res = log(alpha) - gammaln(mu) + mu * log(mu) - log(math.fabs(rhat))
 
-    orig_samples = samples
-
     samples = np.asarray(samples)
 
+    # handle scalar and array samples uniformly
     N = 1
     if hasattr(samples, 'len'):
         N = len(samples)
         res *= N
 
-    # standardize with location and scale parameter
+    # standardize with location and scale parameter, negative scale means a is the maximum
     standardized = samples - a
     standardized /= rhat
 
@@ -401,11 +408,11 @@ def alpha_mu_log_likelihood(parameters, samples, grad=False):
 
 
 def alpha_mu(x, alpha, mu, rhat, a=0.0):
-    res = alpha_mu_log_likelihood((a, alpha, mu, rhat), x, grad=False)
+    res = alpha_mu_log_likelihood((a, rhat, alpha, mu), x, grad=False)
     return np.exp(-res)
     # return alpha * math.pow(mu, mu) * np.power(x, alpha * mu - 1) / math.pow(rhat, alpha * mu) / math.exp(gammaln(mu)) * np.exp((-mu / math.pow(rhat, alpha)) * np.power(x, alpha))
 
-def alpha_mu_max_likelihood(samples, initial_guess=None, invert=None):
+def alpha_mu_max_likelihood(samples, initial_guess=None):
     '''
     Extract the four parameters of an alpha-mu distribution through maximum
     likelihood.
@@ -420,24 +427,23 @@ def alpha_mu_max_likelihood(samples, initial_guess=None, invert=None):
     '''
     #
     if initial_guess is None:
-        initial_guess = [1.001 * samples.max(), 1.1, 1.2, samples.std()]
+        initial_guess = [1.005 * samples.max(), 1.5 * samples.std(), 1.7, 2.2]
         # for negative skew, use negative scale parameter
         if scipy.stats.skew(samples) < 0:
-            initial_guess[-1] *= -1
+            initial_guess[1] *= -1
 
     bounds = [(None, None),
+              (0.0, None) if initial_guess[1] > 0 else (None, 0.0),
               (1.0, None),
-              (0.0, None),
-              (0.0, None) if initial_guess[-1] > 0 else (None, 0.0)]
+              (0.0, None)
+              ]
 
     print("initial guess", initial_guess)
-    # print(bounds)
-    # return
 
-    kwargs = dict(bounds=bounds, jac=True, options=dict(disp=True))
-    # kwargs['method'] = 'L-BFGS-B'; kwargs['options']['factr'] = 10
+    kwargs = dict(bounds=bounds, jac=True, options=dict(disp=True, maxiter=100))
+    # kwargs['method'] = 'L-BFGS-B' #; kwargs['options']['factr'] = 10
     # kwargs['method'] = 'Newton-CG'
-    # kwargs['method'] = 'Powell'
+    kwargs['method'] = 'Powell'
     # kwargs['method'] = 'CG'
     # kwargs['method'] = 'COBYLA'; kwargs['options']['rhobeg'] = 0.01 # doesn't stop anymore!
     kwargs['args'] = (samples, kwargs['jac'])
@@ -483,6 +489,127 @@ def lawless_to_crooks(a, mu, sigma, l):
     :return: (a, theta, alpha, beta)
     '''
     return a, math.exp(mu + sigma / l * math.log(l**2)), 1.0 / l**2, l / sigma
+
+def amoroso_cdf(x, parameters):
+    '''Cumulative of the Amoroso at x given parameters (a, theta, alpha, beta)'''
+    a, theta, alpha, beta = parameters
+    z =  (x - a) / theta
+    # avoid NaN
+    if theta < 0:
+        if x >= a:
+            return 1.0
+        else:
+            return gammaincc(alpha, z**beta)
+    else:
+        if x <= a:
+            return 1.0
+        else:
+            return 1 - gammaincc(alpha, z**beta)
+
+counter = 0
+def amoroso_binned_log_likelihood(parameters, bin_edges, bin_counts):
+    '''Poisson fit for an Amoroso distribution with parameters (a, theta, alpha, beta).
+
+    Parameters
+    ----------
+    parameters : array-like
+        values of the Amoros parameters
+    bin_edges : array-like
+        edges of the binned samples. Assume it has (N+1) elements.
+    bin_counts : array-like
+        The number of samples in each bin (N elements).
+
+    '''
+    # print(parameters)
+    a, theta, alpha, beta = parameters
+    if alpha < 0:
+        return np.inf
+        # raise ValueError("Negative alpha: %g" % alpha)
+    if beta < 0:
+        return np.inf
+        # raise ValueError("Negative beta: %g" % beta)
+
+    N = bin_counts.sum()
+    res = 0.0
+    left_cum = amoroso_cdf(bin_edges[0], parameters)
+    for i, (xi, ni) in enumerate(zip(bin_edges[1:], bin_counts)):
+        # probability of ni events in bin i is N x Amoroso prob
+        right_cum = amoroso_cdf(xi, parameters)
+        # print("prob in bin ", i, ":", right_cum - left_cum)
+        res += scipy.stats.poisson.logpmf(ni, N * (right_cum - left_cum))
+        # if math.isnan(res):
+        #     print(ni, N, left_cum, right_cum, a, xi)
+        #     print(bin_edges)
+        #     print(bin_counts)
+        #     raise ValueError("Encountered NaN for parameters" + str(parameters) + " in step %d" % i \
+        #                      + " at %g for a = %g with right cum = %g, logpmf = %g" % (xi, a, right_cum, scipy.stats.poisson.logpmf(ni, N * (right_cum - left_cum))))
+        # remember result for next iteration
+        left_cum = right_cum
+
+    # print("result", res)
+    # can arise if samples >= a. Then the probabibility is zero, or -inf on log scale
+    if math.isnan(res):
+        res = -np.inf
+
+    # negate result for minimization
+    res *= -1.0
+    return res
+
+
+def amoroso_binned_max_log_likelihood(samples, initial_guess=None):
+    if initial_guess is None:
+        initial_guess = np.array([1.005 * samples.max(), samples.std(), 1.1, 1])
+        # for negative skew, use negative scale parameter
+        if scipy.stats.skew(samples) < 0:
+            initial_guess[1] *= -1
+
+    # initial_guess = np.array([ 1.44631991, -0.02302599,  1.370993,    1.00922993])
+    # initial_guess = np.array([ 1.44506214, -0.02157434,  1.28101393,  0.90385331])
+
+    bounds = [(None, None),
+              (0.0, None) if initial_guess[1] > 0 else (None, 0.0),
+              (0, None),
+              (0.0, None)
+              ]
+
+    # bin the data with Bayesian blocks
+    # from astroML.plotting import hist
+    # bin_counts, bin_edges, _ = hist(samples, bins='blocks')
+
+    from matplotlib.pyplot import hist
+    bin_counts, bin_edges, _ = hist(samples, bins=50)
+
+    print()
+    print("initial guess", initial_guess, "f", amoroso_binned_log_likelihood(initial_guess, bin_edges, bin_counts))
+
+    # scipy.optimize
+    # kwargs = dict(bounds=bounds, options=dict(disp=True, maxiter=100),
+    #               method='Powell',
+    #               args=(bin_edges, bin_counts))
+    # return scipy.optimize.minimize(amoroso_binned_log_likelihood, initial_guess, **kwargs)
+
+    # nlopt
+    import nlopt
+
+    # best results with LN_COBYLA, LN_SBPLX, GN_CRS2_LM
+    # not good: LN_BOBYQA, LN_PRAXIS, GN_DIRECT_L, GN_ISRES, GN_ESCH
+    # opt = nlopt.opt(nlopt.GN_CRS2_LM, 4)
+    # opt = nlopt.opt(nlopt.LN_SBPLX, 4)
+    opt = nlopt.opt(nlopt.LN_COBYLA, 4)
+    opt.set_min_objective(lambda x, grad: amoroso_binned_log_likelihood(x, bin_edges, bin_counts))
+
+    opt.set_lower_bounds([0.95 * bin_edges[0], 0.0 if initial_guess[1] > 0.0 else -20.0, 0.0, 0.0])
+    opt.set_upper_bounds([1.05 * bin_edges[-1], 50.0 if initial_guess[1] > 0.0 else 0.0, 10, 10.0])
+
+    tol = 1e-12
+    opt.set_ftol_abs(tol)
+    opt.set_xtol_rel(math.sqrt(tol))
+    opt.set_maxeval(1500)
+
+    xopt = opt.optimize(initial_guess)
+    fmin = opt.last_optimum_value()
+
+    print("Mode", repr(xopt), ", min. f =", fmin)
 
 
 class TARDISBayesianLogLikelihood(Model):
