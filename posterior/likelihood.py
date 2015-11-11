@@ -395,6 +395,37 @@ def alpha_mu_max_likelihood(samples, initial_guess=None, invert=None):
                                    bounds=bounds,
                                    method="Powell", options=dict(disp=True))
 
+def alpha_mu_max_likelihood_nlopt(samples):
+    import nlopt
+
+    opt = nlopt.opt(nlopt.LN_BOBYQA, 4)
+    opt.set_max_objective(lambda x, grad: alpha_mu_log_likelihood(x, samples))
+
+
+    bounds_low  = [v[0]  for v in f.values]
+    bounds_high = [v[-1] for v in f.values]
+
+    m = samples.max()
+    std = samples.std()
+    skew = scipy.stats.skew(samples)
+    opt.set_lower_bounds([m, 0, 0, 10 * std if skew < 0 else 0])
+    opt.set_upper_bounds([1.05 * m, 20, 20, 0 if skew < 0 else 10 * std])
+
+    tol = 1e-12
+    opt.set_ftol_abs(tol)
+    opt.set_xtol_rel(sqrt(tol))
+    opt.set_maxeval(1000)
+
+    if initial_guess is None:
+        initial_guess = np.array([1.01 * m, 1.1, 1.03, std])
+        # for negative skew, use negative scale parameter
+        if skew < 0:
+            initial_guess[2] *= -1
+
+    xopt = opt.optimize(initial_guess)
+    fmin = opt.last_optimum_value()
+
+    print(" Found", xopt, ", min. f =", fmin, "reached after")
 
 
 def lawless_to_crooks(a, mu, sigma, l):
