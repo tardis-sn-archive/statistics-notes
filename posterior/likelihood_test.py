@@ -74,7 +74,7 @@ def hdf5():
 @pytest.fixture(scope="session")
 def single_run(hdf5):
     # read in a single run
-    run = 9
+    run = 7
     energies = hdf5["/energies"][run]
     nus = hdf5["/nus"][run]
 
@@ -195,32 +195,50 @@ def test_interpolator(single_run):
 
 
 def test_max_likelihood(single_run):
-    samples = single_run.energies[5000:5400]
+    i = 70000
+    samples = single_run.energies[55000:55030]
     # normalized for easier numerics
     samples *= 1e-38
 
-    # plt.clf()
-    # plt.hist(samples, bins=50, histtype='stepfilled', alpha=0.5, color='grey')
-    #
-    # optim = amoroso_max_likelihood_nlopt(samples, fix={3:1.0})
-    # print(optim)    #
+    print('length', len(single_run.energies))
+    mean, var = samples.mean(), samples.var()
+    print('mean', mean, 'variance', var)
+    print('skew', scipy.stats.skew(samples), 'kurtosis', scipy.stats.kurtosis(samples, fisher=False))
 
     loc = 1.5 * samples.max()
     optim = scipy.stats.gamma.fit(loc - samples)
+    a = loc - optim[1]
     print()
-    print("a", loc - optim[1], "theta", optim[2], "alpha", optim[0])
+    print("a", a, "theta", optim[2], "alpha", optim[0])
 
-    # x = np.linspace(1.001, 1.5, 20)
-    # y = [-alpha_mu_log_likelihood([1.45, -0.03, alphai, 1.0], samples) for alphai in x]
-    # plt.clf()
-    # plt.plot(x, y)
-
-    # initial_guess = [1.02 * samples.max(), 0.5, 0.5, 0.5]
-    # optim = amoroso_max_likelihood(samples, invert=True)
-    # print(optim)
-    # print("Crooks:", lawless_to_crooks(*optim.x))
-
+    x = np.linspace(samples.min(), a, 800)
+    y = scipy.stats.gamma.pdf(a - x, optim[0], scale=optim[2])
+    plt.clf()
+    import astroML.plotting
+    hist_kw = dict(bins=5, histtype='stepfilled', normed=True, alpha=0.5, color='grey')
+    astroML.plotting.hist(samples, **hist_kw)
+    plt.plot(x, y)
+    plt.scatter(samples, np.zeros_like(samples), marker='+', color='red')
+    plt.ylim(-0.5, None)
+    plt.xlim(0.99 * x[0], 1.01 * x[-1])
     plt.savefig("max_likelihood.pdf")
+
+    # now the sum of n samples
+    n = 1
+    alpha = n * optim[0]
+    sum_samples = np.array([samples[i:i + n].sum() for i in range(len(samples) // n)])
+    x = np.linspace(0.999*sum_samples.min(), 1.001*sum_samples.max(), 300)
+    y = scipy.stats.gamma.pdf(n * a - x, alpha, scale=optim[2])
+    # z1 = scipy.stats.norm.pdf(n * a - x, loc=0, scale=optim[2] * np.sqrt(alpha))
+    # CLT
+    z = scipy.stats.norm.pdf(x, loc=n * mean, scale=np.sqrt(n * var))
+
+    plt.clf()
+    astroML.plotting.hist(sum_samples, **hist_kw)
+    plt.plot(x, y)
+    plt.plot(x, z)
+    plt.savefig("max_likelihood2.pdf")
+
 
 def test_amoroso_binned_max_likelihood(single_run):
 
