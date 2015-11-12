@@ -268,42 +268,61 @@ def prob_L_given_theta(L, lsamples, imin, imax, nsum=400, eps=1e-3):
 
     return res
 
-def amoroso_log_likelihood(parameters, samples, invert=False):#samples, a, mu, sigma, l):
+def amoroso_log_likelihood(parameters, samples, fix=dict()):
     '''
-    -log(likelihood) if all ``samples`` follow an Amoroso distribution in the
-    Lawless parametrization.
+    -log(likelihood) if all ``samples`` follow an Amoroso distribution.
 
-    :param parameters: a, mu, sigma, l
+    :param parameters: a, theta, alpha, beta
     :param samples: the samples
 
     :return: log(likelihood), gradient
     '''
-    a, mu, sigma, l = parameters
+    tmp = parameters.copy()
+    # fix values
+    for k, v in fix.iteritems():
+        tmp[k] = v
+    a, theta, alpha, beta = tmp
 
-    N = len(samples)
-    lsqinv = l**2
-    # scalar
-    res = log(math.fabs(l) / sigma) - gammaln(lsqinv) - mu / (l * sigma) + lsqinv * log(lsqinv)
+    samples = np.asarray(samples)
+
+    error = np.inf
+
+    if alpha < 0 or beta < 0:
+        return np.inf
+
+    # make sure every observed sample has nonzero probabibility
+    # => can significantly reduce the quality of the fit
+    min, max = samples.min(), samples.max()
+    if (theta > 0 and min < a) or (theta < 0 and max > a):
+        return np.inf
+
+    # standardize
+    z = (samples - a)
+    z /= theta
+
+    # can't take log of negative number, so stop here
+    if np.isnan(z).any():
+        # print("returning inf for nan in standardized")
+        return error
+
+    if (z <= 0).any():
+        print("returning inf for negative standardized")
+        # print(samples, a, rhat, standardized)
+        return error
+
+    N = 1
+    if hasattr(samples, 'len'):
+        N = len(samples)
+
+    # data-independent part
+    res = -gammaln(alpha) + log(math.fabs(beta / theta))
     res *= N
 
-    # invert the centering if ``a`` is the maximum instead of a minimum
-    # vector like
-    centered = np.log(a - samples) if invert else np.log(samples - a)
-
-    tmp = np.isnan(centered)
-    if tmp.any():
-        raise ValueError("Encountered nan in centered samples at" +
-                         str(np.where(tmp)[0]))
-
-    v = centered.copy()
-    v *= (1.0 - 1.0 / (l * sigma))
-    tmp = np.exp(-l / sigma * centered)
-    v += (lsqinv * math.exp(l * mu / sigma)) * tmp
-
-    res -= v.sum()
+    res += (alpha * beta - 1.0) * np.log(z).sum()
+    res -= np.power(z, beta).sum()
 
     # invert log(likelihood)
-    return -res #, gradient
+    return -res
 
 
 def amoroso_max_likelihood(samples, initial_guess=None, invert=None):
@@ -343,7 +362,7 @@ def alpha_mu_moment(k, alpha, mu, rhat=1.0):
 def alpha_mu_log_likelihood(parameters, samples, grad=False):
     '''negative log likelihood because scipy wants to minimize'''
     a, rhat, alpha, mu = parameters
-
+    alpha = 1.0
     gradient = np.zeros(4)
 
     if grad:
@@ -449,38 +468,70 @@ def alpha_mu_max_likelihood(samples, initial_guess=None):
     kwargs['args'] = (samples, kwargs['jac'])
     return scipy.optimize.minimize(alpha_mu_log_likelihood, initial_guess, **kwargs)
 
-def alpha_mu_max_likelihood_nlopt(samples):
+def amoroso_max_likelihood_nlopt(samples, initial_guess=None, fix=dict()):
     import nlopt
 
-    opt = nlopt.opt(nlopt.LN_BOBYQA, 4)
-    opt.set_max_objective(lambda x, grad: alpha_mu_log_likelihood(x, samples))
+    opt = nlopt.opt(nlopt.LN_COBYLA, 4)
 
+    class Wrapper(object):
+        def __init__(self, samples, fix):
+            self.counter = 0
+            self.samples = samples
+            self.fix = fix
 
-    bounds_low  = [v[0]  for v in f.values]
-    bounds_high = [v[-1] for v in f.values]
+        def __call__(self, x, grad):
+            self.counter += 1
+            return amoroso_log_likelihood(x, self.samples, fix=self.fix)
 
-    m = samples.max()
+    wrapper = Wrapper(samples, fix)
+    opt.set_max_objective(wrapper)
+    # opt.set_max_objective(lambda x, grad: alpha_mu_log_likelihood(x, samples))
+    min, max = samples.min(), samples.max()
     std = samples.std()
-    skew = scipy.stats.skew(samples)
-    opt.set_lower_bounds([m, 0, 0, 10 * std if skew < 0 else 0])
-    opt.set_upper_bounds([1.05 * m, 20, 20, 0 if skew < 0 else 10 * std])
+    if initial_guess is None:
+        initial_guess = np.array([0.99 * min, std, 1.01, 1.05])
+        # for negative skew, use negative scale parameter
+        if scipy.stats.skew(samples) < 0:
+            initial_guess[0] = 1.01 * max
+            initial_guess[1] *= -1
+
+    print("initial guess", initial_guess)
+
+    opt.set_lower_bounds([0.95 * min, 0 if initial_guess[1] > 0.0 else -5 * std, 0.0, 0.0])
+    opt.set_upper_bounds([1.05 * max, 5 * std if initial_guess[1] > 0.0 else 0.0, 10, 10.0])
 
     tol = 1e-12
     opt.set_ftol_abs(tol)
-    opt.set_xtol_rel(sqrt(tol))
-    opt.set_maxeval(1000)
-
-    if initial_guess is None:
-        initial_guess = np.array([1.01 * m, 1.1, 1.03, std])
-        # for negative skew, use negative scale parameter
-        if skew < 0:
-            initial_guess[2] *= -1
+    opt.set_xtol_rel(math.sqrt(tol))
+    opt.set_maxeval(1500)
 
     xopt = opt.optimize(initial_guess)
     fmin = opt.last_optimum_value()
 
-    print(" Found", xopt, ", min. f =", fmin, "reached after")
-
+    print("Mode", repr(xopt), ", min. f =", fmin, "after", wrapper.counter, "iterations")
+    return xopt
+    #
+    #
+    # bounds_low  = [v[0]  for v in f.values]
+    # bounds_high = [v[-1] for v in f.values]
+    #
+    # m = samples.max()
+    # std = samples.std()
+    # skew = scipy.stats.skew(samples)
+    # opt.set_lower_bounds([m, 0, 0, 10 * std if skew < 0 else 0])
+    # opt.set_upper_bounds([1.05 * m, 20, 20, 0 if skew < 0 else 10 * std])
+    #
+    # tol = 1e-12
+    # opt.set_ftol_abs(tol)
+    # opt.set_xtol_rel(sqrt(tol))
+    # opt.set_maxeval(1000)
+    #
+    #
+    # xopt = opt.optimize(initial_guess)
+    # fmin = opt.last_optimum_value()
+    #
+    # print(" Found", xopt, ", min. f =", fmin, "reached after")
+    #
 
 def lawless_to_crooks(a, mu, sigma, l):
     '''Convert the Amoroso parameters from the Lawless to the Crooks
@@ -489,6 +540,18 @@ def lawless_to_crooks(a, mu, sigma, l):
     :return: (a, theta, alpha, beta)
     '''
     return a, math.exp(mu + sigma / l * math.log(l**2)), 1.0 / l**2, l / sigma
+
+def amoroso_pdf(x, parameters):
+    a, theta, alpha, beta = parameters
+    x = np.asarray(x)
+    z =  (x - a) / theta
+
+    # avoid overflows so evaluate log only for positive arguments
+    res = np.zeros_like(x)
+    mask = z > 0
+    res[mask] = np.exp(-gammaln(alpha) + log(math.fabs(beta / theta)) + (alpha * beta - 1.0) * np.log(z[mask]) - np.power(z[mask], beta))
+
+    return res
 
 def amoroso_cdf(x, parameters):
     '''Cumulative of the Amoroso at x given parameters (a, theta, alpha, beta)'''
@@ -522,12 +585,23 @@ def amoroso_binned_log_likelihood(parameters, bin_edges, bin_counts):
     '''
     # print(parameters)
     a, theta, alpha, beta = parameters
+    beta = 1.0
     if alpha < 0:
         return np.inf
         # raise ValueError("Negative alpha: %g" % alpha)
     if beta < 0:
         return np.inf
         # raise ValueError("Negative beta: %g" % beta)
+
+    # make sure every observed sample has nonzero probabibility
+    # by assuming that bin edges are at the extrema
+    # => can significantly reduce the quality of the fit
+    if theta > 0:
+        if bin_edges[0] < a:
+            return np.inf
+    else:
+        if bin_edges[-1] > a:
+            return np.inf
 
     N = bin_counts.sum()
     res = 0.0
@@ -556,7 +630,7 @@ def amoroso_binned_log_likelihood(parameters, bin_edges, bin_counts):
     return res
 
 
-def amoroso_binned_max_log_likelihood(samples, initial_guess=None):
+def amoroso_binned_max_log_likelihood(samples, initial_guess=None, nbins=50):
     if initial_guess is None:
         initial_guess = np.array([1.005 * samples.max(), samples.std(), 1.1, 1])
         # for negative skew, use negative scale parameter
@@ -577,7 +651,7 @@ def amoroso_binned_max_log_likelihood(samples, initial_guess=None):
     # bin_counts, bin_edges, _ = hist(samples, bins='blocks')
 
     from matplotlib.pyplot import hist
-    bin_counts, bin_edges, _ = hist(samples, bins=50)
+    bin_counts, bin_edges, _ = hist(samples, bins=nbins)
 
     print()
     print("initial guess", initial_guess, "f", amoroso_binned_log_likelihood(initial_guess, bin_edges, bin_counts))
@@ -610,6 +684,7 @@ def amoroso_binned_max_log_likelihood(samples, initial_guess=None):
     fmin = opt.last_optimum_value()
 
     print("Mode", repr(xopt), ", min. f =", fmin)
+    return xopt
 
 
 class TARDISBayesianLogLikelihood(Model):

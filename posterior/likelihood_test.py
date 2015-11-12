@@ -202,8 +202,13 @@ def test_max_likelihood(single_run):
     # plt.clf()
     # plt.hist(samples, bins=50, histtype='stepfilled', alpha=0.5, color='grey')
     #
-    optim = alpha_mu_max_likelihood(samples)
-    print(optim)    #
+    # optim = amoroso_max_likelihood_nlopt(samples, fix={3:1.0})
+    # print(optim)    #
+
+    loc = 1.5 * samples.max()
+    optim = scipy.stats.gamma.fit(loc - samples)
+    print()
+    print("a", loc - optim[1], "theta", optim[2], "alpha", optim[0])
 
     # x = np.linspace(1.001, 1.5, 20)
     # y = [-alpha_mu_log_likelihood([1.45, -0.03, alphai, 1.0], samples) for alphai in x]
@@ -219,12 +224,23 @@ def test_max_likelihood(single_run):
 
 def test_amoroso_binned_max_likelihood(single_run):
 
-    samples = single_run.energies[5000:6000]
+    samples = single_run.energies[5000:8000]
     scale = 1e38
     samples /= scale
 
-    optim = amoroso_binned_max_log_likelihood(samples)
+    nbins = 80
+    optim = amoroso_binned_max_log_likelihood(samples, nbins=nbins)
+    optim[3] = 1.0
     print(optim)
+    print("max value", samples.max())
+
+    plt.figure()
+    plt.hist(samples, bins=nbins, histtype='stepfilled',
+             normed=True, color='grey', alpha=0.3)
+    x = np.linspace(0.995 * samples.min(), 1.005 * samples.max(), 100)
+    y = amoroso_pdf(x, optim)
+    plt.plot(x, y)
+    plt.savefig("amoroso_amoroso_binned_max_log_likelihood.pdf")
 
 
 def test_alpha_mu():
