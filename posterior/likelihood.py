@@ -705,24 +705,29 @@ class TARDISBayesianLogLikelihood(object):
         # If not enough packets, we just have one big window
         window = min(window, len(self.sim))
 
-        self.windows = np.zeros(1 + int(math.ceil(len(self.sim) / float(window))), dtype=np.int)
-        i = 1
-        for w in self.windows[1:]:
-            ind = bisect_left(self.bin_indices, self.windows[i - 1] + window,
-                              lo=self.windows[i - 1])
+        # can't predict how much overcounting in there
+        self.windows = [0]
+        prev_ind = None
+
+        while True:
+            ind = bisect_left(self.bin_indices, self.windows[-1] + window)
             if ind < len(self.bin_indices):
-                self.windows[i] = self.bin_indices[ind]
-                i += 1
+                self.windows.append(self.bin_indices[ind])
+                prev_ind = ind
             else:
                 # already hit the right end
-                self.windows[i:] = len(self.sim)
+                self.windows.append(len(self.sim))
                 break
 
-        # todo the last window may be too short, expand it to the left. Why align at all?
-        # if len(self.windows) > 2:
-        #     self.windows[]
-
-
+        # the last window may be too short, expand it to the left so it
+        # overlaps so the last entry is the left edge of the last bin,
+        # the right edge implicitly is ``len(self.sim)``
+        if len(self.windows) > 2:
+            # last element is just the length
+            self.windows[-1] = self.windows[-2]
+            while len(self.sim) - self.windows[-1] < window:
+                prev_ind -= 1
+                self.windows[-1] = self.bin_indices[prev_ind]
 
 
     def __call__(self, *args, **kwargs):

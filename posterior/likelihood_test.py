@@ -264,17 +264,17 @@ def test_TARDISBayesianLogLikelihood(single_run):
     # create mock bins with too small and too large a range
     ranges = [(0.95 * data.nus.min(), 0.997 * data.nus.max()),
               (0.95 * data.nus.min(), 1.01 * data.nus.max())]
-    lengths = [len(data) - 7, len(data)]
+    results = [(len(data) - 7, [0, 18, 38, 38]),
+               (len(data),     [0, 16, 28, 45, 38])]
 
-    for r, l in zip(ranges, lengths):
+    for r, (length, window_edges) in zip(ranges, results):
         hist, edges = np.histogram(data.nus, bins=25, normed=True, range=r)
         t = TARDISBayesianLogLikelihood(edges, hist, data.nus, data.energies, window=12)
         assert len(t.bin_indices) == len(edges)
         # last element of cumsum is the total of elements
-        assert t.bin_indices[-1] == l
+        assert t.bin_indices[-1] == length
+        assert t.windows == window_edges
 
-    print(t.bin_indices)
-    print(t.windows)
 
 
 
