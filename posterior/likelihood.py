@@ -687,22 +687,98 @@ def amoroso_binned_max_log_likelihood(samples, initial_guess=None, nbins=50):
     return xopt
 
 
-class TARDISBayesianLogLikelihood(Model):
-    inputs = ('packet_nu', 'packet_energies')
-    outputs = ('loglikelihood')
+def gamma_max_likelihood(samples, max=None):
+    '''
 
-    def __init__(self, wavelength, flux):
-        super(TARDISBayesianLogLikelihood, self).__init__()
-        self.wavelength = wavelength
-        self.flux = flux
+    Fit a gamma distribution to the samples. Bases on the sample skew, the orientation is reversed.
 
-    def evaluate(self, packet_nu, packet_energies):
-        # sort by nu
-        indices = packet_nu.argsort()
-        # todo this creates copies!
-        packet_nu = packet_nu[indices]
-        packet_energies = packet_energies[indices]
+    Parameters
+    ----------
+    samples: 1D array
+    The samples.
 
+    max: scalar
+    If not given, the max. is computed from the samples
+
+    Return
+    ------
+    (location, scale, shape)
+    A negative scale parameter indicates that all samples must be less than the location parameter.
+    '''
+    if max is None:
+        max = samples.max()
+
+    # take a point that is surely larger than the samples
+    loc = 1.1 * max
+    skew = scipy.stats.skew(samples)
+    if skew < 0:
+        samples = loc - samples
+    alpha, a, theta = scipy.stats.gamma.fit(samples)
+    if skew < 0:
+        a = loc - a
+        theta *= -1
+    return a, theta, alpha
+
+
+class TARDISBayesianLogLikelihood(object):
+    def __init__(self, telescope_nus, telescope_luminosities,
+                 packet_nus, packet_luminosities, window=1500):
+        '''
+        Parameters
+        ----------
+        telescope_nus: 1D array with (B+1) elements
+            Bin edges from telescope.
+
+        telescope_luminosities: 1D array with B elements
+            Luminosities in each bin
+
+        packet_nus: 1D array with M elements
+            Frequencies of simulated packets.
+
+        packet_luminosities: 1D array with M elements
+            luminosities of simulated packets.
+
+        window: scalar
+            Size of window in frequency used to estimate the luminosity distribution.
+
+        '''
+        assert len(packet_luminosities) == len(packet_nus)
+
+        # filter out negative luminosities  and tack arrays together
+        filter = packet_luminosities > 0
+        self.sim = np.core.records.fromarrays([packet_nus[filter], packet_luminosities[filter]],
+                                         names='nus,luminosities')
+
+        # sort in place by frequency
+        self.sim.sort(order='nus')
+
+        # bin the packets in frequency: find indices of right bin edge
+        self.bin_indices = np.empty_like(telescope_nus)
+        # left-most bin edge always at zero
+        self.bin_indices[0] = 0
+        i =1
+        for nu in telescope_nus[1:]:
+            # add one such that later on the indices can be use in ``[bin_indices[i]:bin_indices[i+1]]``
+            self.bin_indices[i] = binary_search_max(self.sim.nus, nu, low=self.bin_indices[i-1]) + 1
+
+        # compute the distribution of samples in each window
+        # make sure at least ``window`` elements are in a window,
+        # and align the window edges with bin edges
+        self.windows = [0]
+
+        while True:
+
+        for i in range(len(windows)):
+
+    #
+    # def windows(self, window):
+    #     '''bin edges of windows'''
+    #     return range(0, step=self.window)
+
+
+
+
+    def __call__(self, *args, **kwargs):
         # log(likelihood)
         ll = 0
 
@@ -715,3 +791,34 @@ class TARDISBayesianLogLikelihood(Model):
             ll += math.log(prob_L_given_theta(L, packet_nu, packet_energies, b[0], b[1]))
 
         return ll
+
+
+#
+# class TARDISBayesianLogLikelihood(Model):
+#     inputs = ('packet_nu', 'packet_energies')
+#     outputs = ('loglikelihood')
+#
+#     def __init__(self, wavelength, flux):
+#         super(TARDISBayesianLogLikelihood, self).__init__()
+#         self.wavelength = wavelength
+#         self.flux = flux
+#
+#     def evaluate(self, packet_nu, packet_energies):
+#         # sort by nu
+#         indices = packet_nu.argsort()
+#         # todo this creates copies!
+#         packet_nu = packet_nu[indices]
+#         packet_energies = packet_energies[indices]
+#
+#         # log(likelihood)
+#         ll = 0
+#
+#         # todo run in parallel?
+#         # divide into bins
+#
+#         # todo run in parallel?
+#         # compute log likelihood for each bin
+#         for b in bins:
+#             ll += math.log(prob_L_given_theta(L, packet_nu, packet_energies, b[0], b[1]))
+#
+#         return ll

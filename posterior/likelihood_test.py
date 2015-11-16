@@ -195,8 +195,8 @@ def test_interpolator(single_run):
 
 
 def test_max_likelihood(single_run):
-    i = 70000
-    samples = single_run.energies[55000:55030]
+    i = 13110
+    samples = single_run.energies[i:i+1500]
     # normalized for easier numerics
     samples *= 1e-38
 
@@ -211,20 +211,23 @@ def test_max_likelihood(single_run):
     print()
     print("a", a, "theta", optim[2], "alpha", optim[0])
 
+    print("Same with packaged method", gamma_max_likelihood(samples))
+
     x = np.linspace(samples.min(), a, 800)
     y = scipy.stats.gamma.pdf(a - x, optim[0], scale=optim[2])
     plt.clf()
     import astroML.plotting
-    hist_kw = dict(bins=5, histtype='stepfilled', normed=True, alpha=0.5, color='grey')
+    hist_kw = dict(bins=30, histtype='stepfilled', normed=True, alpha=0.5, color='grey')
     astroML.plotting.hist(samples, **hist_kw)
     plt.plot(x, y)
     plt.scatter(samples, np.zeros_like(samples), marker='+', color='red')
     plt.ylim(-0.5, None)
     plt.xlim(0.99 * x[0], 1.01 * x[-1])
+    plt.title("%d samples, N=1" % len(samples))
     plt.savefig("max_likelihood.pdf")
 
     # now the sum of n samples
-    n = 1
+    n = 3
     alpha = n * optim[0]
     sum_samples = np.array([samples[i:i + n].sum() for i in range(len(samples) // n)])
     x = np.linspace(0.999*sum_samples.min(), 1.001*sum_samples.max(), 300)
@@ -234,10 +237,13 @@ def test_max_likelihood(single_run):
     z = scipy.stats.norm.pdf(x, loc=n * mean, scale=np.sqrt(n * var))
 
     plt.clf()
-    astroML.plotting.hist(sum_samples, **hist_kw)
-    plt.plot(x, y)
-    plt.plot(x, z)
-    plt.savefig("max_likelihood2.pdf")
+    hist_kw['bins'] = 'blocks'
+    astroML.plotting.hist(sum_samples, label='hist', **hist_kw)
+    plt.plot(x, y, label='Gamma')
+    plt.plot(x, z, label='Gauss')
+    plt.title("%d samples, N=%d" % (len(sum_samples), n))
+    plt.legend(loc='upper left')
+    plt.savefig("max_likelihood_sum.pdf")
 
 
 def test_amoroso_binned_max_likelihood(single_run):
