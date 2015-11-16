@@ -22,27 +22,6 @@ def test_poisson_posterior_predictive():
         np.testing.assert_almost_equal(poisson_posterior_predictive(*a), r, decimal=3)
 
 
-def test_binary_search():
-    data = (1, 3, 6, 7, 9, 9, 9, 9, 10)
-    keys = (0.1, 1, 2.2, 7, 9, 9.2, 11)
-    imin = (0,   0, 1,   3, 4, 8)
-    imax =      (0, 0,   3, 7, 7,   8)
-
-    for k, i in zip(keys[:-1], imin):
-        assert binary_search_min(data, k) == i
-
-    # key larger than all elements in ``data``
-    with pytest.raises(KeyError):
-        binary_search_min(data, keys[-1])
-
-    for k, i in zip(keys[1:], imax):
-        assert binary_search_max(data, k) == i
-
-    # key larger than all elements in ``data``
-    with pytest.raises(KeyError):
-        binary_search_max(data, keys[0])
-
-
 def test_expand_bin():
     N = 1000
     K = 3000
@@ -261,7 +240,7 @@ def test_amoroso_binned_max_likelihood(single_run):
     plt.figure()
     plt.hist(samples, bins=nbins, histtype='stepfilled',
              normed=True, color='grey', alpha=0.3)
-    x = np.linspace(0.995 * samples.min(), 1.005 * samples.max(), 100)
+    x = np.linspace(0.995 * samples.min(), 0.5 * samples.max(), 100)
     y = amoroso_pdf(x, optim)
     plt.plot(x, y)
     plt.savefig("amoroso_amoroso_binned_max_log_likelihood.pdf")
@@ -279,5 +258,26 @@ def test_alpha_mu():
     plt.plot(x, y)
     plt.savefig("alpha-mu.pdf")
 
-def test_alpha_mu_moments():
-    pass
+def test_TARDISBayesianLogLikelihood(single_run):
+    data = single_run[1000:1050]
+
+    # create mock bins with too small and too large a range
+    ranges = [(0.95 * data.nus.min(), 0.997 * data.nus.max()),
+              (0.95 * data.nus.min(), 1.01 * data.nus.max())]
+    lengths = [len(data) - 7, len(data)]
+
+    for r, l in zip(ranges, lengths):
+        hist, edges = np.histogram(data.nus, bins=25, normed=True, range=r)
+        t = TARDISBayesianLogLikelihood(edges, hist, data.nus, data.energies, window=12)
+        assert len(t.bin_indices) == len(edges)
+        # last element of cumsum is the total of elements
+        assert t.bin_indices[-1] == l
+
+    print(t.bin_indices)
+    print(t.windows)
+
+
+
+
+
+

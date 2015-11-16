@@ -1,6 +1,7 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
 from astropy.modeling import Model, Parameter
+from bisect import bisect_left
 import math
 from math import log
 import numpy as np
@@ -30,83 +31,6 @@ def poisson_posterior_predictive(N, n):
     '''
     return math.exp(log_pochhammer(N + n + 1, N + n) - log_pochhammer(n + 1, n) \
            - (3 * N + n + 0.5) * math.log(2) - gammaln(N + 1))
-
-
-def binary_search_min(data, key, low=None, high=None):
-    '''
-    Find the index of the smallest element in ``data`` that is >= ``key``.
-    '''
-
-    # update low and high until element found
-    if low is None:
-        low = 0
-    if high is None:
-        high = len(data) - 1
-
-    assert low < high
-
-    # first element is the right one
-    if data[0] >= key:
-        return low
-    if data[-1] < key:
-        raise KeyError('Key ' + str(key) + ' exceeds all elements')
-
-    while low < (high - 1):
-        mid = (low + high) // 2
-        midval = data[mid]
-        if midval >= key:
-            high = mid
-        if midval < key:
-            low = mid
-
-    return high
-
-
-def binary_search_max(data, key, low=None, high=None):
-    '''
-    Find the index of the first element in ``data`` that is > ``key``.
-    '''
-
-    # update low and high until element found
-    if low is None:
-        low = 0
-    if high is None:
-        high = len(data) - 1
-
-    assert low < high
-
-    # first element is the right one
-    if data[-1] <= key:
-        return high
-    if data[0] > key:
-        raise KeyError('Key ' + str(key) + ' less than all elements')
-
-    while low < (high - 1):
-        mid = (low + high) // 2
-        midval = data[mid]
-        if midval <= key:
-            low = mid
-        if midval > key:
-            high = mid
-
-    return low
-
-
-def binary_search_min_max(data, minkey, maxkey, low=None, high=None):
-    '''
-    Find the indices of the smallest element exceeding ``minkey`` and of the
-    first element exceeding ``maxkey``.
-
-    :param data:
-    :param minkey:
-    :param maxkey:
-    :param low:
-    :param high:
-    :return:
-    '''
-    imin = binary_search_min(data, minkey, low, high)
-    imax = binary_search_max(data, maxkey, imin, high)
-    return (imin, imax)
 
 
 def expand_bin(N, imin, imax, K):
@@ -753,27 +677,50 @@ class TARDISBayesianLogLikelihood(object):
         self.sim.sort(order='nus')
 
         # bin the packets in frequency: find indices of right bin edge
-        self.bin_indices = np.empty_like(telescope_nus)
-        # left-most bin edge always at zero
-        self.bin_indices[0] = 0
-        i =1
-        for nu in telescope_nus[1:]:
-            # add one such that later on the indices can be use in ``[bin_indices[i]:bin_indices[i+1]]``
-            self.bin_indices[i] = binary_search_max(self.sim.nus, nu, low=self.bin_indices[i-1]) + 1
+        # bisect expects int as data type
+        # self.bin_indices = np.empty_like(telescope_nus, dtype=np.int)
+        #
+        # # left-most bin edge always at zero
+        # self.bin_indices[0] = 0
+        # i =1
+        # for nu in telescope_nus[1:]:
+        #     # insertion index for key=nu
+        #     self.bin_indices[i] = bisect_left(self.sim.nus, nu, lo=self.bin_indices[i-1])
+        #     # if we are already at the end, we can stop
+        #     # if self.bin_indices[i] == len(self.sim.nus):
+        #     #     self.bin_indices[i + 1:] = len(self.sim.nus)
+        #
+        #     i += 1
+
+        # find indices of bin edges for packets.
+        # Add a 0 as left-most bin edge.
+        # The sum over ``self.bin_indices`` is the number of packets that fit into the bins
+        # given by the telescope. Everything else is underflow or overflow.
+        hist, _ = np.histogram(self.sim.nus, bins=telescope_nus)
+        self.bin_indices = np.hstack((np.zeros(1, dtype=np.int), np.cumsum(hist)))
 
         # compute the distribution of samples in each window
         # make sure at least ``window`` elements are in a window,
-        # and align the window edges with bin edges
-        self.windows = [0]
+        # and align the window edges with bin edges.
+        # If not enough packets, we just have one big window
+        window = min(window, len(self.sim))
 
-        while True:
+        self.windows = np.zeros(1 + int(math.ceil(len(self.sim) / float(window))), dtype=np.int)
+        i = 1
+        for w in self.windows[1:]:
+            ind = bisect_left(self.bin_indices, self.windows[i - 1] + window,
+                              lo=self.windows[i - 1])
+            if ind < len(self.bin_indices):
+                self.windows[i] = self.bin_indices[ind]
+                i += 1
+            else:
+                # already hit the right end
+                self.windows[i:] = len(self.sim)
+                break
 
-        for i in range(len(windows)):
-
-    #
-    # def windows(self, window):
-    #     '''bin edges of windows'''
-    #     return range(0, step=self.window)
+        # todo the last window may be too short, expand it to the left. Why align at all?
+        # if len(self.windows) > 2:
+        #     self.windows[]
 
 
 
