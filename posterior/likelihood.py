@@ -644,6 +644,20 @@ def gamma_max_likelihood(samples, max=None):
     return a, theta, alpha
 
 
+def gamma_log_likelihood(a, theta, alpha, x, N=1):
+    '''
+
+    :param a: location
+    :param theta: scale (<0 OK)
+    :param alpha: shape
+    :param x: random variable
+    :param N: consider ``x`` as the sum of ``N`` Gamma variates with the given parameters.
+    :return: ``log(Gamma(sgn(theta) * (x - N * a) | 0, |theta|, N * alpha)``
+    '''
+    abs_theta = math.fabs(theta)
+    scipy.stats.gamma.logpdf((theta / abs_theta) * (x - N * a), N * alpha, loc=0, scale=abs_theta)
+
+
 class TARDISBayesianLogLikelihood(object):
     def __init__(self, telescope_nus, telescope_luminosities,
                  packet_nus, packet_luminosities, window=1500):
@@ -728,6 +742,20 @@ class TARDISBayesianLogLikelihood(object):
             while len(self.sim) - self.windows[-1] < window:
                 prev_ind -= 1
                 self.windows[-1] = self.bin_indices[prev_ind]
+
+        # fit a Gamma in each window
+        # todo parallel?
+        gamma_dists = []
+        for i, _ in enumerate(self.windows[1:]):
+            if i == len(self.windows) - 1 and len(self.windows) > 2:
+                lo, hi = self.windows[i], len(self.sim)
+            else:
+                lo, hi = self.windows[i - 1], self.windows[i]
+
+            pars = gamma_max_likelihood(self.sim.energies[lo:hi])
+            gamma_dists.append()
+
+        # todo check for ``len == 2``
 
 
     def __call__(self, *args, **kwargs):
