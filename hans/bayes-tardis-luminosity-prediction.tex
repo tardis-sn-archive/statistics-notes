@@ -1,0 +1,1011 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Bayesian prediction of luminosity distribution based on one simulation run:
+% An example from TARDIS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[11pt]{article}
+\usepackage[a4paper, left=20mm, right=20mm, top=25mm, bottom=25mm]{geometry}
+
+%% CHANGE THIS DATE AS YOU MODIFY THE FILE
+\newcommand{\vdate}{151211}
+\pagestyle{myheadings}
+\markboth{Version \vdate} {Version \vdate}
+\parindent=0mm
+\def\pp{\hfill\par \vspace{\baselineskip}}
+%% \def\pp{}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{bm,amssymb,amsfonts,amsmath}  % bold math symbols, AMStex
+\usepackage{graphicx}    % standard graphics
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\lleq}[1]{\label{#1} }
+% TO REMOVE THE LABEL LETTERS FROM THE EQUATION DISPLAY, COMMENT OUT THIS LINE:
+\renewcommand{\lleq}[1]{\label{#1} {\scriptstyle {\rm (#1)}} \hspace*{2ex} }
+% \renewcommand{\labelenumi}{\arabic{section}.\arabic{subsection}.\arabic{enumi}}
+% \renewcommand{\thesubsubsection}{\arabic{subsubsection}}
+
+\newcounter{mnumi}
+\newenvironment{mnumerate}{
+  \begin{list}{\arabic{mnumi}.}
+    {\usecounter{mnumi} \setlength{\itemsep}{0pt}
+      \setlength{\leftmargin}{3ex}
+    }
+  }
+  {\end{list}}
+
+\newenvironment{mtemize}{
+  \begin{list}{$\bullet$}
+    {\setlength{\itemsep}{0pt}
+     \setlength{\leftmargin}{3ex}
+    }
+  }
+  {\end{list}}
+
+\newcommand{\hmod}  {{\mathcal{H}}}  % Model
+\newcommand{\ldef}{\;{:}{=}\;}
+\newcommand{\rdef}{\;{=}{:}\;}
+\newcommand{\realnumbers}{\mathbb{R}}
+\newcommand{\integers}{\mathbb{Z}}
+\newcommand{\cond}{\,|\,}
+\newcommand{\NBD}{\mathrm{NB}}
+\newcommand{\var}{\mathrm{var}}
+
+\newcommand{\smA}{{\scriptscriptstyle A}}
+\newcommand{\smB}{{\scriptscriptstyle B}}
+\newcommand{\smH}{{\scriptscriptstyle H}}
+\newcommand{\smK}{{\scriptscriptstyle K}}
+\newcommand{\smL}{{\scriptscriptstyle L}}
+\newcommand{\smM}{{\scriptscriptstyle M}}
+\newcommand{\smN}{{\scriptscriptstyle N}}
+\newcommand{\smR}{{\scriptscriptstyle R}}
+
+\newcommand{\smo}{{\scriptscriptstyle 1}}
+\newcommand{\smt}{{\scriptscriptstyle 2}}
+\newcommand{\smr}{{\scriptscriptstyle 3}}
+\newcommand{\smf}{{\scriptscriptstyle 4}}
+\newcommand{\smv}{{\scriptscriptstyle 5}}
+\newcommand{\smx}{{\scriptscriptstyle 6}}
+\newcommand{\sms}{{\scriptscriptstyle 7}}
+\newcommand{\sme}{{\scriptscriptstyle 8}}
+\newcommand{\smn}{{\scriptscriptstyle 9}}
+
+\newcommand{\bma}{{\bm{a}}}
+\newcommand{\bmb}{{\bm{b}}}
+\newcommand{\bmc}{{\bm{c}}}
+\newcommand{\bmd}{{\bm{d}}}
+\newcommand{\bme}{{\bm{e}}}
+\newcommand{\bmf}{{\bm{f}}}
+\newcommand{\bmg}{{\bm{g}}}
+\newcommand{\bmh}{{\bm{h}}}
+\newcommand{\bmi}{{\bm{i}}}
+\newcommand{\bmj}{{\bm{j}}}
+\newcommand{\bmk}{{\bm{k}}}
+\newcommand{\bml}{{\bm{\ell}}}
+\newcommand{\bmm}{{\bm{m}}}
+\newcommand{\bmn}{{\bm{n}}}
+\newcommand{\bmo}{{\bm{o}}}
+\newcommand{\bmp}{{\bm{p}}}
+\newcommand{\bmq}{{\bm{q}}}
+\newcommand{\bmr}{{\bm{r}}}
+\newcommand{\bms}{{\bm{s}}}
+\newcommand{\bmt}{{\bm{t}}}
+\newcommand{\bmu}{{\bm{u}}}
+\newcommand{\bmv}{{\bm{v}}}
+\newcommand{\bmw}{{\bm{w}}}
+\newcommand{\bmx}{{{\bm{x}}}}
+\newcommand{\bmy}{{\bm{y}}}
+\newcommand{\bmz}{{\bm{z}}}
+\newcommand{\bmA}{{\bm{A}}}
+\newcommand{\bmB}{{\bm{B}}}
+\newcommand{\bmC}{{\bm{C}}}
+\newcommand{\bmD}{{\bm{D}}}
+\newcommand{\bmE}{{\bm{E}}}
+\newcommand{\bmF}{{\bm{F}}}
+\newcommand{\bmG}{{\bm{G}}}
+\newcommand{\bmH}{{\bm{H}}}
+\newcommand{\bmI}{{\bm{I}}}
+\newcommand{\bmJ}{{\bm{J}}}
+\newcommand{\bmK}{{\bm{K}}}
+\newcommand{\bmL}{{\bm{L}}}
+\newcommand{\bmM}{{\bm{M}}}
+\newcommand{\bmN}{{\bm{N}}}
+\newcommand{\bmO}{{\bm{O}}}
+\newcommand{\bmP}{{\bm{P}}}
+\newcommand{\bmQ}{{\bm{Q}}}
+\newcommand{\bmR}{{\bm{R}}}
+\newcommand{\bmS}{{\bm{S}}}
+\newcommand{\bmT}{{\bm{T}}}
+\newcommand{\bmU}{{\bm{U}}}
+\newcommand{\bmV}{{\bm{V}}}
+\newcommand{\bmW}{{\bm{W}}}
+\newcommand{\bmX}{{\bm{X}}}
+\newcommand{\bmY}{{\bm{Y}}}
+\newcommand{\bmZ}{{\bm{Z}}}
+
+\newcommand{\bmalpha}{{\bm{\alpha}}}
+\newcommand{\bmbeta}{{\bm{\beta}}}
+\newcommand{\bmchi}{{\bm{\chi}}}
+\newcommand{\bmdelta}{{\bm{\delta}}}
+\newcommand{\bmepsilon}{{\bm{\varepsilon}}}
+\newcommand{\bmphi}{{\bm{\phi}}}
+\newcommand{\bmgamma}{{\bm{\gamma}}}
+\newcommand{\bmeta}{{\bm{\eta}}}
+\newcommand{\bmiota}{{\bm{\iota}}}
+\newcommand{\bmkappa}{{\bm{\kappa}}}
+\newcommand{\bmlambda}{{\bm{\lambda}}}
+\newcommand{\bmmu}{{\bm{\mu}}}
+\newcommand{\bmnu}{{\bm{\nu}}}
+\newcommand{\bmomega}{{\bm{\omega}}}
+\newcommand{\bmpi}{{\bm{\pi}}}
+\newcommand{\bmpsi}{{\bm{\psi}}}
+\newcommand{\bmrho}{{\bm{\rho}}}
+\newcommand{\bmsigma}{{\bm{\sigma}}}
+\newcommand{\bmtau}{{\bm{\tau}}}
+\newcommand{\bmtheta}{{\bm{\theta}}}
+\newcommand{\bmupsilon}{{\bm{\upsilon}}}
+\newcommand{\bmxi}{{\bm{\xi}}}
+\newcommand{\bmzeta}{{\bm{\zeta}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{center}
+  \textbf{\Large Bayesian prediction of supernova luminosity  distributions}\\[8pt]
+  \textbf{\Large based on simulation output: An example from TARDIS}\\[12pt]
+  11 December 2015
+\end{center}
+
+\textbf{Abstract} TODO
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+
+TODO: Wolfgang
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Bayesian prediction}
+
+\textbf{HANS NOTE: I have just copied stuff in here which will be
+  written up properly later.}
+\begin{mtemize}
+\item Generic definition of terms: data, parameter, variable
+\item Define likelihood $p(x\cond\theta,\hmod)$
+\item Product rule and sum rule (marginalisation)
+\item Bayes' Theorem
+
+\item Building a model $\hmod$ implies that we hypothesise both a
+  likelihood $p(x\cond\bmtheta,\hmod)$ and a prior
+  $p(\bmtheta\cond\hmod)$.
+
+\item $p(D\cond\theta,\hmod)$ is the \textbf{likelihood} for $\theta$,
+  given the data $D$. Note that, while the likelihood appears to be
+  identical with the sampling distribution $p(D\cond\theta,\hmod)$
+  both in notation and even in its functional form, these two
+  quantities have a different purpose: The likelihood is a function of
+  $\theta$ for fixed data $D$, while the forward probability is a
+  function of $D$ for fixed $\theta$.
+
+\item $p(\theta\cond\hmod)$ is the \textbf{prior probability} for
+  $\theta$, before taking into account the information provided by the
+  data $D$.
+
+\item $p(D\cond\hmod)$ is sometimes called the \textbf{evidence}: it
+  contains just the data, not any particular value of $\theta$. The
+  only way to connect the ``evidence'' to the other probabilities is
+  to expand it in terms of the sum rule, $p(D\cond\hmod) =
+  \sum_{\theta'} p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)$. In
+  this sense it can be thought of as the normalisation constant which
+  ensures that the posterior is properly normalised.
+
+
+\item $p(\theta\cond D,\hmod)$ is the \textbf{posterior probability}
+  for $\theta$, after the data $D$ has been taken into account. Given
+  a set of observations $D$, the $p(\theta\cond D,\hmod)$ gives the
+  probability that $\theta$ takes on a particular value.
+
+\item \texttt{COMMENT: the bracketed letters to the left of equations
+    is a temporary aid to facilitate referencing. A change in
+    definition of command} \verb=\lleq= \textbf{will make them revert
+    to ordinary equation labels.}
+
+\item \textbf{Bayes' Theorem}: In terms of these quantities, Bayes'
+  theorem, the central theorem of inference is given by
+  \begin{align}
+    \lleq{bth}
+    p(\theta\cond D,\hmod)
+    &= \frac{p(D\cond\theta,\hmod)\;p(\theta\cond\hmod)}
+    {p(D\cond\hmod)}
+    = \frac{p(D\cond\theta,\hmod)\;p(\theta\cond\hmod)}
+    {\int d\theta'\; p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)}
+  \end{align}
+  where the integral in the denominator is replaced by a sum if
+  $\theta$ takes on discrete values.
+
+\item Note that if the prior is uniform, it is independent of $\theta$
+  and will cancel; we are then left with
+  \begin{equation}
+    \lleq{bthu}
+    p(\theta\cond D,\hmod)
+    = \frac{p(D\cond\theta,\hmod)} {\int d\theta'\; p(D\cond\theta',\hmod)}
+  \end{equation}
+
+\item \textbf{Prediction using Bayes' Theorem:} By contrast, the
+  Bayesian prediction for $x_{n+1}$ makes full use of the information
+  contained in previous data:
+  \begin{align}
+    p(x_{n+1}\cond D,\hmod)
+    &= \int d\theta'\; p(x_{n+1}\cond\theta',D,\hmod)\;p(\theta'\cond
+    D,\hmod)
+  \end{align}
+  i.e.\ all possible values of $\theta$ are taken into account. Using
+  Bayes' theorem, this can be written also as
+  \begin{align}
+    p(x_{n+1}\cond D,\hmod)
+    &= \frac{\int d\theta'\; p(x_{n+1}\cond\theta',D,\hmod)\;
+      p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)}
+    {\int d\theta'\; p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)}
+  \end{align}
+  which shows that the prediction for $x_{n+1}$ is a weighted average
+  of $p(x_{n+1}\cond\theta',D,\hmod)$ with the weight given by
+  \begin{align}
+  \frac{p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)}
+  {\int d\theta'\; p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)}
+  &=
+  \frac{p(D,\theta'\cond\hmod)}
+  {\int d\theta'\; p(D,\theta'\cond\hmod)}
+  \end{align}
+\end{mtemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{TARDIS}
+
+\subsection{Intro to those TARDIS aspects relevant to this paper}
+
+TODO: Wolfgang (or in Introduction?)
+
+\subsection{Definitions of relevant quantities}
+
+\begin{mtemize}
+\item Spectrum of luminosities in channels (or ``bins'')
+  $b=0,1,\ldots,B$
+\item The wavelength of channel $b$ is given by $\lambda_b =
+  \lambda_0 + b\,\delta\lambda$, where $\delta\lambda$ is the bin width.
+
+\item We treat the results of a single TARDIS run as \textit{data}
+  $D$, i.e.\ fixed results which we do not question but accept as the
+  true values.  Following a single run, the TARDIS ``data'' consists,
+  for each bin $b$, of the number or ``multiplicity'' of packets and
+  the individual packet luminosities,
+\begin{align}
+  \lleq{dfc}
+  D &= \{n_0,\bml_0,n_1,\bml_1,\ldots,n_\smB,\bml_\smB\}
+  \ =\ \{n_b,\bml_b\}_{b=0}^\smB
+\end{align}
+with
+\begin{align}
+  \lleq{dfd}
+  \bml_b &= (\ell_{b,1},\ell_{b,2},\ldots,\ell_{b,n_b})
+\end{align}
+Given $D$, the total luminosity in bin $b$ is known,
+\begin{align}
+  \lleq{dfe}
+  \ell_b = \sum_{j=1}^{n_b}\ell_{b,j}
+\end{align}
+\end{mtemize}
+
+\subsection{Data as realization of compound process}
+
+While we treat the TARDIS output as ``data'' as discussed above, a
+repeat of the simulation with a different Monte Carlo seed would
+evidently yield different ``data'' $D'$ even when all other simulation
+parameters remain the same. Clearly, $n_b$ is a specific realization
+of a stochastic variable $N_b$ governed by a model pdf
+$p(N_b)$. Similarly, $\bml_b$ is a specific realization of a
+collection stochastic variables $\bmL_b
+=\{L_{b,1},\ldots,L_{b,\smN_b}\}$, where the number $N_b$ of such
+variables is itself stochastic. The relevant pdf for $\bmL_b$
+therefore always presupposes knowledge of $N_b$, so we must work with
+the conditional probability $p(\bmL_b\cond N_b)$. This situation is
+captured mathematically as $N_b \sim p(N_b), \bmL_b \sim p(\bmL_b\cond
+N_b)$ where $\sim$ means ``is by hypothesis distributed in this model
+according to the pdf'', i.e.\
+\begin{align*}
+  (N_b,\bmL_b) &\ \sim\ p(N_b,\bmL_b\cond \bmphi_b,\lambda_b)
+  = p(\bmL_b\cond N_b,\bmphi_b)\; p(N_b\cond \lambda_b),
+\end{align*}
+where $\bmphi_b$ is the set of parameters of the model pdf which
+govern $\bmL_b$ and $\lambda_b$ is the parameter of the model pdf
+governing $N_b$.  To simulate $(N_b,\bmL_b)$, we clearly first need to
+generate one $N_b$, followed by the generation of $N$ packet
+luminosities $\bmL_b$. This situation is termed a \textit{compound
+  process}.
+
+\subsection{Construction of the model hypothesis}
+
+\begin{mtemize}
+\item In the remainder of this paper, we assume that the packet
+  multiplicities $N_b$ and total luminosities $\bmL_b$ in any given
+  bin $b$ are statistically independent of those in other bins. This
+  means that the joint probability over all bins factorises into
+  individual probabilities for each bin,
+  \begin{align}
+    \lleq{bsi}
+    p(N_0,\bmL_0\ldots,N_b,\bmL_b,\ldots,N_\smB,\bmL_\smB
+    \cond \bmtheta,\bmphi,\bmlambda,\hmod)
+    &= \prod_{b=0}^B p(N_b,\bmL_b\cond \bmtheta,\bmphi,\bmlambda,\hmod)
+    % p(N_0,\ldots,N_b,\ldots,N_\smB \cond \bmtheta,\bmphi,\hmod)
+    % &= \prod_{b=0}^B p(N_b\cond \bmtheta,\bmphi,\hmod)\\
+    % p(L_0,\ldots,L_b,\ldots,L_\smB \cond N_0,\ldots,N_\smB,\bmtheta,\bmphi,\hmod)
+    % &= \prod_{b=0}^B p(L_b\cond N_b,\bmtheta,\bmphi,\hmod)
+  \end{align}
+
+\item We omit the supernova parameters $\bmtheta$ from the notation
+  below.
+
+\item Based on the assumption of bin-bin statistical independence, we
+  shall henceforth drop the bin index and do all our calculations for
+  an individual bin $b$ only, writing for example $L_b \to L$,
+  $\ell_{b,j} \to \ell_j$ etc. The total spectrum is then obtained by
+  doing any given analysis or calculation for all bins.
+
+\item Since we shall not be doing model comparison, we can for the
+  moment drop the $\hmod$ from the probability notation.
+
+\item The \textbf{model} which we construct consists of the above
+  assumptions plus
+  \begin{align*}
+    \text{likelihood } &\ p(\bmL\cond N,\bmphi)\\
+    \text{likelihood } &\ p(N\cond\lambda)\\
+    \text{prior } &\ p(\bmphi)\\
+    \text{prior } &\ p(\lambda)
+  \end{align*}
+  which are assumed to have the same functional form in each bin,
+  while of course the parameter values will change from bin to bin.
+
+\item We choose $N$ to follow a Poisson distribution with parameter
+  $\lambda$ (motivate choice),
+  \begin{align}
+    \lleq{pmc}
+    p(N\cond\lambda) &= \frac{e^{-\lambda}\lambda^N}{N!}
+    \qquad N = 0,1,\ldots,\infty,\quad \lambda>0
+  \end{align}
+
+\item We further assume that individual packets are generated
+  independently,
+  \begin{align}
+    \lleq{pmda}
+    p(\bmL\cond N,\bmphi) &= \prod_{j=1}^N p(L_j\cond \bmphi)
+  \end{align}
+
+\item The values of $\lambda$ and $\bmphi$ are unknown. It is the task
+  of the analysis below to determine not just the single best values
+  for these parameters, but to take into account every and all
+  possible values.
+
+\item Priors: metaparameter $a$ ***
+
+\end{mtemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Prediction based on individual packets}
+
+
+\subsection{Predicting the packet multiplicity $N$ in a bin}
+
+\texttt{COMMENT: The derivation below is deliberately slow; the
+  intention being to give the novice an easy introduction into the
+  usage of Bayes before we hit the more complicated calculations
+  further below.}
+
+We first show how to use Bayesian prediction to find the probability
+distribution for $N$, the number of packets in a bin, given knowledge
+of ``data'' in the form of TARDIS multiplicity $n$ for that bin.
+Since $n$ is a specific
+realization of $N$, it results from the same Poisson distribution
+\begin{align}
+  \lleq{pmcb}
+   p(n\cond\lambda) &= \frac{e^{-\lambda}\lambda^n}{n!}
+\end{align}
+with the same value for $\lambda$ as in (\ref{pmc}).  We can hence use
+Bayes' Theorem to find the posterior distribution for $\lambda$ given
+data $n$ and the Poisson hypothesis
+\begin{align}
+  \lleq{pmd}
+  p(\lambda\cond n) %
+  &= \frac{p(n\cond\lambda)\,p(\lambda)} {p(n)}
+  \ =\ \frac{p(n\cond\lambda)\,p(\lambda)} %
+  {\int d\lambda\, p(n\cond\lambda)\,p(\lambda)}
+\end{align}
+to find the prediction of $N$ given $n$ taking into account all
+possible values of $\lambda$,
+\begin{align}
+  \lleq{pme}
+  p(N\cond n)
+  &= \int d\lambda\,p(N,\lambda\cond n)
+  \ =\ \int d\lambda\,p(N\cond\lambda, n)\,p(\lambda\cond n)
+  \ =\ \frac{\int d\lambda\,p(N\cond\lambda)\,p(n\cond\lambda)\,p(\lambda)}
+  {\int d\lambda\, p(n\cond\lambda)\,p(\lambda)}
+\end{align}
+where $p(N\cond\lambda,n) = p(N\cond\lambda)$ is independent of $n$.
+Taking an improper prior (see Appendix)\footnote{For a uniform prior,
+  the case $a{=}0$, we require of course a maximum $\lambda_{\rm
+    max}$. As long as $\lambda_{\rm max}$ is large enough, the
+  integral can effectively be taken to infinity.}
+\begin{align}
+  \lleq{pmf}
+  p(\lambda) = c\lambda^{-a} \qquad a = 0\;\text{or}\;1
+\end{align}
+and inserting this and (\ref{pmcb}) into (\ref{pme}), we obtain
+for the evidence and prediction
+\begin{align}
+  \lleq{pmg}
+  p(n) &= %
+  \int_0^\infty d\lambda\, p(n\cond\lambda)\,p(\lambda)
+  \ =\
+  c \int_0^\infty d\lambda\, \frac{e^{-\lambda}\,\lambda^{n-a}}{n!}
+  \ =\ c\frac{(n-a)!}{n!}
+  \\
+  \lleq{pmh}
+  p(N\cond n) %
+  &= \frac{n!}{(n-a)!} \int_0^\infty d\lambda\,
+  \frac{e^{-2\lambda} \lambda^{N+n-a}}{N!\, n!}
+  \ =\ \frac{(N+n-a)!}{N!\,(n-a)!\,2^{N+n+1-a}}
+\end{align}
+which we recognise as a Negative Binomial distribution (see appendix)
+with parameters $k=n+1-a$ and $\rho=(1/2)$
+\begin{align}
+  \lleq{pmhb}
+  p(N\cond n) &= \NBD(N\cond k{=}n{+}1{-}a, \rho{=}\tfrac{1}{2})
+  \ =\ \binom{N{+}n{-}a}{N}
+  \left(\frac{1}{2}\right)^N \left(\frac{1}{2}\right)^{n+1-a}
+\end{align}
+We shall use the properties of the Negative Binomial in the
+calculations below.  Note that the distribution of $N$ given $n$ is
+independent of the packets $\bmL$ and $\bml$ and their values.
+
+\subsection{Predicting the total luminosity $L$ in a bin}
+
+\texttt{COMMENT: We may want to eliminate some intermediate steps in
+  the derivations below in the final paper. Wolfgang: how much detail
+  should be supplied in the paper?}
+
+\subsubsection{Direct probability}
+
+Our goal of prediction of $L$ given the data $(n,\bml)$ is captured in
+the probability $p(L\cond n,\bml)$ with all relevant parameters
+integrated out. We first note from Eq.~(\ref{pmh}) that $p(N\cond
+n,\bml) = p(N\cond n)$ does not depend on $\bml$. Furthermore, since
+$L$ is fully determined by $(N,\bmL)$,
+\begin{align}
+  \lleq{pmjd}
+  L &= \sum_{j=1}^N L_j
+\end{align}
+is does not depend directly on $(n,\bml)$, i.e.\
+\begin{align}
+  \lleq{pmi}
+  p(L\cond N,\bmL,n,\bml)
+  = p(L\cond N,\bmL)
+  &= \delta(L - \textstyle\sum_{j=1}^N L_j).
+\end{align}
+Hence the prediction is given by
+\begin{align}
+  \lleq{pmj}
+  p(L\cond n,\bml)
+  &= \sum_{N=0}^\infty p(L\cond N,n,\bml)\,p(N\cond n,\bml) \\
+  \lleq{pmjb}
+  &= \sum_N p(N\cond n)\,\int d\bmL\, p(L\cond N,\bmL,n,\bml)\, p(\bmL\cond N,n,\bml)
+  \\
+  \lleq{pmjc}
+  &= \sum_N p(N\cond n)\,\int d\bmL\,\delta(L - \textstyle\sum_{j=1}^N L_j)
+  \, p(\bmL\cond N,n,\bml)
+\end{align}
+The dependence on the TARDIS ``data'' $(n,\bml)$ enters through
+$p(\bmL\cond N,n,\bml)$ in terms of the parameters $\bmphi$ of
+$p(\bmL\cond N,\bmphi)$,
+\begin{align}
+  \lleq{pmk}
+  p(\bmL\cond N,n,\bml)
+  &= \int d\bmphi\, p(\bmL\cond N,\bmphi,n,\bml)\,p(\bmphi\cond N,n,\bml) \\
+  &= \int d\bmphi\, p(\bmL\cond N,\bmphi)\,p(\bmphi\cond N,n,\bml).
+\end{align}
+because the likelihood for $\bmL$ is fully determined by $N,\bmphi$
+and hence independent of $(n,\bml)$.
+%
+Again using Bayes' Theorem (\ref{bth})
+\begin{align}
+  \lleq{pmkb}
+  p(\bmphi\cond N,n,\bml) &=
+  \frac{p(\bml\cond N,n,\bmphi)\,p(\bmphi\cond N,n)} %
+  {\int d\bmphi\,p(\bml\cond N,n,\bmphi)\,p(\bmphi\cond N,n)} %
+  % \ =\ \frac{p(\bml\cond N,n,\bmphi)\,p(\bmphi\cond N,n)} %
+  % {p(\bml\cond n)} %
+\end{align}
+and using a multiplicity-independent prior for $\bmphi$
+\begin{align}
+  \lleq{pml}
+  p(\bmphi\cond N,n) &= p(\bmphi)
+\end{align}
+we can write (\ref{pmk}) as
+\begin{align}
+  \lleq{pmn}
+  p(\bmL\cond N,n,\bml)
+  &= \int d\bmphi\, p(\bmL\cond N,\bmphi)\, %
+  \frac{p(\bml\cond n,\bmphi)\,p(\bmphi)} %
+  {\int d\bmphi\,p(\bml\cond n,\bmphi)\,p(\bmphi)} \\
+  \lleq{pmo}
+  &= \frac{1}  {p(\bml\cond n)} %
+  \int d\bmphi\, p(\bmL\cond N,\bmphi)\, %
+  p(\bml\cond n,\bmphi)\,p(\bmphi)
+\end{align}
+with $p(\bml\cond n) = \int d\bmphi\, p(\bml\cond
+n,\bmphi)\,p(\bmphi)$ in the denominator.
+Inserting this into (\ref{pmjc}), we obtain
+\begin{equation}
+  \lleq{pmp}
+  \boxed{
+  p(L\cond n,\bml)
+  = \frac{1}{p(\bml\cond n)}
+  \sum_N p(N\cond n)\,\int d\bmL\,\delta(L - \textstyle\sum_j L_j)
+  \displaystyle\int d\bmphi\,p(\bmL\cond N,\bmphi) \, p(\bml\cond n,\bmphi)
+  \, p(\phi)
+  }
+\end{equation}
+with
+\begin{align}
+  p(\bmL\cond N,\bmphi) &= \prod_{j=1}^N p(L_j\cond \bmphi) \\
+  p(\bml\cond n,\bmphi) &= \prod_{j=1}^n p(\ell_j\cond \bmphi)
+\end{align}
+In other words: Once we have decided on a prior $p(\bmphi)$ and a
+specific pdf to model the likelihood $p(L_j\cond \bmphi)$, we have a
+prediction for $L$ which takes into account all possible $N$,
+$\lambda$ and $\bmphi$.
+
+
+
+\subsubsection{Moment generating function}
+\label{sec:mgff}
+
+\texttt{COMMENT Since the TARDIS ``data'' for $L_j$ is highly
+  asymmetric, the model likelihood\\ $p(L_j\cond \bmphi)$ must also
+  be. Hence we have to determine if a description based on moments is
+  relevant! It could be that our numbers are a very bad description of
+  the posterior.}
+\\
+
+It may be possible to calculate the prediction in Eq.~(\ref{pmp})
+numerically, but it will be slow due to the multiple $d\bmL$
+integral. A partial solution lies in at least finding simple
+expressions for the moments and cumulants (mean, variance, skewness,
+kurtosis etc) of $p(L\cond n,\ell)$. This can be accomplished by first
+finding the moment generating function (mgf) (see Appendix) which in
+the present case is also the Laplace transform.  For the mgf, the
+convolution is easily accomplished:
+\begin{align}
+  \lleq{mgc}
+  M(t;L\cond n,\bml) &= M[t\cond p(L|n,\bml)]
+  \ =\ \int_0^\infty dL\,p(L\cond n,\bml)\,e^{-tL} \\
+  &= \frac{1}{p(\bml\cond n)}
+  \sum_N p(N\cond n)\,\int dL e^{-tL} \int d\bmL\,\delta(L - \textstyle\sum_j L_j)
+  \displaystyle\int d\bmphi\,p(\bmL\cond N,\bmphi) \, p(\bml\cond n,\bmphi)
+  \, p(\phi)\\
+  &= \frac{1}{p(\bml\cond n)}
+  \sum_N p(N\cond n)\,\int d\bmphi\,
+  \prod_{j=1}^N \left[ \int dL_j\,p(L_j\cond \bmphi)\,e^{-tL_j}\right]
+   p(\bml\cond n,\bmphi) \, p(\phi)
+\end{align}
+The term in the square bracket is the moment generating function of
+$p(L_j\cond \bmphi)$,
+\begin{align}
+  \lleq{mgcb}
+  M(t; L_j\cond \bmphi) &=
+  \int dL_j\,p(L_j\cond \bmphi)\,e^{-tL_j}
+\end{align}
+and since this is the same for all packets $L_j$, we obtain
+\begin{equation}
+  \lleq{mgd}
+  \boxed{
+  M(t;L\cond n,\bml) %
+  = \frac{1}{p(\bml\cond n)}
+  \sum_N p(N\cond n)\,\int d\bmphi\,
+  M(t; L_j\cond \bmphi)^N
+   p(\bml\cond n,\bmphi) \, p(\phi)
+   }
+\end{equation}
+As shown in Appendix ***, order-$q$ moments (expectation values of
+$L_j^q$) of $p(L\cond n,\bml)$ can be found by taking successive
+derivatives with respect to $t$,
+\begin{align}
+  \lleq{mge}
+  E[L^q\cond n,\bml]
+  &= \left(\frac{-\partial}{\partial t}\right)^q M(t;L\cond n,\bml)\biggr|_{t=0}
+  \qquad q = 1,2,3\ldots
+\end{align}
+from which we can find the mean, variance, skewness etc of
+$p(L|n,\bml)$ without knowing its form explicitly. To do so, we need
+to find successive derivatives of $\left[ M(t; L_j\cond \bmphi)
+\right]^N$ appearing in (\ref{mgd}). Defining the moments of
+$p(L_j\cond\bmphi)$ as
+\begin{align}
+  \lleq{mgf}
+  \mu_q(\bmphi) &= \int dL_j\,p(L_j\cond\bmphi)\,L_j^q \qquad q = 1,2,\ldots,
+\end{align}
+we find
+\begin{align}
+  \lleq{mgg}
+  \left(\frac{-\partial}{\partial t}\right) %
+  M(t; L_j\cond \bmphi)^N\biggr|_{t=0}
+  &= N \mu_1(\bmphi)\\
+  \lleq{mgh}
+  \left(\frac{-\partial}{\partial t}\right)^2 %
+  M(t; L_j\cond \bmphi)^N\biggr|_{t=0}
+  &= N^{\underline{2}}\mu_1^2(\bmphi) + N \mu_2(\bmphi) \\
+  \lleq{mgi}
+  \left(\frac{-\partial}{\partial t}\right)^3 %
+  M(t; L_j\cond \bmphi)^N\biggr|_{t=0}
+  &= N^{\underline{3}}\mu_1^3(\bmphi) + 3N^{\underline{2}}\mu_1(\bmphi)\mu_2(\bmphi)
+  + N\mu_3(\bmphi)
+\end{align}
+where
+\begin{align}
+  \lleq{mgj}
+  N^{\underline q} &= N(N-1)\cdots (N-q+1) = \frac{N!}{(N-q)!}
+\end{align}
+is the $q$th falling power of $N$. Successively inserting these and
+(\ref{mgd}) into (\ref{mge}), we firstly get for the mean of $L$,
+given $(n,\bml)$
+\begin{align}
+  \lleq{mgk}
+  E[L\cond n,\bml]
+  &= \frac{1}{p(\bml\cond n)}
+  \sum_N p(N\cond n)\,N \int d\bmphi\, \mu_1(\bmphi) \,
+  p(\bml\cond n,\bmphi) \, p(\phi).
+\end{align}
+Given that $p(N\cond n)$ is a Negative Binomial pdf, the sum is trivially
+found to be
+\begin{align}
+  \lleq{mgl}
+  \sum_N p(N\cond n)\,N &= n\frac{\tfrac{1}{2}}{1-\tfrac{1}{2}} = n
+\end{align}
+so that
+\begin{align}
+  \lleq{mgm}
+  E[L\cond n,\bml]
+  &= \frac{n}{p(\bml\cond n)}
+  \int d\bmphi\, \mu_1(\bmphi) \, p(\bml\cond n,\bmphi) \, p(\phi)
+\end{align}
+Since the integral is an average of $\mu_1(\bmphi)$ weighted by
+$p(\bml,\bmphi\cond n)$, let us give it a name. Given a function
+$f(\bmphi)$, its ``$\bmphi$-expectation value'' is defined as
+\begin{align}
+  \lleq{mgn}
+  E_\phi[ f ] &= \int d\bmphi\, f(\bmphi) \, p(\bml\cond n,\bmphi) \, p(\phi)
+\end{align}
+in terms of which
+\begin{align}
+  % \lleq{mgpa}
+  % p(\bml\cond n) &= E_\phi[\mu_0],\\
+  %%%%%%%
+  \lleq{mgo}
+  E[L\cond n,\bml]
+  &= n\, \frac{E_\phi[\mu_1]}{p(\bml\cond n)}
+  \ =\ n\,\frac{E_\phi[\mu_1]}{E_\phi[\mu_0]}
+\end{align}
+On taking the second derivative and using
+\begin{align}
+  \lleq{mgp}
+  \sum_N p(N\cond n)\,N^2
+  &= \frac{n(n+1)\left(\tfrac{1}{2}\right)^2}{\left(1-\tfrac{1}{2}\right)^2}
+  = n(n+1)
+\end{align}
+the second moment of $p(L\cond n,\bml)$ is
+\begin{align}
+  \lleq{mgq}
+  E[L^2\cond n,\bml]
+  &= \frac{1}{p(\bml\cond n)}
+  \sum_N p(N\cond n)\, \int d\bmphi\,
+  \left[ N^{\underline{2}}\mu_1^2(\bmphi) + N \mu_2(\bmphi)\right]
+  p(\bml\cond n,\bmphi) \, p(\phi) \\
+  &= n^2\,\frac{E_\phi[\mu_1^2]}{E_\phi[1]}
+  + n \frac{E_\phi[\mu_2]}{E_\phi[1]}
+\end{align}
+so that the variance is
+\begin{align}
+  \lleq{mgr}
+  \var(L\cond n,\bml)
+  &= n^2\, \frac{E_\phi[\mu_1^2]\,E_\phi[1] -  E_\phi[\mu_1]^2}
+  {E_\phi[1]^2}
+  + n\, \frac{E_\phi[\mu_2]}{E_\phi[1]}
+\end{align}
+It is tempting to argue that the $n^2$ term is much larger than the
+$n$-order term. This depends, however, on the sizes of the respective
+expectation values: no a priori assumptions can be made here.
+
+\subsection{Third-order: skewness}
+
+TODO Hans
+
+This may be necessary because $p(L_j\cond\bmphi)$ is highly
+asymmetric, while the pdf of the sum $L$ may be less so.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Modeling the TARDIS packet distribution}
+
+TODO: All (numerics and analytics)
+
+\begin{mtemize}
+\item Find the most suitable likelihood for $p(L_j\cond \bmphi)$
+
+\item Determine how far we can integrate analytically over the
+parameters
+
+\item How stable are the results to perturbations?
+
+\item \texttt{COMMENT Since $p(L_j\cond \bmphi)$ is highly asymmetric,
+    we have to determine if a description based on moments is
+    relevant! It could be that our numbers are a very bad description
+    of the posterior.}
+
+\end{mtemize}
+
+\subsection{Results for Beta distribution likelihood}
+
+The Beta probability density function (pdf) is
+\begin{align}
+  \lleq{btc}
+  p(x\cond a,b) &= \frac{x^{a-1}(1-x)^{b-1}}{B(a,b)} \qquad
+  0 < x < 1, \quad a,b > 0.
+\end{align}
+where $\bmphi = (a,b)$ are the parameters and
+\begin{align}
+  \lleq{btd}
+  B(a,b) &= \frac{\Gamma(a)\,\Gamma(b)}{\Gamma(a+b)}
+\end{align}
+is the beta function.
+%
+The form of the TARDIS single-packet distribution suggests that this
+is appropriate; the strong asymmetry in the TARDIS distribution leads
+us to expect most likely parameter values of $b \ll a$ so that the mode
+is close to $x=1$.
+%
+The variable $x$ is related to packet luminosities simply by
+$x = L_j/L_{\rm max}$ where $L_{\rm max}$ is the largest luminosity
+in the packets i.e.\ $0 < L_j < L_{\rm max}$.
+%
+(Remember we are considering a single bin $b$ only, and only a single
+TARDIS run.)
+%
+Given that we want to find the $\phi$-moments of Section \ref{sec:mgff}
+in terms of TARDIS simulation ``data'', we define in this section
+\begin{align}
+  x_j &= \ell_j/\ell_{\rm max}
+\end{align}
+while $x$ without subscript is used for the generic moment
+calculations. The same quantities could, of course, be used in terms
+of the generic variable $x_j = L_j/L_{\rm max}$. In terms of the
+original ``data'' packets, the beta distribution reads
+\begin{align}
+  \lleq{bte}
+  p(\bml\cond \ell_{\rm max},n,a,b)
+  &= \prod_{j=1}^n p(\ell_j\cond \ell_{\rm max},a,b) \\
+  \lleq{btf}
+  p(\ell_j\cond \ell_{\rm max},a,b)
+  &= \frac{1}{\ell_{\rm max}\,B(a,b)}
+  \,\left(\frac{\ell_j}{\ell_{\rm max}}\right)^{a-1}
+    \left(1-\frac{\ell_j}{\ell_{\rm max}}\right)^{b-1}
+  \ =\ \frac{1}{B(a,b)}
+  \frac{\ell_j^{a-1}\,(\ell_{\rm max}-\ell_j)^{b-1}}
+  {\ell_{\rm max}^{a+b-1}}
+\end{align}
+equivalent to the form (\ref{btc}) with $x\to x_j$.
+% \begin{align}
+%   p(x_j\cond a,b) &= \frac{1}{B(a,b)} x_j^{a-1} (1-x_j)^{b-1}
+% \end{align}
+NOTE: If $\ell_{\rm max}$ changes significantly from TARDIS run to
+run, then the probability calculation may have to be changed from
+$p(\bml\cond \ell_{\rm max},n,a,b)$ to\\
+$p(\bml\cond \ell_{\rm max},n,a,b)\,p(\ell_{\rm max}\cond
+n,a,b)$. However we are supposed to deal with ONE TARDIS run, so that
+$\ell_{\rm max}$ is known and fixed.
+\\
+
+The moments of the beta distibution are simple,
+\begin{align}
+  \lleq{btg}
+  \mu_q(a,b) &= \int dx\,x^q\,p(x\cond a,b)
+  = \frac{(a)_q}{(a+b)_q}
+  = \frac{a(a+1)\cdots(a+q-1)} {(a+b)(a+b+1)\cdots(a+b+q-1)}
+  \qquad q = 0,1,2,\ldots
+\end{align}
+with $(a)_b$ the Pochhammer symbol.
+%
+\\
+
+\textbf{Calculations for a uniform discrete prior}
+
+The prior is as yet unspecified. Since there is no known conjugate
+prior for the beta distribution, we resort to a simpler prior in terms
+of discrete values for $a$ and $b$. In principle, these can be any
+rational numbers, but because as stated the value of $b$ is expected
+to be around 30--60, we let $a$ and $b$ be integers only, $a,b, =
+1,2,3,\ldots$. Furthermore, since Eqs.~(\ref{mgo}) and (\ref{mgr})
+always involve \textbf{ratios} of $\phi$-expectation values, we can
+use a uniform improper prior,
+\begin{align}
+  p(a,b) &= C\qquad a,b = 1,2,\ldots,\infty
+\end{align}
+with $C$ the improper constant which will cancel in the ratio.
+% With
+% this prior, the $\phi$-expectation values become
+% \begin{align}
+%   E_\phi[\mu_q] &= C \sum_{a=1}^\infty \sum_{b=1}^\infty
+%   \mu_q(a,b)\,\prod_j \frac{x_j^{a-1}(1-x_j)^{b-1}}{B(a,b)}
+% \end{align}
+We now calculate $\phi$-expectation values for this case, namely
+\begin{align}
+  \lleq{bth}
+  E_\phi[\mu_q(a,b)] &= \sum_{a,b}\mu_q(a,b)\,p(\bml\cond \ell_{\rm max}, n,a,b)
+  \,p(a,b)
+  \\
+  % = C \sum_{a,b=1}^\infty \mu_q(a,b)\,p(\bml\cond \ell_{\rm max}, n,a,b)\\
+  \lleq{bti}
+  &= C\sum_{a,b} \frac{(a)_q}{(a+b)_q}
+  \frac{1}{B(a,b)} \prod_{j=1}^n \left(x_j^{a-1}(1-x_j)^{b-1}\right)
+\end{align}
+The product can be rewritten as
+\begin{align}
+  \lleq{btj}
+  \prod_{j=1}^n \left(x_j^{a-1}(1-x_j)^{b-1}\right)
+  &= \left(\prod_j x_j\right)^{a-1}\left(\prod_j(1-x_j)\right)^{b-1}
+\end{align}
+and defining
+\begin{align}
+  \lleq{btk}
+  y &= \prod_{j=1}^n x_j \qquad z = \prod_{j=1}^n(1-x_j)
+\end{align}
+which are data quantities independent of any model or model
+parameters, we get
+\begin{align}
+  \lleq{btl}
+  E_\phi[\mu_q(a,b)] &= C\sum_{a,b} \frac{(a)_q}{(a+b)_q}
+  \frac{y^{a-1}z^{b-1}}{B(a,b)}
+\end{align}
+With the help of mathematica we find
+\begin{align}
+  \lleq{btm}
+  E_\phi[\mu_0] &= C\sum_{a,b=1}^\infty \frac{y^{a-1}z^{b-1}}{B(a,b)}
+  = \frac{C}{(1 - y - z)^2}
+  \\
+  E_\phi[\mu_1] &= C\sum_{a,b} \frac{a}{(a+b)}
+  \frac{y^{a-1}z^{b-1}}{B(a,b)}
+  \nonumber\\
+  \lleq{btn}
+  &= \frac{C}{(y + z)^3}
+  \left[
+  \frac{(y + z) [2 y^2 + (z-y)(z-1)]}
+  {(1 - y - z)^2 }
+   + (z-y) \ln(1 - y - z)
+   \right]
+%   \\
+%   E_\phi[\mu_2(a,b)] &= C\sum_{a,b} \frac{a(a+1)}{(a+b)(a+b+1)}
+%   \frac{(1-y)^{a-1}(1-z)^{b-1}}{B(a,b)}
+%   \\
+%   E_\phi[\mu_1^2(a,b)] &= C\sum_{a,b} \left(\frac{a}{a+b}\right)^2
+%   \frac{(1-y)^{a-1}(1-z)^{b-1}}{B(a,b)}
+\end{align}
+Taking ratios, we obtain
+\begin{align}
+  \lleq{bto}
+  \frac{E_\phi[\mu_1(a,b)]} {E_\phi[\mu_0(a,b)]}
+  &= \frac{(y + z) [2 y^2 +(z- y) (1 - z)] + (z-y) (1 - y - z)^2 \ln(1 - y - z)}
+  {(y + z)^3}
+\end{align}
+and so
+\begin{align}
+  \lleq{btp}
+  E[L\cond n,\bml] &= n \left[
+  \frac{(y + z) [2 y^2 +(z- y) (1 - z)] + (z-y) (1 - y - z)^2 \ln(1 - y - z)}
+  {(y + z)^3}\right]
+\end{align}
+is completely determined by the data $(n,\bml)$.  Similarly
+\begin{align}
+  E_\phi[\mu_2] &= C\sum_{a,b} \frac{a(a+1)}{(a+b)(a+b+1)}
+  \frac{y^{a-1}z^{b-1}}{B(a,b)}
+  \nonumber\\
+  \lleq{btq} &= \frac{-1}{(1-y-z)^2 (y+z)^5} %
+  \nonumber\\
+  &\times\Bigl\{ 2 \Bigl[2 y^2(z+1) + yz(z-8) - (z-2) z^2\Bigr]
+  (y+z-1)^2 \ln(-y-z+1)
+  \nonumber\\
+  &+ (y+z) \Bigl[
+    y^4 - 2 y^3 (5z+3) + y^2[(22-19 z) z+4] - 4 yz (z-4) (z-1) + 4z^2 (z-1)^2
+           \Bigr] \Bigr\}
+  % \nonumber\\
+  % &= -(1/((y+z-1)^2 (y+z)^5)) %
+  % \nonumber\\
+  % &\times \Bigl\{
+  %   -4 y^3 + 6 y^4 - y^5 + 12 y^2 z - 16 y^3 z + 9 y^4 z + 12 y z^2 -
+  %   42 y^2 z^2 + 29 y^3 z^2 - 4 z^3 - 12 y z^3 + 23 y^2 z^3 + 8 z^4 -
+  %   4 z^5 \nonumber\\
+  %   &+ \ln[1 - y - z] \Bigl[
+  %   -4 y^2 + 8 y^3 - 4 y^4 + 16 y z - 28 y^2 z + 16 y^3 z -
+  %     4 y^4 z - 4 z^2 - 26 y z^2 + 36 y^2 z^2 - 10 y^3 z^2 + 10 z^3 +
+  %     8 y z^3 - 6 y^2 z^3 - 8 z^4 + 2 y z^4 + 2 z^5
+  %     \Bigr]
+  %   \Bigr\}
+\end{align}
+and
+\begin{align}
+  E_\phi[\mu_1^2] &= C\sum_{a,b} \frac{a^2}{(a+b)^2}
+  \frac{y^{a-1}z^{b-1}}{B(a,b)}
+  \nonumber\\
+  \lleq{btr} %
+  &= \frac{1}{y (y - z)^3}
+  \Bigl\{
+  (y - z) (-y + z + 2 y \ln[y]) + y (-2 + y + z)
+  (\mathrm{PolyLog}[2, 1 - y] - \mathrm{PolyLog}[2, 1 - z])
+  \Bigr\}
+\end{align}
+These have to be combined with the above to find the variance of
+Eq.~(\ref{mgr}). The hope is that the complicated mathematical
+expressions simplify. Either way, the variance is also a closed
+solution in terms of $n$, $y$ and $z$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Prediction based on packet sum}
+
+TODO: Hans. The calculations have already been done. The question is
+whether we even want to bother with them since data in the form of
+packet sums is less information than the vector of individual packets
+as used above.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Results}
+
+TODO: Fred
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Discussion and Conclusions}
+
+TODO: All
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Acknowledgements}
+
+This work was supported in part by the DFG cluster of excellence
+``Origin and Structure of the Universe'' (www.universe-cluster.de) and
+the National Research Foundation of South Africa, etc etc.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Appendix: Relevant distributions}
+
+TODO: Hans
+
+\subsection{Product rule and sum rule}
+
+\subsection{Poisson}
+
+\subsection{Negative Binomial}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Appendix: Generating functions}
+
+TODO: Hans
+$\pi(\alpha, \beta) \propto \left( \frac{\Gamma(\alpha+\beta)}{\Gamma(\alpha) \Gamma(\beta)} \right)^{\lambda +1} (x x_0)^{\alpha-1} \left(y_0 (1-x) \right)^{\beta-1}$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \section{}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{thebibliography}{99}
+\bibitem{kendall}Stuart and Ord, \textit{Kendall's Advanced Theory of Statistics},
+  Vol. 1, 5th Edition etc..
+
+\end{thebibliography}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
