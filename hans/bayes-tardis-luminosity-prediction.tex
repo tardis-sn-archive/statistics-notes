@@ -7,8 +7,13 @@
 \documentclass[11pt]{article}
 \usepackage[a4paper, left=20mm, right=20mm, top=25mm, bottom=25mm]{geometry}
 
+\usepackage[colorinlistoftodos]{todonotes} % Use 'disable' to remove todos in final version
+\newcommand{\fred}[1]{\todo[inline]{#1}} %
+\newcommand{\checked}[1]{\todo[color=green,noline]{\checkmark}} %
+\newcommand{\checkedl}[1]{\todo[color=brown]{\checkmark}} %
+
 %% CHANGE THIS DATE AS YOU MODIFY THE FILE
-\newcommand{\vdate}{151211}
+\newcommand{\vdate}{160114}
 \pagestyle{myheadings}
 \markboth{Version \vdate} {Version \vdate}
 \parindent=0mm
@@ -152,7 +157,6 @@
 \begin{center}
   \textbf{\Large Bayesian prediction of supernova luminosity  distributions}\\[8pt]
   \textbf{\Large based on simulation output: An example from TARDIS}\\[12pt]
-  11 December 2015
 \end{center}
 
 \textbf{Abstract} TODO
@@ -281,16 +285,19 @@ TODO: Wolfgang (or in Introduction?)
   D &= \{n_0,\bml_0,n_1,\bml_1,\ldots,n_\smB,\bml_\smB\}
   \ =\ \{n_b,\bml_b\}_{b=0}^\smB
 \end{align}
+  \checked{}
 with
 \begin{align}
   \lleq{dfd}
   \bml_b &= (\ell_{b,1},\ell_{b,2},\ldots,\ell_{b,n_b})
 \end{align}
+  \checked{}
 Given $D$, the total luminosity in bin $b$ is known,
 \begin{align}
   \lleq{dfe}
   \ell_b = \sum_{j=1}^{n_b}\ell_{b,j}
 \end{align}
+  \checked{}
 \end{mtemize}
 
 \subsection{Data as realization of compound process}
@@ -300,8 +307,8 @@ repeat of the simulation with a different Monte Carlo seed would
 evidently yield different ``data'' $D'$ even when all other simulation
 parameters remain the same. Clearly, $n_b$ is a specific realization
 of a stochastic variable $N_b$ governed by a model pdf
-$p(N_b)$. Similarly, $\bml_b$ is a specific realization of a
-collection stochastic variables $\bmL_b
+$p(N_b)$. \fred{In our general case, $\sum_b n_b$ is an instance of a random variable because some packets leave the supernova, some don't. I guess in most applications the total number of events would be chosen and not random. We are fortunate that this difference does not matter because we consider bins independently. } Similarly, $\bml_b$ is a specific realization of a
+collection of stochastic variables $\bmL_b
 =\{L_{b,1},\ldots,L_{b,\smN_b}\}$, where the number $N_b$ of such
 variables is itself stochastic. The relevant pdf for $\bmL_b$
 therefore always presupposes knowledge of $N_b$, so we must work with
@@ -313,7 +320,7 @@ according to the pdf'', i.e.\
   (N_b,\bmL_b) &\ \sim\ p(N_b,\bmL_b\cond \bmphi_b,\lambda_b)
   = p(\bmL_b\cond N_b,\bmphi_b)\; p(N_b\cond \lambda_b),
 \end{align*}
-where $\bmphi_b$ is the set of parameters of the model pdf which
+where $\bmphi_b$ is the set of parameters\fred{so $\bmphi$ includes random seed or not? Initially I thought so. But later on it becomes clear that you do not include it.} of the model pdf which
 govern $\bmL_b$ and $\lambda_b$ is the parameter of the model pdf
 governing $N_b$.  To simulate $(N_b,\bmL_b)$, we clearly first need to
 generate one $N_b$, followed by the generation of $N$ packet
@@ -325,7 +332,7 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
 \begin{mtemize}
 \item In the remainder of this paper, we assume that the packet
   multiplicities $N_b$ and total luminosities $\bmL_b$ in any given
-  bin $b$ are statistically independent of those in other bins. This
+  bin $b$ are statistically independent of those in other bins. \fred{We could motivate this in the usual way as the Poisson limit of the Binomial. The subtlety would then the be the random total number of packets (leaving the supernova).} This
   means that the joint probability over all bins factorises into
   individual probabilities for each bin,
   \begin{align}
@@ -363,7 +370,7 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
   while of course the parameter values will change from bin to bin.
 
 \item We choose $N$ to follow a Poisson distribution with parameter
-  $\lambda$ (motivate choice),
+  $\lambda$ \fred{this choice linked to limit of Multinomial, see above}
   \begin{align}
     \lleq{pmc}
     p(N\cond\lambda) &= \frac{e^{-\lambda}\lambda^N}{N!}
@@ -382,7 +389,7 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
   for these parameters, but to take into account every and all
   possible values.
 
-\item Priors: metaparameter $a$ ***
+\item Priors: metaparameter $a$ \fred{?}
 
 \end{mtemize}
 
@@ -425,7 +432,7 @@ possible values of $\lambda$,
   \ =\ \int d\lambda\,p(N\cond\lambda, n)\,p(\lambda\cond n)
   \ =\ \frac{\int d\lambda\,p(N\cond\lambda)\,p(n\cond\lambda)\,p(\lambda)}
   {\int d\lambda\, p(n\cond\lambda)\,p(\lambda)}
-\end{align}
+\end{align}\checked{}
 where $p(N\cond\lambda,n) = p(N\cond\lambda)$ is independent of $n$.
 Taking an improper prior (see Appendix)\footnote{For a uniform prior,
   the case $a{=}0$, we require of course a maximum $\lambda_{\rm
@@ -451,7 +458,9 @@ for the evidence and prediction
   \frac{e^{-2\lambda} \lambda^{N+n-a}}{N!\, n!}
   \ =\ \frac{(N+n-a)!}{N!\,(n-a)!\,2^{N+n+1-a}}
 \end{align}
+\fred{$a=1/2 \Leftrightarrow$ Jeffrey's prior would my choice. We then get a Pólya distribution instead of Negative Binomial but nothing substantial changes. $$(pmh) \frac{\Gamma(N+n-a+1)}{N!\,\Gamma(n-a+1)\,2^{N+n+1-a}}$$ }
 which we recognise as a Negative Binomial distribution (see appendix)
+\fred{There are several definitions of the Negative Binomial, so we should specify which one we use. This one coincides with Wikipedia: $N$ successes given $k$ failures with probability of success $\rho$.}
 with parameters $k=n+1-a$ and $\rho=(1/2)$
 \begin{align}
   \lleq{pmhb}
@@ -461,7 +470,7 @@ with parameters $k=n+1-a$ and $\rho=(1/2)$
 \end{align}
 We shall use the properties of the Negative Binomial in the
 calculations below.  Note that the distribution of $N$ given $n$ is
-independent of the packets $\bmL$ and $\bml$ and their values.
+independent of the packets $\bmL$ and $\bml$ by construction.
 
 \subsection{Predicting the total luminosity $L$ in a bin}
 
@@ -487,6 +496,7 @@ is does not depend directly on $(n,\bml)$, i.e.\
   = p(L\cond N,\bmL)
   &= \delta(L - \textstyle\sum_{j=1}^N L_j).
 \end{align}
+\checked{}
 Hence the prediction is given by
 \begin{align}
   \lleq{pmj}
@@ -499,6 +509,7 @@ Hence the prediction is given by
   &= \sum_N p(N\cond n)\,\int d\bmL\,\delta(L - \textstyle\sum_{j=1}^N L_j)
   \, p(\bmL\cond N,n,\bml)
 \end{align}
+\checked{}
 The dependence on the TARDIS ``data'' $(n,\bml)$ enters through
 $p(\bmL\cond N,n,\bml)$ in terms of the parameters $\bmphi$ of
 $p(\bmL\cond N,\bmphi)$,
@@ -520,6 +531,7 @@ Again using Bayes' Theorem (\ref{bth})
   % \ =\ \frac{p(\bml\cond N,n,\bmphi)\,p(\bmphi\cond N,n)} %
   % {p(\bml\cond n)} %
 \end{align}
+\fred{$p(\bmphi\cond N,n,\bml) = p(\bmphi\cond n,\bml)$ }
 and using a multiplicity-independent prior for $\bmphi$
 \begin{align}
   \lleq{pml}
@@ -547,14 +559,16 @@ Inserting this into (\ref{pmjc}), we obtain
   = \frac{1}{p(\bml\cond n)}
   \sum_N p(N\cond n)\,\int d\bmL\,\delta(L - \textstyle\sum_j L_j)
   \displaystyle\int d\bmphi\,p(\bmL\cond N,\bmphi) \, p(\bml\cond n,\bmphi)
-  \, p(\phi)
+  \, p(\bmphi)
   }
 \end{equation}
+\checked{}
 with
 \begin{align}
   p(\bmL\cond N,\bmphi) &= \prod_{j=1}^N p(L_j\cond \bmphi) \\
   p(\bml\cond n,\bmphi) &= \prod_{j=1}^n p(\ell_j\cond \bmphi)
 \end{align}
+\fred{And $p(\cdot \cond \bmphi)$ is the same function in both equations.}
 In other words: Once we have decided on a prior $p(\bmphi)$ and a
 specific pdf to model the likelihood $p(L_j\cond \bmphi)$, we have a
 prediction for $L$ which takes into account all possible $N$,
@@ -578,8 +592,10 @@ integral. A partial solution lies in at least finding simple
 expressions for the moments and cumulants (mean, variance, skewness,
 kurtosis etc) of $p(L\cond n,\ell)$. This can be accomplished by first
 finding the moment generating function (mgf) (see Appendix) which in
-the present case is also the Laplace transform.  For the mgf, the
-convolution is easily accomplished:
+the present case is also the Laplace transform. \fred{On Wikipedia,
+  the MGF is defined as $\int_0^\infty dL\,p(L\cond
+  n,\bml)\,e^{+tL}$. Then there are less minus signs to worry about}
+For the mgf, the convolution is easily accomplished:
 \begin{align}
   \lleq{mgc}
   M(t;L\cond n,\bml) &= M[t\cond p(L|n,\bml)]
@@ -587,11 +603,11 @@ convolution is easily accomplished:
   &= \frac{1}{p(\bml\cond n)}
   \sum_N p(N\cond n)\,\int dL e^{-tL} \int d\bmL\,\delta(L - \textstyle\sum_j L_j)
   \displaystyle\int d\bmphi\,p(\bmL\cond N,\bmphi) \, p(\bml\cond n,\bmphi)
-  \, p(\phi)\\
+  \, p(\bmphi)\\
   &= \frac{1}{p(\bml\cond n)}
   \sum_N p(N\cond n)\,\int d\bmphi\,
   \prod_{j=1}^N \left[ \int dL_j\,p(L_j\cond \bmphi)\,e^{-tL_j}\right]
-   p(\bml\cond n,\bmphi) \, p(\phi)
+   p(\bml\cond n,\bmphi) \, p(\bmphi)
 \end{align}
 The term in the square bracket is the moment generating function of
 $p(L_j\cond \bmphi)$,
@@ -608,9 +624,10 @@ and since this is the same for all packets $L_j$, we obtain
   = \frac{1}{p(\bml\cond n)}
   \sum_N p(N\cond n)\,\int d\bmphi\,
   M(t; L_j\cond \bmphi)^N
-   p(\bml\cond n,\bmphi) \, p(\phi)
+   p(\bml\cond n,\bmphi) \, p(\bmphi)
    }
-\end{equation}
+ \end{equation}
+ \checked{}
 As shown in Appendix ***, order-$q$ moments (expectation values of
 $L_j^q$) of $p(L\cond n,\bml)$ can be found by taking successive
 derivatives with respect to $t$,
@@ -645,6 +662,7 @@ we find
   &= N^{\underline{3}}\mu_1^3(\bmphi) + 3N^{\underline{2}}\mu_1(\bmphi)\mu_2(\bmphi)
   + N\mu_3(\bmphi)
 \end{align}
+\checked{}
 where
 \begin{align}
   \lleq{mgj}
@@ -658,7 +676,7 @@ given $(n,\bml)$
   E[L\cond n,\bml]
   &= \frac{1}{p(\bml\cond n)}
   \sum_N p(N\cond n)\,N \int d\bmphi\, \mu_1(\bmphi) \,
-  p(\bml\cond n,\bmphi) \, p(\phi).
+  p(\bml\cond n,\bmphi) \, p(\bmphi).
 \end{align}
 Given that $p(N\cond n)$ is a Negative Binomial pdf, the sum is trivially
 found to be
@@ -666,19 +684,20 @@ found to be
   \lleq{mgl}
   \sum_N p(N\cond n)\,N &= n\frac{\tfrac{1}{2}}{1-\tfrac{1}{2}} = n
 \end{align}
+\fred{The first moment under NB is $\frac{\rho k}{1-\rho}$, resulting in $n-a+1$. Here and below you seem to set $a=1$ implicitly. I want to carry the $a$ along.}
 so that
 \begin{align}
   \lleq{mgm}
   E[L\cond n,\bml]
   &= \frac{n}{p(\bml\cond n)}
-  \int d\bmphi\, \mu_1(\bmphi) \, p(\bml\cond n,\bmphi) \, p(\phi)
+  \int d\bmphi\, \mu_1(\bmphi) \, p(\bml\cond n,\bmphi) \, p(\bmphi)
 \end{align}
 Since the integral is an average of $\mu_1(\bmphi)$ weighted by
-$p(\bml,\bmphi\cond n)$, let us give it a name. Given a function
+$p(\bmphi\cond n, \bml)$, let us give it a name. Given a function
 $f(\bmphi)$, its ``$\bmphi$-expectation value'' is defined as
 \begin{align}
   \lleq{mgn}
-  E_\phi[ f ] &= \int d\bmphi\, f(\bmphi) \, p(\bml\cond n,\bmphi) \, p(\phi)
+  E_\phi[ f ] &= \int d\bmphi\, f(\bmphi) \, p(\bml\cond n,\bmphi) \, p(\bmphi)
 \end{align}
 in terms of which
 \begin{align}
@@ -690,6 +709,7 @@ in terms of which
   &= n\, \frac{E_\phi[\mu_1]}{p(\bml\cond n)}
   \ =\ n\,\frac{E_\phi[\mu_1]}{E_\phi[\mu_0]}
 \end{align}
+\fred{$n \to n-a+1$}
 On taking the second derivative and using
 \begin{align}
   \lleq{mgp}
@@ -697,6 +717,10 @@ On taking the second derivative and using
   &= \frac{n(n+1)\left(\tfrac{1}{2}\right)^2}{\left(1-\tfrac{1}{2}\right)^2}
   = n(n+1)
 \end{align}
+\fred{I disagree. The 2nd raw moment is $\frac{k \rho (1 + k
+    \rho)}{(1-\rho)^2}$ (from Mathworld with $\rho=q,1-\rho=p, k=r$
+  and manually derived from the negative binomial MGF from
+  Wikipedia). With $k=n-a+1$ and $\rho=1/2$, I get $(n-a+1)(n-a+3)$}
 the second moment of $p(L\cond n,\bml)$ is
 \begin{align}
   \lleq{mgq}
@@ -704,10 +728,15 @@ the second moment of $p(L\cond n,\bml)$ is
   &= \frac{1}{p(\bml\cond n)}
   \sum_N p(N\cond n)\, \int d\bmphi\,
   \left[ N^{\underline{2}}\mu_1^2(\bmphi) + N \mu_2(\bmphi)\right]
-  p(\bml\cond n,\bmphi) \, p(\phi) \\
+  p(\bml\cond n,\bmphi) \, p(\bmphi) \\
   &= n^2\,\frac{E_\phi[\mu_1^2]}{E_\phi[1]}
   + n \frac{E_\phi[\mu_2]}{E_\phi[1]}
 \end{align}
+\fred{I have
+ $$
+  \frac{n-a+1}{E_\phi[1]} \left( (n-a+2)E_\phi[\mu_1^2] + E_\phi[\mu_2]\right)
+$$
+}
 so that the variance is
 \begin{align}
   \lleq{mgr}
@@ -719,6 +748,11 @@ so that the variance is
 It is tempting to argue that the $n^2$ term is much larger than the
 $n$-order term. This depends, however, on the sizes of the respective
 expectation values: no a priori assumptions can be made here.
+\fred{I have the more complicated
+  $$
+    \var(L\cond n,\bml) = \frac{n-a+1}{E_\phi[1]^2} \left( (n-a+2)E_\phi[\mu_1^2] E_\phi[1] -(n-a+1) E_\phi[\mu_1]^2 + E_\phi[\mu_2] E_\phi[1]\right)
+  $$
+}
 
 \subsection{Third-order: skewness}
 
@@ -726,6 +760,8 @@ TODO Hans
 
 This may be necessary because $p(L_j\cond\bmphi)$ is highly
 asymmetric, while the pdf of the sum $L$ may be less so.
+
+\fred{I agree but what would we do if we knew the skewness? For the fit, we need to evaluate the likelihood, so we'd have to build a function my moment matching. Of course with mean and variance alone, we'd use the Gaussian. But this just reduces to the central limit theorem.}
 
 
 
@@ -748,6 +784,9 @@ parameters
     of the posterior.}
 
 \end{mtemize}
+
+\fred{Yes but at least if a rather large number of events is in the
+  bin, this will be good enough}
 
 \subsection{Results for Beta distribution likelihood}
 
@@ -798,6 +837,7 @@ original ``data'' packets, the beta distribution reads
   \frac{\ell_j^{a-1}\,(\ell_{\rm max}-\ell_j)^{b-1}}
   {\ell_{\rm max}^{a+b-1}}
 \end{align}
+\checked{}
 equivalent to the form (\ref{btc}) with $x\to x_j$.
 % \begin{align}
 %   p(x_j\cond a,b) &= \frac{1}{B(a,b)} x_j^{a-1} (1-x_j)^{b-1}
@@ -808,7 +848,7 @@ $p(\bml\cond \ell_{\rm max},n,a,b)$ to\\
 $p(\bml\cond \ell_{\rm max},n,a,b)\,p(\ell_{\rm max}\cond
 n,a,b)$. However we are supposed to deal with ONE TARDIS run, so that
 $\ell_{\rm max}$ is known and fixed.
-\\
+\fred{Rather: we approximate $p(\ell_{\rm max} \cond n, a,b)$ by $\delta(\max \ell_{b,j})$. This is OK is $\sum_b n_b$ is large. For numerical stability, we want to ensure that $x<1$, so we take the largest $\ell_{b,j}$ and multiply by $1 +\varepsilon, \varepsilon = 10^{-7}$}
 
 The moments of the beta distibution are simple,
 \begin{align}
@@ -821,17 +861,22 @@ The moments of the beta distibution are simple,
 with $(a)_b$ the Pochhammer symbol.
 %
 \\
+\fred{Formula ok but to be consistent with the notation used above, we should either use the rising factorial $a^{\overline{b}}$ here or $(a)^b$ above}
 
 \textbf{Calculations for a uniform discrete prior}
 
 The prior is as yet unspecified. Since there is no known conjugate
-prior for the beta distribution, we resort to a simpler prior in terms
-of discrete values for $a$ and $b$. In principle, these can be any
+prior for the beta distribution,\fred{yes it is known. But it not
+  useful because the normalization can't be calculated analytically;
+  see
+  http://mathoverflow.net/questions/20399/conjugate-prior-of-the-dirichlet-distribution}
+we resort to a simpler prior in terms of discrete values for $a$ and
+$b$ to simplify the expressions. In principle, these can be any
 rational numbers, but because as stated the value of $b$ is expected
 to be around 30--60, we let $a$ and $b$ be integers only, $a,b, =
-1,2,3,\ldots$. Furthermore, since Eqs.~(\ref{mgo}) and (\ref{mgr})
-always involve \textbf{ratios} of $\phi$-expectation values, we can
-use a uniform improper prior,
+1,2,3,\ldots$. \fred{I don't understand this argument} Furthermore,
+since Eqs.~(\ref{mgo}) and (\ref{mgr}) always involve \textbf{ratios}
+of $\phi$-expectation values, we can use a uniform improper prior,
 \begin{align}
   p(a,b) &= C\qquad a,b = 1,2,\ldots,\infty
 \end{align}
@@ -853,17 +898,20 @@ We now calculate $\phi$-expectation values for this case, namely
   &= C\sum_{a,b} \frac{(a)_q}{(a+b)_q}
   \frac{1}{B(a,b)} \prod_{j=1}^n \left(x_j^{a-1}(1-x_j)^{b-1}\right)
 \end{align}
+\checked{}
 The product can be rewritten as
 \begin{align}
   \lleq{btj}
   \prod_{j=1}^n \left(x_j^{a-1}(1-x_j)^{b-1}\right)
   &= \left(\prod_j x_j\right)^{a-1}\left(\prod_j(1-x_j)\right)^{b-1}
 \end{align}
+\fred{This equation can be skipped}
 and defining
 \begin{align}
   \lleq{btk}
   y &= \prod_{j=1}^n x_j \qquad z = \prod_{j=1}^n(1-x_j)
 \end{align}
+\checked{}
 which are data quantities independent of any model or model
 parameters, we get
 \begin{align}
@@ -871,6 +919,7 @@ parameters, we get
   E_\phi[\mu_q(a,b)] &= C\sum_{a,b} \frac{(a)_q}{(a+b)_q}
   \frac{y^{a-1}z^{b-1}}{B(a,b)}
 \end{align}
+\checked{}
 With the help of mathematica we find
 \begin{align}
   \lleq{btm}
@@ -893,7 +942,8 @@ With the help of mathematica we find
 %   \\
 %   E_\phi[\mu_1^2(a,b)] &= C\sum_{a,b} \left(\frac{a}{a+b}\right)^2
 %   \frac{(1-y)^{a-1}(1-z)^{b-1}}{B(a,b)}
-\end{align}
+ \end{align}
+ \checked{}
 Taking ratios, we obtain
 \begin{align}
   \lleq{bto}
@@ -959,6 +1009,7 @@ TODO: Hans. The calculations have already been done. The question is
 whether we even want to bother with them since data in the form of
 packet sums is less information than the vector of individual packets
 as used above.
+\fred{No, we don't want to bother.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results}
