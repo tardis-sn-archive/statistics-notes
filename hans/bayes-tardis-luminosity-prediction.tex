@@ -889,7 +889,7 @@ with $C$ the improper constant which will cancel in the ratio.
 % \end{align}
 We now calculate $\phi$-expectation values for this case, namely
 \begin{align}
-  \lleq{bth}
+  \lleq{bthi}
   E_\phi[\mu_q(a,b)] &= \sum_{a,b}\mu_q(a,b)\,p(\bml\cond \ell_{\rm max}, n,a,b)
   \,p(a,b)
   \\
@@ -1014,7 +1014,36 @@ as used above.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results}
 
-TODO: Fred
+In Figure~\ref{fig:beta} is a fit of the Beta distribution to 3000
+samples from a TARDIS run with frequencies in the range $[1.367,
+1.435] \times 10^{38}$ Hz. A characteristic feature seen in many such
+similar fits is that the Beta distribution does not give a perfect
+fit: it undershoots around the mode and overshoots around
+$x=0.96$. The reason may be that the Beta itself is not flexible
+enough to describe the data, or the distribution is simply not
+constant in frequency, so we should choose smaller bins or less
+samples. We don't expect 3000 samples in every bin, so what is the
+minimum number of samples needed to work robustly? The first numerical
+challenge is how to normalize the luminosities, I take the maximum
+across all samples (not just one bin) and multiply by $10^{-6}$ to
+avoid $x=1$ for any sample. For too few samples, the fit returns a pdf
+that peaks at the boundary $x=1$, this is not what we want. From trial
+and error, 300 samples is a solid minimum to get a robust fit if
+parameters are estimated via maximum likelihood. The method-of-moment
+estimator has the advantage of not requiring an optimization algorithm
+but for some bins it gives a solution peaking at $x=1$ even for 800
+samples so it's not robust.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.48\textwidth]{beta-300}
+  \includegraphics[width=0.48\textwidth]{beta-3000}
+  \caption{Beta distribution fit. The samples are binned in the
+    histogram. The blue solid curve is a kernel-density estimate, the
+    red dashed curve is the Beta distribution. left: 300 samples,
+    right: 3000 samples}
+  \label{fig:beta}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Discussion and Conclusions}
