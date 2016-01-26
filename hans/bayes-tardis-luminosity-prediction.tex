@@ -151,6 +151,8 @@
 \newcommand{\bmxi}{{\bm{\xi}}}
 \newcommand{\bmzeta}{{\bm{\zeta}}}
 
+\DeclareMathOperator{\GammaDist}{Gamma}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
@@ -1013,6 +1015,20 @@ These have to be combined with the above to find the variance of
 Eq.~(\ref{mgr}). The hope is that the complicated mathematical
 expressions simplify. Either way, the variance is also a closed
 solution in terms of $n$, $y$ and $z$.
+
+\subsection{Results for the Gamma-distribution likelihood}
+
+The Gamma distribution is with shape parameter $\alpha$ and rate
+parameter $\beta$ is defined as
+\begin{align}
+  \lleq{gma}
+  p(x | \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x} .
+\end{align}
+For our purposes, the most important property is that the Gamma distribution is infinitely divisible; i.e., the sum of $N$ Gamma variates is again a Gamma variate
+\begin{align}
+  \lleq{gmb}
+  X_i \sim Gamma(\alpha, \beta) \Rightarrow \sum_{i=1}^N X_i \sim Gamma(N \alpha, \beta)
+\end{align}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Prediction based on packet sum}
