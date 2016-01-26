@@ -480,6 +480,18 @@ independent of the packets $\bmL$ and $\bml$ by construction.
 
 \subsubsection{Direct probability}
 
+\fred{We should be more general: let's reserve $n$ for the number of
+  packets observed in a bin. Suppose this is $n=1$. From that, we can
+  hardly infer the luminosity distribution. Instead, we group the
+  packets in larger bins such that there are at least $m \gtrsim 300$
+  packets, and then assume the distribution doesn't change much with
+  frequency.
+
+  Hence we will learn $\bmphi$ from $m$ samples, and
+  $p(\bmphi\cond N,n,\bml) \to p(\bmphi\cond N,m,\bml)$ and we can
+  keep $\bml$ with the same meaning. So we replace $n \to m$ below
+  except in $p(N \cond n$)}
+
 Our goal of prediction of $L$ given the data $(n,\bml)$ is captured in
 the probability $p(L\cond n,\bml)$ with all relevant parameters
 integrated out. We first note from Eq.~(\ref{pmh}) that $p(N\cond
