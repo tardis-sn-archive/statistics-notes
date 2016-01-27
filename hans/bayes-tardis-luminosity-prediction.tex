@@ -7,6 +7,7 @@
 \documentclass[11pt]{article}
 \usepackage[a4paper, left=20mm, right=20mm, top=25mm, bottom=25mm]{geometry}
 \usepackage[numbers]{natbib}
+%\usepackage{hyperref}
 
 \usepackage[colorinlistoftodos]{todonotes} % Use 'disable' to remove todos in final version
 \newcommand{\fred}[1]{\todo[inline]{#1}} %
@@ -154,6 +155,7 @@
 
 \DeclareMathOperator{\GammaDist}{Gamma}
 \newcommand{\refeq}[1]{Eq.~(\ref{#1})}
+\newcommand{\lmax}{\ell_{\rm max}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
@@ -1021,30 +1023,72 @@ solution in terms of $n$, $y$ and $z$.
 \subsection{Results for the Gamma-distribution likelihood}
 
 The Gamma distribution is with shape parameter $\alpha$ and rate
-parameter $\beta$ is defined as
+parameter $\beta$ is defined for $x \geq 0$ as
 \begin{align}
   \lleq{gma}
-  p(x | \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x} .
+  \GammaDist(x | \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x} .
 \end{align}
-For our purposes, the most important property is that the Gamma distribution is infinitely divisible; i.e., the sum of $N$ Gamma variates is again a Gamma variate
+$\GammaDist(x \cond \alpha, \beta)$ is defined for $x \in [0, \infty]$
+whereas the luminosity of real packets is bounded from above and has a
+peak away from the bound. In order to describe the luminosity
+distribution of real packets through $\GammaDist(\alpha, \beta)$, we
+have to transform the luminosities. To this end, we first take the
+largest luminosity from the entire frequency range and increase it
+slightly to avoid numerical difficulties at the end point
+\begin{align}
+  \lleq{gme}
+  \lmax \equiv (1+\epsilon) \times \max_j \ell_j,
+\end{align}
+where $ \epsilon=10^{-6}$.
+We assume the total number of samples across all bins is large, hence
+the effect of considering $\lmax$ a constant independent of the data
+is negligible. We then transform the samples as
+\begin{align}
+  \lleq{gmf}
+  x_j \equiv 1- \frac{\ell_j}{\lmax} > 0
+\end{align}
+and similarly for $L \to X$, then we infer $P(X \cond n, \bmx,
+m)$. Only in the end, we transform back to a probability density in
+$L$ via
+\begin{align}
+  \lleq{gmg}
+  p(L  \cond n, \bml, m) = p(X  \cond n, \bmx, m) \frac{1}{\lmax}
+\end{align}
+While not obvious at first, a major numerical simplification arises
+because of the $L \to X$ transformation. Rewriting the master
+equation~(\ref{pmp}) formally as
+\begin{align}
+  \lleq{gmh}
+  p(L  \cond n, \bml, m) = \sum_{N} p(N \cond n) p(L \cond N, \bml, m)
+\end{align}
+we see that the $ p(L \cond n, \bml, m)$ is a mixture density. If the
+distribution of a single luminosity, $p(L \cond N=1, \bml, m)$ is
+narrow in the sense that the standard deviation relative to the mean
+is at the percent level, then the mixture density has one mode for
+each $N$ and all modes are clearly separated. The transformation $L
+\to x$ effects a strong overlap between adjacent $p(X \cond N, \bmx,
+m)$ and leads to a unimodal $p(X \cond n, \bmx, m)$.
+\fred{Show a plot: from hedgehog to single peak}
+
+For our purposes, the most useful property of the Gamma
+distribution is infinite divisibility; i.e., the sum of $N$ Gamma
+variates is again a Gamma variate
 \begin{align}
   \lleq{gmb}
-  X_i \sim Gamma(\alpha, \beta) \Rightarrow \sum_{i=1}^N X_i \sim Gamma(N \alpha, \beta)
+  X_i \sim \GammaDist(\alpha, \beta) \Rightarrow \sum_{i=1}^N X_i \sim \GammaDist(N \alpha, \beta).
 \end{align}
-
-With $\bmphi = (\alpha, \beta)$, the property \refeq{gmb} is
-equivalent to
+With $\bmphi = (\alpha, \beta)$, \refeq{gmb} is equivalent to
 \begin{align}
   \lleq{gmc}
- p(L \cond N, \bmphi) &= \int d\bmL\,\delta(L - \textstyle\sum_j L_j)
-  \,p(\bmL\cond N,\bmphi) = Gamma(L \cond N \alpha, \beta)
+ p(X \cond N, \bmphi) &= \int d\bmX\,\delta(X - \textstyle\sum_j X_j)
+  \,p(\bmX\cond N,\bmphi) = \GammaDist(X \cond N \alpha, \beta)
 \end{align}
 and this implies that the master equation~(\ref{pmp}) considerably simplifies as
 \begin{align}
   \lleq{gmd}
-    p(L\cond n,\bml,m)
-  = \frac{1}{p(\bml\cond n)}
-  \sum_N p(N\cond n)\, \int d\bmphi\, p(L \cond \bmphi)\, p(\bml\cond m,\bmphi)
+    p(X\cond n,\bmx,m)
+  = \frac{1}{p(\bmx\cond m)}
+  \sum_N p(N\cond n)\, \int d\bmphi\, p(X \cond N, \bmphi)\, p(\bmx\cond m,\bmphi)
   \, p(\bmphi).
 \end{align}
 
@@ -1053,16 +1097,30 @@ two difficulties: the sum over $N$ and the integral over
 $\bmphi$. Regarding the latter, there is a conjugate prior but
 unfortunately the normalization constant can not be evaluated in
 closed form. It is thus of no use for us, and we turn to a
-noninformative prior. In \cite{Moala:2013}, an overview of possible
-choices is given. They conclude that the point estimate given by the
-mode of the posterior is nearly insensitive to the prior choice for 30
-samples. We require in addition that the posterior is narrow enough so
-we group samples in bins to have at least $m=150$ samples in each
-bin. The following approximations can be used in different regions of
-the parameter space spanned by $n$ and $m$.
+noninformative prior. The authors of \cite{moala2013bayesian} present
+an overview of possible choices and conclude that the point estimate
+given by the mode of the posterior is nearly insensitive to the prior
+choice for 30 samples. We require in addition that the posterior is
+narrow enough so we group samples in bins to have at least $m=150$
+samples in each bin. The following approximations can be used in
+different regions of the parameter space spanned by $n$ and $m$.
 
 \begin{enumerate}
-  \item
+  \item For $m$ large, the posterior $p(\bmphi \cond m, \bmx) =
+  p(\bmx\cond m,\bmphi) \, p(\bmphi) / p(\bmx \cond m)$ approaches a
+  multivariate Gaussian with variance tending to zero as $1/m$ in the
+  limit $m \to \infty$.  \fred{check} We can then assume the
+  parameters $\bmphi$ known and fix them at the posterior mode
+  $\bmphi^*$; i.e., $p(\bmphi \cond m, \bmx) \to \delta(\bmphi -
+  \bmphi^*)$.
+  \item For $n$ large, the Negative Binomial $p(N \cond n)$ approaches
+  a Gaussian, defining a region around $N=n$ with the dominant
+  contribution to the sum over $N$ in \refeq{gmd}. The central limit
+  theorem states that for large $N$, $P(X \cond N, \bmphi) \approx
+  \mathcal{N}(X \cond N \, E_\bmphi[X_j], N \, V_\bmphi[X_j])$. For
+  $m$ large enough, we could then plug in the sample-mean and
+  sample-variance estimates and bypass the assumption of a Gamma
+  distribution altogether.
 \end{enumerate}
 
 
