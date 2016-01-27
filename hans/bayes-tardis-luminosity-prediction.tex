@@ -6,11 +6,12 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \documentclass[11pt]{article}
 \usepackage[a4paper, left=20mm, right=20mm, top=25mm, bottom=25mm]{geometry}
+\usepackage[numbers]{natbib}
 
 \usepackage[colorinlistoftodos]{todonotes} % Use 'disable' to remove todos in final version
 \newcommand{\fred}[1]{\todo[inline]{#1}} %
-\newcommand{\checked}[1]{\todo[color=green,noline]{\checkmark}} %
-\newcommand{\checkedl}[1]{\todo[color=brown]{\checkmark}} %
+\newcommand{\checked}{\todo[color=green,noline]{\checkmark}} %
+\newcommand{\checkedl}{\todo[color=brown]{\checkmark}} %
 
 %% CHANGE THIS DATE AS YOU MODIFY THE FILE
 \newcommand{\vdate}{160114}
@@ -152,6 +153,7 @@
 \newcommand{\bmzeta}{{\bm{\zeta}}}
 
 \DeclareMathOperator{\GammaDist}{Gamma}
+\newcommand{\refeq}[1]{Eq.~(\ref{#1})}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
@@ -1030,6 +1032,40 @@ For our purposes, the most important property is that the Gamma distribution is 
   X_i \sim Gamma(\alpha, \beta) \Rightarrow \sum_{i=1}^N X_i \sim Gamma(N \alpha, \beta)
 \end{align}
 
+With $\bmphi = (\alpha, \beta)$, the property \refeq{gmb} is
+equivalent to
+\begin{align}
+  \lleq{gmc}
+ p(L \cond N, \bmphi) &= \int d\bmL\,\delta(L - \textstyle\sum_j L_j)
+  \,p(\bmL\cond N,\bmphi) = Gamma(L \cond N \alpha, \beta)
+\end{align}
+and this implies that the master equation~(\ref{pmp}) considerably simplifies as
+\begin{align}
+  \lleq{gmd}
+    p(L\cond n,\bml,m)
+  = \frac{1}{p(\bml\cond n)}
+  \sum_N p(N\cond n)\, \int d\bmphi\, p(L \cond \bmphi)\, p(\bml\cond m,\bmphi)
+  \, p(\bmphi).
+\end{align}
+
+To explicitly evaluate \refeq{gmd}, we have to overcome the remaining
+two difficulties: the sum over $N$ and the integral over
+$\bmphi$. Regarding the latter, there is a conjugate prior but
+unfortunately the normalization constant can not be evaluated in
+closed form. It is thus of no use for us, and we turn to a
+noninformative prior. In \cite{Moala:2013}, an overview of possible
+choices is given. They conclude that the point estimate given by the
+mode of the posterior is nearly insensitive to the prior choice for 30
+samples. We require in addition that the posterior is narrow enough so
+we group samples in bins to have at least $m=150$ samples in each
+bin. The following approximations can be used in different regions of
+the parameter space spanned by $n$ and $m$.
+
+\begin{enumerate}
+  \item
+\end{enumerate}
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Prediction based on packet sum}
 
@@ -1107,12 +1143,8 @@ $\pi(\alpha, \beta) \propto \left( \frac{\Gamma(\alpha+\beta)}{\Gamma(\alpha) \G
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{thebibliography}{99}
-\bibitem{kendall}Stuart and Ord, \textit{Kendall's Advanced Theory of Statistics},
-  Vol. 1, 5th Edition etc..
-
-\end{thebibliography}
-
+\bibliographystyle{plain}
+\bibliography{references}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \end{document}
