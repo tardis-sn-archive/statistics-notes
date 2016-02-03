@@ -8,6 +8,7 @@
 \usepackage[a4paper, left=20mm, right=20mm, top=25mm, bottom=25mm]{geometry}
 \usepackage[numbers]{natbib}
 %\usepackage{hyperref}
+\synctex=1
 
 \usepackage[colorinlistoftodos]{todonotes} % Use 'disable' to remove todos in final version
 \newcommand{\fred}[1]{\todo[inline]{#1}} %
@@ -155,6 +156,7 @@
 
 \DeclareMathOperator{\GammaDist}{Gamma}
 \newcommand{\refeq}[1]{Eq.~(\ref{#1})}
+\newcommand{\reffig}[1]{Fig.~\ref{fig:#1}}
 \newcommand{\lmax}{\ell_{\rm max}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1022,15 +1024,15 @@ solution in terms of $n$, $y$ and $z$.
 
 \subsection{Results for the Gamma-distribution likelihood}
 
-The Gamma distribution is with shape parameter $\alpha$ and rate
-parameter $\beta$ is defined for $x \geq 0$ as
+The Gamma distribution  with shape parameter $\alpha$ and rate
+parameter $\beta$ is defined
 \begin{align}
   \lleq{gma}
   \GammaDist(x | \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x} .
 \end{align}
-$\GammaDist(x \cond \alpha, \beta)$ is defined for $x \in [0, \infty]$
+The support of $\GammaDist(x \cond \alpha, \beta)$ is $[0, \infty]$
 whereas the luminosity of real packets is bounded from above and has a
-peak away from the bound. In order to describe the luminosity
+peak close to but not at the boundary. In order to describe the luminosity
 distribution of real packets through $\GammaDist(\alpha, \beta)$, we
 have to transform the luminosities. To this end, we first take the
 largest luminosity from the entire frequency range and increase it
@@ -1054,30 +1056,47 @@ $L$ via
   \lleq{gmg}
   p(L  \cond n, \bml, m) = p(X  \cond n, \bmx, m) \frac{1}{\lmax}
 \end{align}
-While not obvious at first, a major numerical simplification arises
-because of the $L \to X$ transformation. Rewriting the master
+We observe good agreement between the best fit of a Gamma distribution
+to TARDIS samples; an example is shown shown in \reffig{gamma}.  While
+not obvious at first, a major numerical simplification arises because
+of the $L \to X$ transformation. Rewriting the master
 equation~(\ref{pmp}) formally as
 \begin{align}
   \lleq{gmh}
   p(L  \cond n, \bml, m) = \sum_{N} p(N \cond n) p(L \cond N, \bml, m)
 \end{align}
-we see that the $ p(L \cond n, \bml, m)$ is a mixture density. If the
-distribution of a single luminosity, $p(L \cond N=1, \bml, m)$ is
-narrow in the sense that the standard deviation relative to the mean
-is at the percent level, then the mixture density has one mode for
-each $N$ and all modes are clearly separated. The transformation $L
-\to x$ effects a strong overlap between adjacent $p(X \cond N, \bmx,
-m)$ and leads to a unimodal $p(X \cond n, \bmx, m)$.
-\fred{Show a plot: from hedgehog to single peak}
+we see that the right-hand side is a mixture density. In our
+application, the distribution of a single luminosity, $p(L \cond N=1,
+\bml, m)$ is narrow in the sense that the standard deviation relative
+to the mean is at the percent level. This implies that $p(L \cond n,
+\bml, m)$ has one mode from each $N$ and all modes are clearly
+separated. The transformation $L \to x$ effects a strong overlap
+between adjacent $p(X \cond N, \bmx, m)$ leading to a unimodal $p(X
+\cond n, \bmx, m)$.  \fred{Show plot: from hedgehog to single peak}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.48\textwidth]{gamma}
+  \caption{Gamma distribution fit. }
+  \label{fig:gamma}
+\end{figure}
 
 For our purposes, the most useful property of the Gamma
 distribution is infinite divisibility; i.e., the sum of $N$ Gamma
 variates is again a Gamma variate
 \begin{align}
   \lleq{gmb}
-  X_i \sim \GammaDist(\alpha, \beta) \Rightarrow \sum_{i=1}^N X_i \sim \GammaDist(N \alpha, \beta).
+  X_j \sim \GammaDist(\alpha, \beta) \Rightarrow \sum_{j=1}^N X_j \sim \GammaDist(N \alpha, \beta).
 \end{align}
-With $\bmphi = (\alpha, \beta)$, \refeq{gmb} is equivalent to
+With
+\begin{align}
+  \lleq{gmi}
+  \bmphi &= (\alpha, \beta),\\
+  p(X_j \cond \bmphi) &=
+  \GammaDist(X_j \cond \alpha, \beta),\\
+  p(\bmX \cond N, \bmphi) &= \prod_{j=1}^N p(X_j \cond \phi)
+\end{align}
+ \refeq{gmb} is equivalent to
 \begin{align}
   \lleq{gmc}
  p(X \cond N, \bmphi) &= \int d\bmX\,\delta(X - \textstyle\sum_j X_j)
@@ -1092,51 +1111,80 @@ and this implies that the master equation~(\ref{pmp}) considerably simplifies as
   \, p(\bmphi).
 \end{align}
 
+\subsection*{Approximations}
+
 To explicitly evaluate \refeq{gmd}, we have to overcome the remaining
 two difficulties: the sum over $N$ and the integral over
 $\bmphi$. Regarding the latter, there is a conjugate prior but
-unfortunately the normalization constant can not be evaluated in
-closed form. It is thus of no use for us, and we turn to a
-noninformative prior. The authors of \cite{moala2013bayesian} present
-an overview of possible choices and conclude that the point estimate
-given by the mode of the posterior is nearly insensitive to the prior
-choice for 30 samples. We require in addition that the posterior is
-narrow enough so we group samples in bins to have at least $m=150$
-samples in each bin. The following approximations can be used in
-different regions of the parameter space spanned by $n$ and $m$.
+unfortunately the normalization constant cannot be evaluated in closed
+form. It is thus of no use for us, and we turn to a noninformative
+prior. \fred{Be explicit about prior choice} The authors of
+\cite{moala2013bayesian} present an overview of possible choices and
+conclude that the point estimate given by the mode of the posterior is
+nearly insensitive to the prior choice for 30 samples. We require in
+addition that the posterior is narrow enough so we group samples in
+bins to have at least $m=150$ samples in each bin. The following
+approximations can be used in different regions of the parameter space
+spanned by $n$ and $m$.
 
-\begin{enumerate}
-  \item For $m$ large, the posterior $p(\bmphi \cond m, \bmx) =
+\begin{mnumerate}
+  \item \label{large-m} For $m$ large, the posterior $p(\bmphi \cond m, \bmx) =
   p(\bmx\cond m,\bmphi) \, p(\bmphi) / p(\bmx \cond m)$ approaches a
-  multivariate Gaussian with variance tending to zero as $1/m$ in the
-  limit $m \to \infty$.  \fred{check} We can then assume the
-  parameters $\bmphi$ known and fix them at the posterior mode
-  $\bmphi^*$; i.e., $p(\bmphi \cond m, \bmx) \to \delta(\bmphi -
-  \bmphi^*)$.
-  \item For $n$ large, the Negative Binomial $p(N \cond n)$ approaches
-  a Gaussian, defining a region around $N=n$ with the dominant
-  contribution to the sum over $N$ in \refeq{gmd}. The central limit
-  theorem states that for large $N$, $P(X \cond N, \bmphi) \approx
-  \mathcal{N}(X \cond N \, E_\bmphi[X_j], N \, V_\bmphi[X_j])$. For
-  $m$ large enough, we could then plug in the sample-mean and
-  sample-variance estimates and bypass the assumption of a Gamma
-  distribution altogether.
-\end{enumerate}
+  multivariate Gaussian. We can then compute the various moments
+  $E_\bmphi[f(x)]$ with $f(x)=1,x,x^2$ by Laplace's method to good
+  accuracy.
+  \item \label{very-large-m} In the limit $m \to \infty$, the covariance of the posterior
+  $p(\bmphi \cond m, \bmx)$ tends to zero as $1/m$ and we can then fix
+  the parameters $\bmphi$ at the posterior mode $\bmphi^*$; i.e.,
+  $p(\bmphi \cond m, \bmx) \to \delta(\bmphi - \bmphi^*)$.
+  \item \label{large-n} For $n$ large, the cumulative of the Negative
+  Binomial $p(N \cond n)$ can be approximated by a Gaussian, defining
+  a region around $N=n$ with the dominant contribution to the sum over
+  $N$ in \refeq{gmd}. The contribution around $N=0$ is negligible, and
+  we can replace $\sum_n \to \int dN$. The density $p(N \cond n) P(X
+  \cond N,m, \bmx)$ is close to a Gaussian and the integral can be
+  accurately approximated by Laplace's method which requires the
+  Hessian and the mode. We benefit from partial error cancelation
+  because we apply Laplace's method both in the numerator and
+  denominator~\cite{tierney_accurate_1986} as each moment has to be
+  normalized by the evidence $p(\bmx \cond m)$. The former is
+  available in closed form and the latter has to be determined
+  numerically. Fortunately, Newton's method leads to a solution in
+  only a few steps~\cite{minka2002estimating}. \fred{The reference is
+    for max. likelihood of a $\GammaDist(\cdot)$ but I'm sure the
+    performance is similar for max. posterior and the first moments}
+  \item \label{central-limit} The central limit theorem states that for large $N$,
+  $P(X \cond N, \bmphi) \approx \mathcal{N}(X \cond N \,
+  E_\bmphi[X_j], N \, V_\bmphi[X_j])$. For $m$ large enough, we could
+  then plug in the sample-mean and sample-variance estimates and
+  bypass the assumption of a Gamma distribution altogether.
+  \item \label{large-n-large-m} For large $n$ and $m$, $ p(X\cond
+  n,\bmx,m)$ can be approximated by a Gaussian whose mean and variance
+  are given by \refeq{mgo} and \refeq{mgr} in terms of
+  $\bmphi$-expectation values. The latter are integrals with no known
+  closed-form solutions but we can easily and accurately approximate
+  them with Laplace's method.
+\end{mnumerate}
+To simplify, we assume that $m$ is large. In our application, we may
+have to combine several frequency bins to achieve $m \gtrsim 150$ for
+the purpose of infering $\bmphi$. This is equivalent to assuming that
+the distribution changes only slowly with the frequency, a condition
+that we verified for TARDIS. It is thus justified to use
+approximations \ref{large-m} or even \ref{very-large-m}.
 
+Numerically, the most challenging case is small $n$ because the sum
+over $N$ in \refeq{gmd} has to be computed explicitly starting at
+$N=1$ until contributions become negligible. Since $p(N \cond n)$
+falls off quickly, it is sufficient in our application to do this
+until $n \lesssim 20-30$. Beyond that, we use approximations
+\ref{large-n}--\ref{large-n-large-m}.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Prediction based on packet sum}
-
-TODO: Hans. The calculations have already been done. The question is
-whether we even want to bother with them since data in the form of
-packet sums is less information than the vector of individual packets
-as used above.
-\fred{No, we don't want to bother.}
+\subsection*{Comparison of approximations}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results}
 
-In Figure~\ref{fig:beta} is a fit of the Beta distribution to 3000
+In \reffig{beta} is a fit of the Beta distribution to 3000
 samples from a TARDIS run with frequencies in the range $[1.367,
 1.435] \times 10^{38}$ Hz. A characteristic feature seen in many such
 similar fits is that the Beta distribution does not give a perfect
@@ -1156,7 +1204,7 @@ estimator has the advantage of not requiring an optimization algorithm
 but for some bins it gives a solution peaking at $x=1$ even for 800
 samples so it's not robust.
 
-\begin{figure}[h]
+\begin{figure}[ht]
   \centering
   \includegraphics[width=0.48\textwidth]{beta-300}
   \includegraphics[width=0.48\textwidth]{beta-3000}
@@ -1207,3 +1255,7 @@ $\pi(\alpha, \beta) \propto \left( \frac{\Gamma(\alpha+\beta)}{\Gamma(\alpha) \G
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \end{document}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Local Variables:
+% compile-command:"rubber --pdf -W refs -W misc -S bayes-tardis-luminosity-prediction"
+% End:
