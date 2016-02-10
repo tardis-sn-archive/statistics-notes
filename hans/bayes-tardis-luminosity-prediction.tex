@@ -5,6 +5,8 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+
 \usepackage[a4paper, left=20mm, right=20mm, top=25mm, bottom=25mm]{geometry}
 \usepackage[numbers]{natbib}
 %\usepackage{hyperref}
@@ -377,8 +379,10 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
   which are assumed to have the same functional form in each bin,
   while of course the parameter values will change from bin to bin.
 
-\item We choose $N$ to follow a Poisson distribution with parameter
-  $\lambda$ \fred{this choice linked to limit of Multinomial, see above}
+\item We choose $N$ to follow a Poisson distribution \fred{this choice
+    linked to limit of Multinomial, see above} with parameter
+  $\lambda$ \fred{don't use $\lambda$ again, it should only represent
+    the wavelength}
   \begin{align}
     \lleq{pmc}
     p(N\cond\lambda) &= \frac{e^{-\lambda}\lambda^N}{N!}
@@ -551,7 +555,7 @@ Again using Bayes' Theorem (\ref{bth})
   % \ =\ \frac{p(\bml\cond N,n,\bmphi)\,p(\bmphi\cond N,n)} %
   % {p(\bml\cond n)} %
 \end{align}
-\fred{$p(\bmphi\cond N,n,\bml) = p(\bmphi\cond n,\bml)$ }
+\fred{$p(\bmphi\cond N,n,\bml) = p(\bmphi\cond n,\bml)$. Below $N$ is (correctly) missing in \refeq{pmp} }
 and using a multiplicity-independent prior for $\bmphi$
 \begin{align}
   \lleq{pml}
@@ -1025,26 +1029,27 @@ solution in terms of $n$, $y$ and $z$.
 \subsection{Results for the Gamma-distribution likelihood}
 
 The Gamma distribution  with shape parameter $\alpha$ and rate
-parameter $\beta$ is defined
+parameter $\beta$ is defined as
 \begin{align}
   \lleq{gma}
   \GammaDist(x | \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x} .
 \end{align}
 The support of $\GammaDist(x \cond \alpha, \beta)$ is $[0, \infty]$
 whereas the luminosity of real packets is bounded from above and has a
-peak close to but not at the boundary. In order to describe the luminosity
-distribution of real packets through $\GammaDist(\alpha, \beta)$, we
-have to transform the luminosities. To this end, we first take the
-largest luminosity from the entire frequency range and increase it
-slightly to avoid numerical difficulties at the end point
+peak close to but not at the boundary. \fred{refer to plot of real
+  luminosity packets in some frequency bin} In order to describe the
+luminosity distribution of real packets through $\GammaDist(\alpha,
+\beta)$, we have to transform the luminosities. To this end, we first
+take the largest luminosity from the entire frequency range and
+increase it slightly to avoid numerical difficulties at the end point
 \begin{align}
   \lleq{gme}
   \lmax \equiv (1+\epsilon) \times \max_j \ell_j,
 \end{align}
-where $ \epsilon=10^{-6}$.
-We assume the total number of samples across all bins is large, hence
-the effect of considering $\lmax$ a constant independent of the data
-is negligible. We then transform the samples as
+where $ \epsilon=10^{-6}$.  We assume the total number of samples
+across all bins is large, hence the effect of considering $\lmax$ a
+constant independent of the data is negligible. We then transform the
+samples $\bml \to \bmx$ as
 \begin{align}
   \lleq{gmf}
   x_j \equiv 1- \frac{\ell_j}{\lmax} > 0
@@ -1071,12 +1076,16 @@ application, the distribution of a single luminosity, $p(L \cond N=1,
 to the mean is at the percent level. This implies that $p(L \cond n,
 \bml, m)$ has one mode from each $N$ and all modes are clearly
 separated. The transformation $L \to x$ effects a strong overlap
-between adjacent $p(X \cond N, \bmx, m)$ leading to a unimodal $p(X
-\cond n, \bmx, m)$.  \fred{Show plot: from hedgehog to single peak}
+between adjacent $p(X \cond N, \bmx, m)$, so $p(X \cond n, \bmx, m)$
+can be well approximated by a unimodal distribution; see
+\reffig{hedgehog}.  \fred{I'm not 100 \% sure but $p(X \cond n, \bmx,
+  m)$ should still have $N \to \infty$ modes but they aren't visible}
+\missingfigure{from hedgehog to single peak \label{fig:hedgehog}}
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.48\textwidth]{gamma}
+  \fred{Plot with more samples to see dip at $x=0$.}
   \caption{Gamma distribution fit. }
   \label{fig:gamma}
 \end{figure}
@@ -1086,7 +1095,7 @@ distribution is infinite divisibility; i.e., the sum of $N$ Gamma
 variates is again a Gamma variate
 \begin{align}
   \lleq{gmb}
-  X_j \sim \GammaDist(\alpha, \beta) \Rightarrow \sum_{j=1}^N X_j \sim \GammaDist(N \alpha, \beta).
+  X_j \sim \GammaDist(\alpha, \beta) \Rightarrow X \equiv \sum_{j=1}^N X_j \sim \GammaDist(N \alpha, \beta).
 \end{align}
 With
 \begin{align}
@@ -1117,15 +1126,22 @@ To explicitly evaluate \refeq{gmd}, we have to overcome the remaining
 two difficulties: the sum over $N$ and the integral over
 $\bmphi$. Regarding the latter, there is a conjugate prior but
 unfortunately the normalization constant cannot be evaluated in closed
-form. It is thus of no use for us, and we turn to a noninformative
-prior. \fred{Be explicit about prior choice} The authors of
-\cite{moala2013bayesian} present an overview of possible choices and
-conclude that the point estimate given by the mode of the posterior is
-nearly insensitive to the prior choice for 30 samples. We require in
-addition that the posterior is narrow enough so we group samples in
-bins to have at least $m=150$ samples in each bin. The following
-approximations can be used in different regions of the parameter space
-spanned by $n$ and $m$.
+form. This conjugate prior is thus of no use for us, and we turn to a
+noninformative prior. \fred{Be explicit about prior choice} The
+authors of \cite{moala2013bayesian} present an overview of possible
+choices and conclude that the point estimate given by the mode of the
+posterior is nearly insensitive to the prior choice for 30 samples. We
+require in addition that the posterior is narrow enough so we group
+samples in bins to have at least $m=150$ samples in each bin. This
+implicitly assumes that the luminosity distribution is constant in the
+frequency range defined by $m$.
+
+Note that the bins defined by the experiment in general do not overlap
+with the bins used to infer the luminosity distribution; i.e., $n \ne
+m$.
+
+The following approximations can be used in different regions of the
+parameter space spanned by $n$ and $m$.
 
 \begin{mnumerate}
   \item \label{large-m} For $m$ large, the posterior $p(\bmphi \cond m, \bmx) =
