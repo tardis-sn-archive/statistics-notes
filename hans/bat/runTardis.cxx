@@ -24,10 +24,12 @@ int main()
     // set precision
     m.SetPrecision(BCEngineMCMC::kLow);
     // m.SetProposeMultivariate(false);
-    m.SetMinimumEfficiency(0.08);
-    m.SetMaximumEfficiency(0.25);
+    m.SetMinimumEfficiency(0.15);
+    m.SetMaximumEfficiency(0.30);
     m.SetNChains(2);
     m.SetRValueParametersCriterion(1.2);
+    m.SetInitialPositionScheme(BCEngineMCMC::kInitRandomUniform);
+    m.SetNIterationsPreRunMax(20000);
 
     m.SetNIterationsRun(3000);
 
@@ -38,12 +40,18 @@ int main()
 
     // Normalize the posterior by integrating it over the full par. space
     // m.Normalize();
+    Tardis::Vec v(m.GetNParameters(), 0.0);
+    v[0] = 1.3;
+    v[m.GetOrder()] = 50;
+    m.FindMode(v);
 
-    // run MCMC, marginalizing posterior
+    m.SetInitialPositions(m.GetBestFitParameters());
+
+//    // run MCMC, marginalizing posterior
     m.MarginalizeAll(BCIntegrate::kMargMetropolis);
-
-    // run mode finding; by default using Minuit
-    m.FindMode(m.GetBestFitParameters());
+//
+//    // run mode finding; by default using Minuit
+//    m.FindMode(m.GetBestFitParameters());
 
     // draw all marginalized distributions into a PDF file
     m.PrintAllMarginalized(m.GetSafeName() + "_plots.pdf");

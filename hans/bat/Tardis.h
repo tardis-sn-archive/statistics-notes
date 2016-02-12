@@ -37,6 +37,9 @@ public:
 
     virtual void CalculateObservables(const std::vector<double>& parameters);
 
+    unsigned GetOrder() const
+    { return order; }
+
 private:
     Vec ReadData(const std::string& fileName, const std::string& dataSet);
 
@@ -58,7 +61,8 @@ private:
     std::vector<Point> samples;
     /* Vec energies, nus; */
 
-    const unsigned order, npoints;
+    unsigned order;
+    const unsigned npoints;
     const double nuMax, alphaMin, betaMin;
 };
 // ---------------------------------------------------------

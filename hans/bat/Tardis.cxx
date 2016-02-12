@@ -27,21 +27,22 @@ using namespace H5;
 // ---------------------------------------------------------
 Tardis::Tardis(const std::string& name)
     : BCModel(name),
-      order(4),
       npoints(10),
       nuMax(0.5),
       alphaMin(1.0),
       betaMin(0.0)
 {
     AddParameter("alpha0",  1, 2, "#alpha_{0}");
-    AddParameter("alpha1", -3, 3, "#alpha_{1}"); // GetParameter(1).Fix(0);
-    AddParameter("alpha2", -20, 20, "#alpha_{2}"); // GetParameter(2).Fix(0);
-    AddParameter("alpha3", -20, 20, "#alpha_{3}"); // GetParameter(3).Fix(0);
-    // AddParameter("alpha4",  0, 20, "#alpha_{4}"); // GetParameter(3).Fix(0);
+    AddParameter("alpha1", -3, 3, "#alpha_{1}");    // GetParameter(1).Fix(0);
+    AddParameter("alpha2", -30, 30, "#alpha_{2}");  // GetParameter(2).Fix(0);
+    AddParameter("alpha3", -30, 30, "#alpha_{3}");  // GetParameter(3).Fix(0);
+//    AddParameter("alpha4", -30, 30, "#alpha_{4}"); // GetParameter(3).Fix(0);
+
+    order = GetNParameters();
 
     AddParameter("beta0",  0, 100, "#beta_{0}");
-    AddParameter("beta1", -200, 50, "#beta_{1}"); // GetParameter(order + 1).Fix(0);
-    AddParameter("beta2",  0, 200, "#beta_{2}"); // GetParameter(order + 2).Fix(0);
+    AddParameter("beta1", -200, 50, "#beta_{1}");  // GetParameter(order + 1).Fix(0);
+//    AddParameter("beta2",  0, 250, "#beta_{2}"); // GetParameter(order + 2).Fix(0);
     // AddParameter("beta3",  -300, 300, "#beta_{3}"); // GetParameter(order + 3).Fix(0);
 
     for (unsigned i = 0; i <= npoints; ++i) {
@@ -52,6 +53,8 @@ Tardis::Tardis(const std::string& name)
         double nu =  double(i) * nuMax / npoints;
         AddObservable(Form("beta(%g)", nu), 0, 100, Form("#beta(%g)", nu));
     }
+
+    AddObservable("Gamma(0.01|nu=0.2)", 25, 40);
 
     static const char* fileName = "../../posterior/real_tardis_250.h5";
     Vec energies = ReadData(fileName, "energies");
@@ -66,6 +69,11 @@ Tardis::Tardis(const std::string& name)
         }
     }
     samples.shrink_to_fit();
+
+    // sort by frequency
+    std::sort(samples.begin(), samples.end(),
+            [](const Tardis::Point& s1, const Tardis::Point& s2)
+            { return s1.nu < s2.nu; } );
 
     cout << "Parsed " << nus.size() << " elements from " << fileName
          << ", retain " << samples.size() << " positive-energy elements\n";
@@ -172,14 +180,16 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
     auto alpha_start = parameters.begin();
     auto split = parameters.begin() + order;
     auto beta_end = parameters.end();
-    // for (unsigned j = 0; j < samples.size(); ++j) {
-    // for (const auto& s : samples) {
+
+//    for (auto it = samples.begin() + 30999; it != samples.begin() + 41299; ++it) {
     for (auto it = samples.begin(); it != samples.begin() + 25000; ++it) {
+//        for (auto it = samples.begin(); it != samples.end(); ++it) {
         const auto& s = *it;
         // alpha(lambda_j)
         alphaj = Polyn(alpha_start, split, s.nu);
         betaj = Polyn(split, beta_end, s.nu);
 
+        // use samples to check parameter space for a value inconsistent with prior
         if (alphaj <= alphaMin || betaj <= betaMin)
             return -std::numeric_limits<double>::infinity();
 
@@ -227,8 +237,17 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
      if (betaMin <= this->betaMin)
          return invalid;
 
-     // default: uniform prior
-     return valid;
+     // TODO
+     // default: Jeffreys prior for Gamma shape parameter alpha and scale parameter beta
+     // at some average frequency
+#if 0
+     const double nu = 0.2;
+     double alpha = Polyn(parameters.begin(), parameters.begin() + order, nu);
+     double beta = Polyn(parameters.begin() + order, parameters.end(), nu);
+     return -log(beta) + 0.5 * log(alpha * PolyGamma(alpha) - 1.0);
+#endif
+     // uniform prior
+     return 0;
 }
 
 void Tardis::CalculateObservables(const std::vector<double>& parameters)
@@ -243,6 +262,12 @@ void Tardis::CalculateObservables(const std::vector<double>& parameters)
         GetObservable(i).Value(Polyn(alpha_begin, split, nu));
         GetObservable(i + npoints).Value(Polyn(split, beta_end, nu));
     }
+
+    double en = 0.01;
+    double nu = 0.2;
+    double alpha = Polyn(alpha_begin, split, nu);
+    double beta = Polyn(split, beta_end, nu);
+    GetObservable(GetNObservables() - 1).Value(exp(alpha * log(beta) - lgamma(alpha) + (alpha - 1) * log(en) - beta * en));
 }
 
 double Tardis::Polyn(Vec::const_iterator first, Vec::const_iterator last, const double& nu)
