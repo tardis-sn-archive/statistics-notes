@@ -26,9 +26,9 @@ PRGSRCS = runTardis.cxx
 
 # compiler and flags
 CXX       = h5c++
-CXXFLAGS  = -g -O2 -Wall -fPIC -Wno-deprecated 
-LD        = h5c++
-LDFLAGS   = -g -O2  
+CXXFLAGS  = -g -O2 -Wall -fPIC -Wno-deprecated
+LD        = h5++
+LDFLAGS   = -g -O2
 
 # ----------------------------------------------------------------------
 # The following definitions rely on the script bat-config being
@@ -56,14 +56,14 @@ all : $(MYPROGS)
 link.d : $(addsuffix .h,$(basename $(CXXSRCS))) $(CXXSRCS) $(PRGSRCS)
 	$(CXX) -MM $(CXXFLAGS) $(filter-out %.h,$^) > link.d;
 	@$(foreach prog,$(MYPROGS), echo $(prog) : $(prog).o >> link.d;)
-
+#
 -include link.d
 
 $(CXXOBJS) $(PRGOBJS) :
 	$(CXX) $(CXXFLAGS) -c $(filter $(basename $@).%,$(filter-out %.h,$^)) -o $@
 
-$(MYPROGS) : $(CXXOBJS)
-	$(CXX) $(LDFLAGS) $^ $(LIBS) -o $@
+$(MYPROGS) : $(CXXOBJS) $(PRGOBJS)
+	$(CXX) $(LDFLAGS) $(PRGOBJS) $(CXXOBJS) $(LIBS) -o $@
 
 clean :
 	rm -f $(GARBAGE)
@@ -72,6 +72,7 @@ print :
 	@echo compiler  : $(CXX)
 	@echo c++ srcs  : $(CXXSRCS) $(PRGSRCS)
 	@echo c++ objs  : $(CXXOBJS) $(PRGOBJS)
+	@echo myprogs   : $(MYPROGS)
 	@echo c++ flags : $(CXXFLAGS)
 	@echo ld flags  : $(LDFLAGS)
 	@echo libs      : $(LIBS)

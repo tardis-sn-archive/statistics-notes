@@ -23,3 +23,6 @@
 /hans/bat/link.d
 /hans/bat/log.txt
 /hans/bat/runTardis
+/hans/bat/Tardis.o
+/hans/bat/runTardis.o
+/hans/bat/*.pdf

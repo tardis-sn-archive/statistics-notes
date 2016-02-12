@@ -10,7 +10,7 @@
 #include <BAT/BCModel.h>
 
 #include <string>
-#include <vector>
+#include <valarray>
 
 // This is a Tardis header file.
 // Model source code is located in file Tardis/Tardis.cxx
@@ -20,6 +20,7 @@ class Tardis : public BCModel
 {
 
 public:
+    /* using Vec = std::valarray<double>; */
     using Vec = std::vector<double>;
 
     // Constructor
@@ -28,20 +29,37 @@ public:
     // Destructor
     ~Tardis();
 
-    void ReadData(const std::string& fileName, const std::string& dataSet, Vec& buffer);
-
     // Overload LogLikelihood to implement model
-    double LogLikelihood(const std::vector<double>& parameters);
+    virtual double LogLikelihood(const std::vector<double>& parameters);
 
     // Overload LogAprioriProbability if not using built-in 1D priors
-    double LogAPrioriProbability(const std::vector<double> & parameters);
+    virtual double LogAPrioriProbability(const std::vector<double> & parameters);
+
+    virtual void CalculateObservables(const std::vector<double>& parameters);
 
 private:
-    double polyn(Vec::const_iterator begin, Vec::const_iterator end, const double& lambda);
+    Vec ReadData(const std::string& fileName, const std::string& dataSet);
 
-    std::vector<double> energies, nus;
+    /**
+     * Polynomial as a function of nu with coefficients given in range
+     */
+    double Polyn(Vec::const_iterator begin, Vec::const_iterator end, const double& nu);
 
-    const unsigned order;
+    /**
+     * Minimum of polynomial given by coefficients in range. The argument is assumed to lie in [0,1].
+     */
+    double MinPolyn(Vec::const_iterator begin, Vec::const_iterator end);
+
+    struct Point
+    {
+         double en, nu;
+    };
+
+    std::vector<Point> samples;
+    /* Vec energies, nus; */
+
+    const unsigned order, npoints;
+    const double nuMax, alphaMin, betaMin;
 };
 // ---------------------------------------------------------
 

@@ -22,7 +22,14 @@ int main()
     Tardis m("tardis");
 
     // set precision
-    m.SetPrecision(BCEngineMCMC::kMedium);
+    m.SetPrecision(BCEngineMCMC::kLow);
+    // m.SetProposeMultivariate(false);
+    m.SetMinimumEfficiency(0.08);
+    m.SetMaximumEfficiency(0.25);
+    m.SetNChains(2);
+    m.SetRValueParametersCriterion(1.2);
+
+    m.SetNIterationsRun(3000);
 
     BCLog::OutSummary("Test model created");
 
