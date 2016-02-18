@@ -18,7 +18,7 @@
 \newcommand{\checkedl}{\todo[color=brown]{\checkmark}} %
 
 %% CHANGE THIS DATE AS YOU MODIFY THE FILE
-\newcommand{\vdate}{160214}
+\newcommand{\vdate}{160218}
 \pagestyle{myheadings}
 \markboth{Version \vdate} {Version \vdate}
 \parindent=0mm
@@ -156,10 +156,13 @@
 \newcommand{\bmxi}{{\bm{\xi}}}
 \newcommand{\bmzeta}{{\bm{\zeta}}}
 
-\DeclareMathOperator{\GammaDist}{Gamma}
 \newcommand{\refeq}[1]{Eq.~(\ref{#1})}
 \newcommand{\reffig}[1]{Fig.~\ref{fig:#1}}
+
+\DeclareMathOperator{\GammaDist}{Gamma}
+\newcommand{\npack}{n_p}
 \newcommand{\lmax}{\ell_{\rm max}}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
@@ -281,33 +284,39 @@ TODO: Wolfgang (or in Introduction?)
 
 \begin{mtemize}
 \item Spectrum of luminosities in channels (or ``bins'')
-  $b=0,1,\ldots,B$
-\item The wavelength of channel $b$ is given by $\lambda_b =
-  \lambda_0 + b\,\delta\lambda$, where $\delta\lambda$ is the bin width.
-
+  $b=0,1,\ldots,B$ is given by the telescope
+\item In the simplest case, the frequency of channel $b$ is given by
+  $\nu_b = \nu_0 + b\,\delta\nu$, where $\delta\nu$ is
+  the bin width. In the general case, the bins are not of equal
+  size. Let's then consider $\nu_b$ as the left edge of bin $b$,
+  and $\nu_{B+1}$ is the right edge of the last bin; i.e., the
+  maximum frequency.
 \item We treat the results of a single TARDIS run as \textit{data}
-  $D$, i.e.\ fixed results which we do not question but accept as the
-  true values.  Following a single run, the TARDIS ``data'' consists,
-  for each bin $b$, of the number or ``multiplicity'' of packets and
-  the individual packet luminosities,
-\begin{align}
-  \lleq{dfc}
-  D &= \{n_0,\bml_0,n_1,\bml_1,\ldots,n_\smB,\bml_\smB\}
-  \ =\ \{n_b,\bml_b\}_{b=0}^\smB
-\end{align}
-  \checked{}
-with
-\begin{align}
-  \lleq{dfd}
-  \bml_b &= (\ell_{b,1},\ell_{b,2},\ldots,\ell_{b,n_b})
-\end{align}
-  \checked{}
-Given $D$, the total luminosity in bin $b$ is known,
-\begin{align}
-  \lleq{dfe}
-  \ell_b = \sum_{j=1}^{n_b}\ell_{b,j}
-\end{align}
-  \checked{}
+  $D$, i.e.\ fixed results which we do not question but accept as
+  given.  These ``data'' are the number of packets leaving the
+  supernova, $\npack$, the luminosity $\bml$, and the frequencies
+  $\bmnu$ for each packet
+  \begin{align}
+    \lleq{dfc}
+    D = \{ \npack, \bml, \bmnu \} \,,
+  \end{align}
+  where
+  \begin{align}
+    \lleq{dfd}
+    % \bml_b &= (\ell_{b,1},\ell_{b,2},\ldots,\ell_{b,n_b})
+    \dim \bml = \dim \bmnu = \npack \,.
+  \end{align}
+  Given $D$, the number of samples in bin $b$ is
+  \begin{align}
+    \lleq{dff}
+    n_b = \sum_{j=1}^{\npack} \mathbf{1}_{[\nu_b,\nu_{b+1}]}( \nu_j )
+  \end{align}
+  and similarly the luminosity is
+  \begin{align}
+    \lleq{dfe}
+    \ell_b = \sum_{j=1}^{\npack}\ell_j \mathbf{1}_{[\nu_b,\nu_{b+1}]}( \nu_j ),
+  \end{align}
+  where $\mathbf{1}_V(x)$ is the indicator function requiring $x \in V$.
 \end{mtemize}
 
 \subsection{Data as realization of compound process}
@@ -317,20 +326,24 @@ repeat of the simulation with a different Monte Carlo seed would
 evidently yield different ``data'' $D'$ even when all other simulation
 parameters remain the same. Clearly, $n_b$ is a specific realization
 of a stochastic variable $N_b$ governed by a model pdf
-$p(N_b)$. \fred{In our general case, $\sum_b n_b$ is an instance of a random variable because some packets leave the supernova, some don't. I guess in most applications the total number of events would be chosen and not random. We are fortunate that this difference does not matter because we consider bins independently. } Similarly, $\bml_b$ is a specific realization of a
-collection of stochastic variables $\bmL_b
-=\{L_{b,1},\ldots,L_{b,\smN_b}\}$, where the number $N_b$ of such
-variables is itself stochastic. The relevant pdf for $\bmL_b$
-therefore always presupposes knowledge of $N_b$, so we must work with
-the conditional probability $p(\bmL_b\cond N_b)$. This situation is
-captured mathematically as $N_b \sim p(N_b), \bmL_b \sim p(\bmL_b\cond
-N_b)$ where $\sim$ means ``is by hypothesis distributed in this model
-according to the pdf'', i.e.\
+$p(N_b)$. \fred{In our general case, $\npack = \sum_b n_b$ is an instance of a
+  random variable because some packets leave the supernova, some
+  don't. I guess in most applications the total number of events would
+  be chosen and not random. We are fortunate that this difference does
+  not matter because we consider bins independently. } Similarly,
+$\bml_b$ is a specific realization of a collection of stochastic
+variables $\bmL_b =\{L_{b,1},\ldots,L_{b,\smN_b}\}$, where the number
+$N_b$ of such variables is itself stochastic. The relevant pdf for
+$\bmL_b$ therefore always presupposes knowledge of $N_b$, so we must
+work with the conditional probability $p(\bmL_b\cond N_b)$. This
+situation is captured mathematically as $N_b \sim p(N_b), \bmL_b \sim
+p(\bmL_b\cond N_b)$ where $\sim$ means ``is by hypothesis distributed
+in this model according to the pdf'', i.e.\
 \begin{align*}
   (N_b,\bmL_b) &\ \sim\ p(N_b,\bmL_b\cond \bmphi_b,\lambda_b)
   = p(\bmL_b\cond N_b,\bmphi_b)\; p(N_b\cond \lambda_b),
 \end{align*}
-where $\bmphi_b$ is the set of parameters\fred{so $\bmphi$ includes random seed or not? Initially I thought so. But later on it becomes clear that you do not include it.} of the model pdf which
+where $\bmphi_b$ is the set of parameters of the model pdf which
 govern $\bmL_b$ and $\lambda_b$ is the parameter of the model pdf
 governing $N_b$.  To simulate $(N_b,\bmL_b)$, we clearly first need to
 generate one $N_b$, followed by the generation of $N$ packet
@@ -340,6 +353,10 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
 \subsection{Construction of the model hypothesis}
 
 \begin{mtemize}
+\item We omit the dependence on supernova parameters $\bmtheta$ from
+  the notation below and instead condition on the TARDIS output
+  $\npack, \bml, \bmnu$ directly.
+
 \item In the remainder of this paper, we assume that the packet
   multiplicities $N_b$ and total luminosities $\bmL_b$ in any given
   bin $b$ are statistically independent of those in other bins. \fred{We could motivate this in the usual way as the Poisson limit of the Binomial. The subtlety would then the be the random total number of packets (leaving the supernova).} This
@@ -348,22 +365,23 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
   \begin{align}
     \lleq{bsi}
     p(N_0,\bmL_0\ldots,N_b,\bmL_b,\ldots,N_\smB,\bmL_\smB
-    \cond \bmtheta,\bmphi,\bmlambda,\hmod)
-    &= \prod_{b=0}^B p(N_b,\bmL_b\cond \bmtheta,\bmphi,\bmlambda,\hmod)
+    \cond \npack, \bml, \bmnu,\bmphi,\bmlambda,\hmod)
+    &= \prod_{b=0}^B p(N_b,\bmL_b\cond n_b, \bml, \bmnu,\bmphi,\bmlambda,\hmod)
     % p(N_0,\ldots,N_b,\ldots,N_\smB \cond \bmtheta,\bmphi,\hmod)
     % &= \prod_{b=0}^B p(N_b\cond \bmtheta,\bmphi,\hmod)\\
     % p(L_0,\ldots,L_b,\ldots,L_\smB \cond N_0,\ldots,N_\smB,\bmtheta,\bmphi,\hmod)
     % &= \prod_{b=0}^B p(L_b\cond N_b,\bmtheta,\bmphi,\hmod)
   \end{align}
 
-\item We omit the supernova parameters $\bmtheta$ from the notation
-  below.
-
 \item Based on the assumption of bin-bin statistical independence, we
   shall henceforth drop the bin index and do all our calculations for
-  an individual bin $b$ only, writing for example $L_b \to L$,
-  $\ell_{b,j} \to \ell_j$ etc. The total spectrum is then obtained by
-  doing any given analysis or calculation for all bins.
+  an individual bin $b$ only, writing for example $L_b \to L, n_b \to
+  n$ etc.  The total spectrum is then obtained by doing any given
+  analysis or calculation for all bins. But note that while the
+  single-bin probability $p(N_b,\bmL_b\cond n_b, \bml,
+  \bmnu,\bmphi,\bmlambda,\hmod)$ depends only on the number of packets
+  $n_b$ in the bin, it depends on the luminosities and frequencies of
+  \emph{all} packets.
 
 \item Since we shall not be doing model comparison, we can for the
   moment drop the $\hmod$ from the probability notation.
@@ -381,8 +399,7 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
 
 \item We choose $N$ to follow a Poisson distribution \fred{this choice
     linked to limit of Multinomial, see above} with parameter
-  $\lambda$ \fred{don't use $\lambda$ again, it should only represent
-    the wavelength}
+  $\lambda$
   \begin{align}
     \lleq{pmc}
     p(N\cond\lambda) &= \frac{e^{-\lambda}\lambda^N}{N!}
@@ -395,6 +412,15 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
     \lleq{pmda}
     p(\bmL\cond N,\bmphi) &= \prod_{j=1}^N p(L_j\cond \bmphi)
   \end{align}
+
+\item In general, the distribution of $L_j$ could be a of a different
+  functional form in each bin. But in practice, the distribution of
+  packets does not change abruptly with frequency. We therefore assume
+  that the functional form of $p(L_j)$ is identical in each bin but it
+  is parametrized by a continuous function of frequency $f(\nu |
+  \bmphi)$. This greatly reduces the number of parameters if $\npack$
+  is large because a handful of parameters, $\dim \bmphi$, can be
+  inferred from the complete set of packets instead
 
 \item The values of $\lambda$ and $\bmphi$ are unknown. It is the task
   of the analysis below to determine not just the single best values
