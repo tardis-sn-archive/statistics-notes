@@ -26,9 +26,9 @@ PRGSRCS = runTardis.cxx
 
 # compiler and flags
 CXX       = h5c++
-CXXFLAGS  = -g -O2 -Wall -fPIC -Wno-deprecated
+CXXFLAGS  = -g -O0 -Wall -fPIC -Wno-deprecated
 LD        = h5++
-LDFLAGS   = -g -O2
+LDFLAGS   = -g -O0
 
 # ----------------------------------------------------------------------
 # The following definitions rely on the script bat-config being

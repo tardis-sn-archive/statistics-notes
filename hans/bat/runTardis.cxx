@@ -25,11 +25,12 @@ int main()
     m.SetPrecision(BCEngineMCMC::kLow);
     // m.SetProposeMultivariate(false);
     m.SetMinimumEfficiency(0.15);
-    m.SetMaximumEfficiency(0.30);
-    m.SetNChains(2);
-    m.SetRValueParametersCriterion(1.2);
-    m.SetInitialPositionScheme(BCEngineMCMC::kInitRandomUniform);
+    m.SetMaximumEfficiency(0.40);
+    m.SetNChains(5);
+    m.SetRValueParametersCriterion(1.15);
+//    m.SetInitialPositionScheme(BCEngineMCMC::kInitRandomUniform);
     m.SetNIterationsPreRunMax(20000);
+   m.SetProposalFunctionDof(-1);
 
     m.SetNIterationsRun(3000);
 
@@ -41,17 +42,24 @@ int main()
     // Normalize the posterior by integrating it over the full par. space
     // m.Normalize();
     Tardis::Vec v(m.GetNParameters(), 0.0);
-    v[0] = 1.3;
-    v[m.GetOrder()] = 50;
+    v[0] = 1.5;
+    v[m.GetOrder()] = 60;
+//    m.SetInitialPositions(v);
+
     m.FindMode(v);
 
-    m.SetInitialPositions(m.GetBestFitParameters());
+    // clumsy way to set only the parameters but not the observables at the mode
+    Tardis::Vec harr(m.GetBestFitParameters().begin(), m.GetBestFitParameters().begin() + m.GetNParameters());
+    // BCLog::OutDetail(Form("length %u", harr.size()));
+    // BCLog::OutDetail(Form("npar %u", m.GetNParameters()));
+    m.SetInitialPositions(std::vector<double>(m.GetBestFitParameters().begin(), m.GetBestFitParameters().begin() + m.GetNParameters()));
+//    return 0;
 
 //    // run MCMC, marginalizing posterior
     m.MarginalizeAll(BCIntegrate::kMargMetropolis);
 //
 //    // run mode finding; by default using Minuit
-//    m.FindMode(m.GetBestFitParameters());
+    m.FindMode(m.GetBestFitParameters());
 
     // draw all marginalized distributions into a PDF file
     m.PrintAllMarginalized(m.GetSafeName() + "_plots.pdf");

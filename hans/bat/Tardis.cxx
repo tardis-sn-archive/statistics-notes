@@ -34,8 +34,12 @@ Tardis::Tardis(const std::string& name)
 {
     AddParameter("alpha0",  1, 2, "#alpha_{0}");
     AddParameter("alpha1", -3, 3, "#alpha_{1}");    // GetParameter(1).Fix(0);
+#if 0
+    AddParameter("alpha2", -10, 10, "#alpha_{2}");  // GetParameter(2).Fix(0);
+#else
     AddParameter("alpha2", -30, 30, "#alpha_{2}");  // GetParameter(2).Fix(0);
-    AddParameter("alpha3", -30, 30, "#alpha_{3}");  // GetParameter(3).Fix(0);
+    AddParameter("alpha3", -50, 50, "#alpha_{3}");  // GetParameter(3).Fix(0);
+#endif
 //    AddParameter("alpha4", -30, 30, "#alpha_{4}"); // GetParameter(3).Fix(0);
 
     order = GetNParameters();
@@ -69,11 +73,6 @@ Tardis::Tardis(const std::string& name)
         }
     }
     samples.shrink_to_fit();
-
-    // sort by frequency
-    std::sort(samples.begin(), samples.end(),
-            [](const Tardis::Point& s1, const Tardis::Point& s2)
-            { return s1.nu < s2.nu; } );
 
     cout << "Parsed " << nus.size() << " elements from " << fileName
          << ", retain " << samples.size() << " positive-energy elements\n";
@@ -122,58 +121,21 @@ Tardis::~Tardis()
 {
 }
 
-Tardis::Vec Tardis::ReadData(const std::string& fileName, const std::string& dataSet)
-{
-    // identify the run of tardis = row in column
-    static const hsize_t run = 9;
-
-    H5File file(fileName.c_str(), H5F_ACC_RDONLY );
-    DataSet dataset = file.openDataSet(dataSet);
-    /*
-     * Get dataspace of the dataset.
-     */
-    DataSpace dataspace = dataset.getSpace();
-
-    /*
-     * Get the dimension size of each dimension in the dataspace and
-     * display them.
-     */
-    hsize_t dims_out[2];
-    dataspace.getSimpleExtentDims( dims_out, NULL);
-//    cout << "rank " << ndims << ", dimensions " <<
-//        (unsigned long)(dims_out[0]) << " x " <<
-//        (unsigned long)(dims_out[1]) << endl;
-
-    // read one row from large matrix into 1D array
-    static const int rankOut = 1;
-    hsize_t N = dims_out[1];
-    std::array<hsize_t, 2> offsetIn = {run, 0};
-    std::array<hsize_t, 2> countIn = {1, N};
-    dataspace.selectHyperslab(H5S_SELECT_SET, &countIn[0], &offsetIn[0]);
-
-    // reserve memory to hold the data, resize so vector know how many
-    // elements it has because hdf5 just writes directly to the heap buffer
-    std::vector<double> buffer(N);
-    // buffer.reserve(N);
-    // buffer.resize(N);
-
-    // define memory buffer layout
-    DataSpace memspace(rankOut, &N);
-
-    // where to write into the buffer: start at beginning and write up to the end
-    hsize_t offset = 0;
-    hsize_t count = N;
-    memspace.selectHyperslab(H5S_SELECT_SET, &count, &offset);
-
-    // read and possibly convert the data
-    dataset.read(&buffer[0], PredType::NATIVE_DOUBLE, memspace, dataspace);
-
-    return buffer;
-}
-
 // ---------------------------------------------------------
 double Tardis::LogLikelihood(const std::vector<double>& parameters)
 {
+#if 0
+    cout << "like: (";
+    std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<double>(cout, ", " ));
+    cout << ")" << endl;
+
+    if (!std::isfinite(parameters.front())) {
+        std::cout << "Got invalid parameter values in likelihood\n";
+        std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<double>(cout, " " ));
+        cout << endl;
+        throw 1;
+    }
+#endif
     double res = 0;
 
     double alphaj, betaj;
@@ -181,10 +143,12 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
     auto split = parameters.begin() + order;
     auto beta_end = parameters.end();
 
-//    for (auto it = samples.begin() + 30999; it != samples.begin() + 41299; ++it) {
-    for (auto it = samples.begin(); it != samples.begin() + 25000; ++it) {
-//        for (auto it = samples.begin(); it != samples.end(); ++it) {
-        const auto& s = *it;
+    unsigned counter = 0;
+    static const unsigned nsamples = 10000;
+    assert(nsamples <= samples.size());
+    for (unsigned i = 0; i < nsamples; ++i) {
+        const auto& s = samples[i];
+
         // alpha(lambda_j)
         alphaj = Polyn(alpha_start, split, s.nu);
         betaj = Polyn(split, beta_end, s.nu);
@@ -195,13 +159,16 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
 
         // cout << "alphaj " << alphaj << ", betaj "<< betaj << endl;
 
-        res += alphaj * log(betaj) - lgamma(alphaj) + (alphaj - 1) * log(s.en) - betaj * s.en;
-        if (!std::isfinite(res)) {
-            cout << "res not finite! " << alphaj << ", " << betaj << endl;
+        double extra = alphaj * log(betaj) - lgamma(alphaj) + (alphaj - 1) * log(s.en) - betaj * s.en;
+        if (!std::isfinite(extra)) {
+            cout << "res not finite at " << counter << ", nu = " << s.nu << ", x = " << s.en << ", "<< alphaj << ", " << betaj << endl;
+            std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<double>(cout, " " ));
+            cout << endl;
             throw 2;
         }
+        res += extra;
     }
-    // cout << "likelihood " << res << endl;
+//     cout << "likelihood " << res << endl;
 
     return res;
 }
@@ -314,4 +281,54 @@ double Tardis::MinPolyn(Vec::const_iterator begin, Vec::const_iterator end)
         // throw std::logic_error("Cubic and higher order not implemented");
         return 3;
     }
+}
+
+
+Tardis::Vec Tardis::ReadData(const std::string& fileName, const std::string& dataSet)
+{
+    // identify the run of tardis = row in column
+    static const hsize_t run = 9;
+
+    H5File file(fileName.c_str(), H5F_ACC_RDONLY );
+    DataSet dataset = file.openDataSet(dataSet);
+    /*
+     * Get dataspace of the dataset.
+     */
+    DataSpace dataspace = dataset.getSpace();
+
+    /*
+     * Get the dimension size of each dimension in the dataspace and
+     * display them.
+     */
+    hsize_t dims_out[2];
+    dataspace.getSimpleExtentDims( dims_out, NULL);
+//    cout << "rank " << ndims << ", dimensions " <<
+//        (unsigned long)(dims_out[0]) << " x " <<
+//        (unsigned long)(dims_out[1]) << endl;
+
+    // read one row from large matrix into 1D array
+    static const int rankOut = 1;
+    hsize_t N = dims_out[1];
+    std::array<hsize_t, 2> offsetIn = {run, 0};
+    std::array<hsize_t, 2> countIn = {1, N};
+    dataspace.selectHyperslab(H5S_SELECT_SET, &countIn[0], &offsetIn[0]);
+
+    // reserve memory to hold the data, resize so vector know how many
+    // elements it has because hdf5 just writes directly to the heap buffer
+    std::vector<double> buffer(N);
+    // buffer.reserve(N);
+    // buffer.resize(N);
+
+    // define memory buffer layout
+    DataSpace memspace(rankOut, &N);
+
+    // where to write into the buffer: start at beginning and write up to the end
+    hsize_t offset = 0;
+    hsize_t count = N;
+    memspace.selectHyperslab(H5S_SELECT_SET, &count, &offset);
+
+    // read and possibly convert the data
+    dataset.read(&buffer[0], PredType::NATIVE_DOUBLE, memspace, dataspace);
+
+    return buffer;
 }
