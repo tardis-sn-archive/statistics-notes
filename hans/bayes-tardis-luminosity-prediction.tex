@@ -413,14 +413,26 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
     p(\bmL\cond N,\bmphi) &= \prod_{j=1}^N p(L_j\cond \bmphi)
   \end{align}
 
-\item In general, the distribution of $L_j$ could be a of a different
-  functional form in each bin. But in practice, the distribution of
-  packets does not change abruptly with frequency. We therefore assume
-  that the functional form of $p(L_j)$ is identical in each bin but it
-  is parametrized by a continuous function of frequency $f(\nu |
-  \bmphi)$. This greatly reduces the number of parameters if $\npack$
-  is large because a handful of parameters, $\dim \bmphi$, can be
-  inferred from the complete set of packets instead
+  \item In general, the distribution of $L_j$ could be a of a
+  different functional form in each bin. For simplicity, we assume it
+  is identical but may depend on parameters that differ from bin to
+  bin. In practice, the distribution of packets does not change
+  abruptly with frequency. We therefore assume that any parameter
+  needed to fully specify $p(L_j)$ is given as a continuous function
+  of frequency and parameters $\bmphi$; i.e.,
+  \begin{align}
+    \lleq{pmdb}
+    p(L_j) = p(L_j \cond \nu, \bmphi)
+  \end{align}
+  For example, assume $p(L_j)$ depends on one parameter $a$. If we fit
+  separately in each bin, we would have $B+1$ fits and $B+1$
+  parameters. In each such fit, there would be only few samples to
+  constrain $a$ in each bin. Then instead of fitting $a$ separately in
+  each bin, we assume $a = a(\nu, \bmphi)$. This greatly reduces the
+  number of parameters if $B$ is large because a handful of
+  parameters, $\bmphi$, can be inferred from the complete set of
+  packets. Necessarily, $a$ is best determined for the frequency
+  around which the density of packets is highest.
 
 \item The values of $\lambda$ and $\bmphi$ are unknown. It is the task
   of the analysis below to determine not just the single best values
@@ -472,16 +484,19 @@ possible values of $\lambda$,
   {\int d\lambda\, p(n\cond\lambda)\,p(\lambda)}
 \end{align}\checked{}
 where $p(N\cond\lambda,n) = p(N\cond\lambda)$ is independent of $n$.
-Taking an improper prior (see Appendix)\footnote{For a uniform prior,
+Taking the prior (see Appendix)\footnote{For a uniform prior,
   the case $a{=}0$, we require of course a maximum $\lambda_{\rm
     max}$. As long as $\lambda_{\rm max}$ is large enough, the
   integral can effectively be taken to infinity.}
 \begin{align}
   \lleq{pmf}
-  p(\lambda) = c\lambda^{-a} \qquad a = 0\;\text{or}\;1
+  p(\lambda) = c\lambda^{-a},
 \end{align}
-and inserting this and (\ref{pmcb}) into (\ref{pme}), we obtain
-for the evidence and prediction
+common choices are $a=0$ (uniform prior) and $a=1/2$ (Jeffreys
+prior). Both choices lead to an improper prior but the posterior
+predictive (see below) is proper.
+Inserting \refeq{pmf} and (\ref{pmcb}) into (\ref{pme}), we obtain for
+the evidence and the posterior predictive
 \begin{align}
   \lleq{pmg}
   p(n) &= %
@@ -496,10 +511,9 @@ for the evidence and prediction
   \frac{e^{-2\lambda} \lambda^{N+n-a}}{N!\, n!}
   \ =\ \frac{(N+n-a)!}{N!\,(n-a)!\,2^{N+n+1-a}}
 \end{align}
-\fred{$a=1/2 \Leftrightarrow$ Jeffrey's prior would my choice. We then get a Pólya distribution instead of Negative Binomial but nothing substantial changes. $$(pmh) \frac{\Gamma(N+n-a+1)}{N!\,\Gamma(n-a+1)\,2^{N+n+1-a}}$$ }
-which we recognise as a Negative Binomial distribution (see appendix)
-\fred{There are several definitions of the Negative Binomial, so we should specify which one we use. This one coincides with Wikipedia: $N$ successes given $k$ failures with probability of success $\rho$.}
-with parameters $k=n+1-a$ and $\rho=(1/2)$
+which we recognise as a Negative Binomial distribution describing the
+probability to observe $N$ successes given $k=n+1-a$ failures in a
+sequence of Bernoulli trials with success probability $\rho=1/2$
 \begin{align}
   \lleq{pmhb}
   p(N\cond n) &= \NBD(N\cond k{=}n{+}1{-}a, \rho{=}\tfrac{1}{2})
@@ -507,8 +521,10 @@ with parameters $k=n+1-a$ and $\rho=(1/2)$
   \left(\frac{1}{2}\right)^N \left(\frac{1}{2}\right)^{n+1-a}
 \end{align}
 We shall use the properties of the Negative Binomial in the
-calculations below.  Note that the distribution of $N$ given $n$ is
-independent of the packets $\bmL$ and $\bml$ by construction.
+calculations below. For non-integer $a$, the Negative Binomial
+generalizes immediately to the Pólya distribution by replacing $x! \to
+\Gamma(x+1)$. Note that the distribution of $N$ given $n$ is
+independent of $\bmL$ and $\bml$ by construction.
 
 \subsection{Predicting the total luminosity $L$ in a bin}
 
@@ -897,8 +913,11 @@ run, then the probability calculation may have to be changed from
 $p(\bml\cond \ell_{\rm max},n,a,b)$ to\\
 $p(\bml\cond \ell_{\rm max},n,a,b)\,p(\ell_{\rm max}\cond
 n,a,b)$. However we are supposed to deal with ONE TARDIS run, so that
-$\ell_{\rm max}$ is known and fixed.
-\fred{Rather: we approximate $p(\ell_{\rm max} \cond n, a,b)$ by $\delta(\max \ell_{b,j})$. This is OK is $\sum_b n_b$ is large. For numerical stability, we want to ensure that $x<1$, so we take the largest $\ell_{b,j}$ and multiply by $1 +\varepsilon, \varepsilon = 10^{-7}$}
+$\ell_{\rm max}$ is known and fixed.  \fred{Rather: we approximate
+  $p(\ell_{\rm max} \cond n, a,b)$ by $\delta(\max \ell_{b,j})$. This
+  is OK is $\sum_b n_b$ is large. For numerical stability, we want to
+  ensure that $x<1$, so we take the largest $\ell_{b,j}$ and multiply
+  by $1 +\varepsilon, \varepsilon = 10^{-7}$}
 
 The moments of the beta distibution are simple,
 \begin{align}
