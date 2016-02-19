@@ -291,11 +291,13 @@ TODO: Wolfgang (or in Introduction?)
   size. Let's then consider $\nu_b$ as the left edge of bin $b$,
   and $\nu_{B+1}$ is the right edge of the last bin; i.e., the
   maximum frequency.
-\item We treat the results of a single TARDIS run as \textit{data}
-  $D$, i.e.\ fixed results which we do not question but accept as
-  given.  These ``data'' are the number of packets leaving the
-  supernova, $\npack$, the luminosity $\bml$, and the frequencies
-  $\bmnu$ for each packet
+  \item We treat the results of a single TARDIS run as \textit{data}
+  \fred{If in the end we want to compare to actual data from a
+    telescope, I'd prefer to not call the TARDIS output ``data''. Why
+    don't we just call it ``TARDIS output''?}  $D$, i.e.\ fixed
+  results which we do not question but accept as given.  These
+  ``data'' are the number of packets leaving the supernova, $\npack$,
+  the luminosity $\bml$, and the frequencies $\bmnu$ for each packet
   \begin{align}
     \lleq{dfc}
     D = \{ \npack, \bml, \bmnu \} \,,
@@ -546,93 +548,99 @@ independent of $\bmL$ and $\bml$ by construction.
   keep $\bml$ with the same meaning. So we replace $n \to m$ below
   except in $p(N \cond n$)}
 
-Our goal of prediction of $L$ given the data $(n,\bml)$ is captured in
-the probability $p(L\cond n,\bml)$ with all relevant parameters
-integrated out. We first note from Eq.~(\ref{pmh}) that $p(N\cond
-n,\bml) = p(N\cond n)$ does not depend on $\bml$. Furthermore, since
-$L$ is fully determined by $(N,\bmL)$,
+Our goal of predicting $L$ given the TARDIS output $(\npack,\bml,
+\bmnu)$ is captured in the probability $p(L\cond \npack,\bml, \bmnu)$
+with all relevant parameters integrated out. We first note from
+\refeq{pmh} that $p(N\cond \npack,\bml, \bmnu) = p(N\cond n)$ does not
+depend on $\bml$ or $\bmnu$ directly but only through $n$, the number
+of packets in the bin; cf. \refeq{dff}. Furthermore, since $L$ is
+fully determined by $(N,\bmL)$,
 \begin{align}
   \lleq{pmjd}
   L &= \sum_{j=1}^N L_j
 \end{align}
-is does not depend directly on $(n,\bml)$, i.e.\
+is does not depend directly on $(\npack),\bml,\bmnu)$, i.e.\
 \begin{align}
   \lleq{pmi}
-  p(L\cond N,\bmL,n,\bml)
+  p(L\cond N,\bmL,n,\bml, \bmnu)
   = p(L\cond N,\bmL)
   &= \delta(L - \textstyle\sum_{j=1}^N L_j).
 \end{align}
-\checked{}
 Hence the prediction is given by
 \begin{align}
   \lleq{pmj}
-  p(L\cond n,\bml)
-  &= \sum_{N=0}^\infty p(L\cond N,n,\bml)\,p(N\cond n,\bml) \\
+  p(L\cond n,\bml, \bmnu)
+  &= \sum_{N=0}^\infty p(L\cond N,n,\bml, \bmnu)\,p(N\cond n,\bml, \bmnu) \\
   \lleq{pmjb}
-  &= \sum_N p(N\cond n)\,\int d\bmL\, p(L\cond N,\bmL,n,\bml)\, p(\bmL\cond N,n,\bml)
+  &= \sum_N p(N\cond n)\,\int d\bmL\, p(L\cond N,\bmL,n,\bml, \bmnu)\, p(\bmL\cond N,n,\bml, \bmnu)
   \\
   \lleq{pmjc}
   &= \sum_N p(N\cond n)\,\int d\bmL\,\delta(L - \textstyle\sum_{j=1}^N L_j)
-  \, p(\bmL\cond N,n,\bml)
+  \, p(\bmL\cond N,n,\bml, \bmnu)
 \end{align}
-\checked{}
-The dependence on the TARDIS ``data'' $(n,\bml)$ enters through
-$p(\bmL\cond N,n,\bml)$ in terms of the parameters $\bmphi$ of
-$p(\bmL\cond N,\bmphi)$,
+\fred{Add missing $\bmnu$! Everything that is conditional on $\bml$ is
+  also conditional on $\bmnu$} The dependence on the TARDIS ``data''
+$(\npack,\bml, \bmnu)$ enters through $p(\bmL\cond N,\npack,\bml,
+\bmnu)$ in terms of the parameters $\bmphi$ of $p(\bmL\cond
+N,\bmphi)$,
 \begin{align}
   \lleq{pmk}
-  p(\bmL\cond N,n,\bml)
-  &= \int d\bmphi\, p(\bmL\cond N,\bmphi,n,\bml)\,p(\bmphi\cond N,n,\bml) \\
-  &= \int d\bmphi\, p(\bmL\cond N,\bmphi)\,p(\bmphi\cond N,n,\bml).
+  p(\bmL\cond N,\npack,\bml, \bmnu)
+  &= \int d\bmphi\, p(\bmL\cond N,\bmphi,\npack,\bml, \bmnu)\,p(\bmphi\cond N,\npack,\bml, \bmnu) \\
+  &= \int d\bmphi\, p(\bmL\cond N,\bmphi)\,p(\bmphi\cond N,\npack,\bml, \bmnu).
 \end{align}
 because the likelihood for $\bmL$ is fully determined by $N,\bmphi$
-and hence independent of $(n,\bml)$.
+and hence independent of $(\npack,\bml, \bmnu)$.
 %
 Again using Bayes' Theorem (\ref{bth})
 \begin{align}
   \lleq{pmkb}
-  p(\bmphi\cond N,n,\bml) &=
-  \frac{p(\bml\cond N,n,\bmphi)\,p(\bmphi\cond N,n)} %
-  {\int d\bmphi\,p(\bml\cond N,n,\bmphi)\,p(\bmphi\cond N,n)} %
-  % \ =\ \frac{p(\bml\cond N,n,\bmphi)\,p(\bmphi\cond N,n)} %
+  p(\bmphi\cond N,\npack,\bml, \bmnu) &=
+  \frac{p(\bml\cond N,\npack,\bmphi,\bmnu)\,p(\bmphi\cond N,\npack,\bmnu)} %
+  {\int d\bmphi\,p(\bml\cond N,\npack,\bmphi,\bmnu)\,p(\bmphi\cond N,\npack,\bmnu)}, %
+  % \ =\ \frac{p(\bml\cond N,\npack,\bmphi)\,p(\bmphi\cond N,n)} %
   % {p(\bml\cond n)} %
 \end{align}
-\fred{$p(\bmphi\cond N,n,\bml) = p(\bmphi\cond n,\bml)$. Below $N$ is (correctly) missing in \refeq{pmp} }
-and using a multiplicity-independent prior for $\bmphi$
+
+ a multiplicity-independent prior for $\bmphi$
 \begin{align}
   \lleq{pml}
-  p(\bmphi\cond N,n) &= p(\bmphi)
+  p(\bmphi\cond N,\npack,\bmnu) &= p(\bmphi),
+\end{align}
+and recognizing that $N$ does not tell us anything about $\bml$
+\begin{align}
+  \lleq{pmla}
+  p(\bml\cond N,\npack,\bmphi,\bmnu) = p(\bml\cond \npack,\bmphi,\bmnu)
 \end{align}
 we can write (\ref{pmk}) as
 \begin{align}
   \lleq{pmn}
-  p(\bmL\cond N,n,\bml)
+  p(\bmL\cond N,\npack,\bml, \bmnu)
   &= \int d\bmphi\, p(\bmL\cond N,\bmphi)\, %
-  \frac{p(\bml\cond n,\bmphi)\,p(\bmphi)} %
-  {\int d\bmphi\,p(\bml\cond n,\bmphi)\,p(\bmphi)} \\
+  \frac{p(\bml\cond \npack,\bmphi)\,p(\bmphi)} %
+  {\int d\bmphi\,p(\bml\cond \npack,\bmphi)\,p(\bmphi)} \\
   \lleq{pmo}
   &= \frac{1}  {p(\bml\cond n)} %
   \int d\bmphi\, p(\bmL\cond N,\bmphi)\, %
-  p(\bml\cond n,\bmphi)\,p(\bmphi)
+  p(\bml\cond \npack,\bmphi)\,p(\bmphi)
 \end{align}
 with $p(\bml\cond n) = \int d\bmphi\, p(\bml\cond
-n,\bmphi)\,p(\bmphi)$ in the denominator.
+\npack,\bmphi)\,p(\bmphi)$ in the denominator.
 Inserting this into (\ref{pmjc}), we obtain
 \begin{equation}
   \lleq{pmp}
   \boxed{
-  p(L\cond n,\bml)
+  p(L\cond \npack,\bml, \bmnu)
   = \frac{1}{p(\bml\cond n)}
   \sum_N p(N\cond n)\,\int d\bmL\,\delta(L - \textstyle\sum_j L_j)
-  \displaystyle\int d\bmphi\,p(\bmL\cond N,\bmphi) \, p(\bml\cond n,\bmphi)
+  \displaystyle\int d\bmphi\,p(\bmL\cond N,\bmphi) \, p(\bml\cond \npack,\bmphi)
   \, p(\bmphi)
   }
 \end{equation}
-\checked{}
 with
 \begin{align}
   p(\bmL\cond N,\bmphi) &= \prod_{j=1}^N p(L_j\cond \bmphi) \\
-  p(\bml\cond n,\bmphi) &= \prod_{j=1}^n p(\ell_j\cond \bmphi)
+  p(\bml\cond \npack,\bmphi) &= \prod_{j=1}^n p(\ell_j\cond \bmphi)
 \end{align}
 \fred{And $p(\cdot \cond \bmphi)$ is the same function in both equations.}
 In other words: Once we have decided on a prior $p(\bmphi)$ and a
