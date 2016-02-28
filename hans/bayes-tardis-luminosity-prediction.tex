@@ -13,12 +13,16 @@
 \synctex=1
 
 \usepackage[colorinlistoftodos]{todonotes} % Use 'disable' to remove todos in final version
-\newcommand{\fred}[1]{\todo[inline]{#1}} %
+\newcommand{\fred}[1]{\todo[color=orange!40,inline]{#1}} %
 \newcommand{\checked}{\todo[color=green,noline]{\checkmark}} %
 \newcommand{\checkedl}{\todo[color=brown]{\checkmark}} %
+\newcommand{\hans}[1]{\todo[color=yellow!30,inline]{#1}} %
+\newcommand{\hanslong}[2][]{\todo[%bordercolor=red,
+  color=white,inline,caption={2do}, #1]{
+    \begin{minipage}{\textwidth} #2\end{minipage}}} %
 
 %% CHANGE THIS DATE AS YOU MODIFY THE FILE
-\newcommand{\vdate}{160218}
+\newcommand{\vdate}{160228}
 \pagestyle{myheadings}
 \markboth{Version \vdate} {Version \vdate}
 \parindent=0mm
@@ -162,6 +166,7 @@
 \DeclareMathOperator{\GammaDist}{Gamma}
 \newcommand{\npack}{n_p}
 \newcommand{\lmax}{\ell_{\rm max}}
+\newcommand{\Lmax}{L_{\rm max}}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -172,7 +177,84 @@
   \textbf{\Large based on simulation output: An example from TARDIS}\\[12pt]
 \end{center}
 
-\textbf{Abstract} TODO
+\textbf{Abstract} TODO\\
+
+\hans{Temporary addition of TOC to make it easier to find stuff. Eventually it should
+disappear again.}
+
+\tableofcontents
+
+
+\newpage %
+\hanslong{ %
+  Hans 160228: \textbf{Summary of issues, based on v160218}. \\
+  
+  Before getting into all sorts of detail, I wanted to understand the
+  major changes and developments. To my mind they are:
+  \begin{enumerate}
+  \item Fred discovered that the rescaling $X = L/\Lmax$ may have
+    unintended advantages. TARDIS and general supernova luminosity
+    spectra are highly variable because it consists not only of smooth
+    blackbody spectrum, but also of strong absorption lines (emission
+    also?? see 2014 MNRAS Kerzendorf, Sim et al?). Since $\Lmax$
+    varies exactly like the spectrum itself, all binwise
+    individual-packet distributions are rescaled to the interval
+    $[0,1]$ leaving only a far weaker change of \textit{shape} of the
+    distribution rather than the \textit{scale}.
+
+  \item Just below Eq. (bsi) and also in (pmda), we had made explicit
+    that we would do all the calculations for each bin separately, so
+    there would be lots of fit parameters. Fred's 160218 paragraph
+    starting with ``In general, the distribution \ldots'' and Eq
+    (pmdb) sees significant reduction in the number of parameters if
+    the above remnant dependence of $p(\bmL\cond N,\bmphi)$ in (pmda)
+    on shape could be captured in a slow-varying function
+    $a(\nu,\bmphi)$.
+
+  \item Separately, Fred introduces the idea of combining elementary
+    $b$-bins into compound bins with index $m$ as this improves the
+    statistics. 
+
+  \item The simplification for large $N$ etc permits a Gaussian
+    approximation, hence Laplace, hence the key equation (pmp) may be
+    simplified to some approximation, making use of the moment
+    generating function eg Eq (mgd) unnecessary.
+
+  \item In principle, the above sounds like a very good development.
+    There are some important caveats:
+    \begin{enumerate}
+    \item I see no detail on how to find $a(\nu,\bmphi)$. The first
+      question would be if there is some numerical indication for its
+      form. This seems to be equivalent to asking what the dependence
+      of (say) the Gamma parameter $\alpha$ on $\nu$ is, and that is
+      of course of great interest anyway.
+
+    \item My second comment is that $a(\nu,\bmphi)$ is probably just
+      your normal parametrisation which enters best-fit algorithms.
+      If we are to treat it as a best-fit parametrisation with
+      metaparameters, then that may just bring back all the
+      complications which we thought had disappeared. This would have
+      to be investigated. If on the other hand you also want to
+      treat $a(\nu,\bmphi)$ as some kind of ``constant function'',
+      then one would have to set out how stable this constant function
+      would be against various underlying changes. In other words, 
+      if calculation of $a()$ is not part of the general algorithm,
+      how is it fixed? and can it be fixed for all cases?
+
+    \item I think there may be a problem of combining the two proposed
+      simplifications $L \to X$ and $m$ compound bins. Depending on
+      the variability of the parametrisation as function of $\nu$, the
+      shape of $p(\bmL\cond N,\bmphi)$ for single bins with large
+      $\Lmax$ may differ significantly from the shape for many small
+      bins combined into one using $m$. In other words, rebinning
+      and rescaling may not be compatible.
+    \end{enumerate}
+
+  \item Once these are cleared up, we can get into the details \ldots\\
+
+  \end{enumerate}
+} %
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
@@ -281,6 +363,7 @@ TODO: Wolfgang
 TODO: Wolfgang (or in Introduction?)
 
 \subsection{Definitions of relevant quantities}
+\label{sec:dfnr}
 
 \begin{mtemize}
 \item Spectrum of luminosities in channels (or ``bins'')
@@ -291,13 +374,36 @@ TODO: Wolfgang (or in Introduction?)
   size. Let's then consider $\nu_b$ as the left edge of bin $b$,
   and $\nu_{B+1}$ is the right edge of the last bin; i.e., the
   maximum frequency.
+  %%%
+  \hans{The 2014 TARDIS paper I have seen uses wavelength $\lambda$,
+    not frequency in their plots. Is Wolfgang's recent data all
+    frequency data? If it is, ie if Wolfgang et al have decided to
+    change to frequency, they should explain whether that will happen
+    in their and our papers also. If they want to stick with
+    wavelength, we should too. I think this is something Wolfgang
+    should decide.
+
+    If they say we should stay with wavelength, then I would suggest
+    replacing $\nu$ by $\lambda$ here and throughout, and of course
+    change the Poisson parameter below to something like $\nu$.}
+  
   \item We treat the results of a single TARDIS run as \textit{data}
-  \fred{If in the end we want to compare to actual data from a
-    telescope, I'd prefer to not call the TARDIS output ``data''. Why
-    don't we just call it ``TARDIS output''?}  $D$, i.e.\ fixed
-  results which we do not question but accept as given.  These
-  ``data'' are the number of packets leaving the supernova, $\npack$,
-  the luminosity $\bml$, and the frequencies $\bmnu$ for each packet
+    %%%%%
+    \fred{If in the end we want to compare to actual data from a
+      telescope, I'd prefer to not call the TARDIS output
+      ``data''. Why don't we just call it ``TARDIS output''?} %
+    \hans{I agree, ``data'' is awkward, and it is indeed useful to
+      keep data and $D$ for later. ``Output'' would be ok, except that
+      we should change the symbol $D$ to something else too. Symbol
+      $O$ is not good. For the moment I would suggest $D_S$ (subscript
+      simulation) or $D_T$ since we know that $T$ will later stand for
+      temperature. Another useful term would be ``simdata'', symbol
+      $S$.}
+    %%%%%
+    $D$, i.e.\ fixed results which we do not question but accept as
+    given.  This ``data'' consists of the total number of packets
+    leaving the supernova $\npack$ plus the set of luminosities
+    $\bml$ and frequencies $\bmnu$ of each packet,
   \begin{align}
     \lleq{dfc}
     D = \{ \npack, \bml, \bmnu \} \,,
@@ -308,39 +414,45 @@ TODO: Wolfgang (or in Introduction?)
     % \bml_b &= (\ell_{b,1},\ell_{b,2},\ldots,\ell_{b,n_b})
     \dim \bml = \dim \bmnu = \npack \,.
   \end{align}
-  Given $D$, the number of samples in bin $b$ is
+  In terms of the $\mathbf{1}_V(x)$ the indicator function requiring
+  $x \in V$, the number of packets in bin $b$ is
   \begin{align}
     \lleq{dff}
     n_b = \sum_{j=1}^{\npack} \mathbf{1}_{[\nu_b,\nu_{b+1}]}( \nu_j )
   \end{align}
-  and similarly the luminosity is
+  and the total luminosity in bin $b$ is
   \begin{align}
     \lleq{dfe}
-    \ell_b = \sum_{j=1}^{\npack}\ell_j \mathbf{1}_{[\nu_b,\nu_{b+1}]}( \nu_j ),
+    \ell_b = \sum_{j=1}^{\npack}\ell_j \mathbf{1}_{[\nu_b,\nu_{b+1}]}( \nu_j )\,,
   \end{align}
-  where $\mathbf{1}_V(x)$ is the indicator function requiring $x \in V$.
+  with $\npack = \sum_b n_b$ and the total supernova luminosity $\ell
+  = \sum_b \ell_b$.
+  
 \end{mtemize}
+\hans{Discussion of rebinning with index $m$?}
+
 
 \subsection{Data as realization of compound process}
 
-While we treat the TARDIS output as ``data'' as discussed above, a
-repeat of the simulation with a different Monte Carlo seed would
+While we treat the TARDIS output as fixed ``data'' as discussed above,
+a repeat of the simulation with a different Monte Carlo seed would
 evidently yield different ``data'' $D'$ even when all other simulation
 parameters remain the same. Clearly, $n_b$ is a specific realization
-of a stochastic variable $N_b$ governed by a model pdf
-$p(N_b)$. \fred{In our general case, $\npack = \sum_b n_b$ is an instance of a
+of a stochastic variable $N_b$ governed by a model pdf $p(N_b)$. %
+\fred{In our general case, $\npack = \sum_b n_b$ is an instance of a
   random variable because some packets leave the supernova, some
   don't. I guess in most applications the total number of events would
   be chosen and not random. We are fortunate that this difference does
-  not matter because we consider bins independently. } Similarly,
-$\bml_b$ is a specific realization of a collection of stochastic
-variables $\bmL_b =\{L_{b,1},\ldots,L_{b,\smN_b}\}$, where the number
-$N_b$ of such variables is itself stochastic. The relevant pdf for
-$\bmL_b$ therefore always presupposes knowledge of $N_b$, so we must
-work with the conditional probability $p(\bmL_b\cond N_b)$. This
-situation is captured mathematically as $N_b \sim p(N_b), \bmL_b \sim
-p(\bmL_b\cond N_b)$ where $\sim$ means ``is by hypothesis distributed
-in this model according to the pdf'', i.e.\
+  not matter because we consider bins independently. } %
+\hans{I will come back to this later} %
+Similarly, $\bml_b$ is a specific realization of a collection of
+stochastic variables $\bmL_b =\{L_{b,1},\ldots,L_{b,\smN_b}\}$, where
+the number $N_b$ of such variables is itself stochastic. The relevant
+pdf for $\bmL_b$ therefore always presupposes knowledge of $N_b$, so
+we must work with the conditional probability $p(\bmL_b\cond
+N_b)$. This situation is captured mathematically as $N_b \sim p(N_b),
+\bmL_b \sim p(\bmL_b\cond N_b)$ where $\sim$ means ``is by hypothesis
+distributed in this model according to the pdf'', i.e.\
 \begin{align*}
   (N_b,\bmL_b) &\ \sim\ p(N_b,\bmL_b\cond \bmphi_b,\lambda_b)
   = p(\bmL_b\cond N_b,\bmphi_b)\; p(N_b\cond \lambda_b),
@@ -355,14 +467,21 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
 \subsection{Construction of the model hypothesis}
 
 \begin{mtemize}
-\item We omit the dependence on supernova parameters $\bmtheta$ from
-  the notation below and instead condition on the TARDIS output
-  $\npack, \bml, \bmnu$ directly.
+\item We omit the dependence on the physical supernova parameters
+  $\bmtheta$ from the notation below and instead condition on the
+  TARDIS output $\npack, \bml, \bmnu$ directly.
 
 \item In the remainder of this paper, we assume that the packet
   multiplicities $N_b$ and total luminosities $\bmL_b$ in any given
-  bin $b$ are statistically independent of those in other bins. \fred{We could motivate this in the usual way as the Poisson limit of the Binomial. The subtlety would then the be the random total number of packets (leaving the supernova).} This
-  means that the joint probability over all bins factorises into
+  bin $b$ are statistically independent of those in other bins. %
+  \fred{We could motivate this in the usual way as the Poisson limit
+    of the Binomial. The subtlety would then the be the random total
+    number of packets (leaving the supernova).} %
+  \hans{The limit would be from the multinomial with $B$ bins and
+    $\npack$ packtes to product of Poissonians. One could put it in,
+    but in my opinion it's not necessary. $B$ is large, so the
+    constraint plays no role.} %
+  This means that the joint probability over all bins factorises into
   individual probabilities for each bin,
   \begin{align}
     \lleq{bsi}
@@ -401,7 +520,8 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
 
 \item We choose $N$ to follow a Poisson distribution \fred{this choice
     linked to limit of Multinomial, see above} with parameter
-  $\lambda$
+  $\lambda$ %
+  \hans{I would change the Poisson parameter to $\nu$, see above comment.}
   \begin{align}
     \lleq{pmc}
     p(N\cond\lambda) &= \frac{e^{-\lambda}\lambda^N}{N!}
@@ -434,15 +554,20 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
   number of parameters if $B$ is large because a handful of
   parameters, $\bmphi$, can be inferred from the complete set of
   packets. Necessarily, $a$ is best determined for the frequency
-  around which the density of packets is highest.
+  around which the density of packets is highest. %
+  \hans{I would replace the word ``sample'' above and throughout the
+    text by ``packet''. The word ``sample'' refers in statistics to
+    the entire data set $D$, not just to one data point.} %
 
 \item The values of $\lambda$ and $\bmphi$ are unknown. It is the task
   of the analysis below to determine not just the single best values
   for these parameters, but to take into account every and all
   possible values.
 
-\item Priors: metaparameter $a$ \fred{?}
-
+\item Priors: metaparameter $a$ \fred{?}  %
+  \hans{This is a placeholder to remind us that metaparameters need to
+    be discussed at some point. Perhaps not here, but we should
+    remember.}
 \end{mtemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -666,9 +791,11 @@ integral. A partial solution lies in at least finding simple
 expressions for the moments and cumulants (mean, variance, skewness,
 kurtosis etc) of $p(L\cond n,\ell)$. This can be accomplished by first
 finding the moment generating function (mgf) (see Appendix) which in
-the present case is also the Laplace transform. \fred{On Wikipedia,
-  the MGF is defined as $\int_0^\infty dL\,p(L\cond
-  n,\bml)\,e^{+tL}$. Then there are less minus signs to worry about}
+the present case is also the Laplace transform. %
+\fred{On Wikipedia, the MGF is defined as $\int_0^\infty dL\,p(L\cond
+  n,\bml)\,e^{+tL}$. Then there are less minus signs to worry about} %
+\hans{Yes, most books seem to use the plus sign. It makes use of
+  Laplace transform harder, but I am happy to use plus.} %
 For the mgf, the convolution is easily accomplished:
 \begin{align}
   \lleq{mgc}
@@ -1114,6 +1241,10 @@ $L$ via
   \lleq{gmg}
   p(L  \cond n, \bml, m) = p(X  \cond n, \bmx, m) \frac{1}{\lmax}
 \end{align}
+\hans{So far, $m$ appears only in your todo comment above. I would suggest
+  a short discussion of this already in Section \ref{sec:dfnr}. We
+  could then simply rewrite all equations below in terms of $m$ rather
+  than $b$.} %
 We observe good agreement between the best fit of a Gamma distribution
 to TARDIS samples; an example is shown shown in \reffig{gamma}.  While
 not obvious at first, a major numerical simplification arises because
@@ -1138,7 +1269,9 @@ can be well approximated by a unimodal distribution; see
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.48\textwidth]{gamma}
-  \fred{Plot with more samples to see dip at $x=0$.}
+  \fred{Plot with more samples to see dip at $x=0$.} %
+  \hans{I assume the KDE fit will disappear from the paper later as it
+    overshoots the zero point.}
   \caption{Gamma distribution fit. }
   \label{fig:gamma}
 \end{figure}
@@ -1194,8 +1327,14 @@ with the bins used to infer the luminosity distribution; i.e., $n \ne
 m$.
 
 The following approximations can be used in different regions of the
-parameter space spanned by $n$ and $m$.
-
+parameter space spanned by $n$ and $m$. %
+\hans{$n$ is TARDIS output ``data'', so not a parameter. From the
+  above paragraph, $m$ seems to be a parameter governing rebinning to
+  nonuniform bins. I would have no idea how to handle $m$ formally in
+  a Bayesian way. If $m{=}150$ is the result of optimising the fitting
+  stability, then presumably it will be kept constant. In that case,
+  it would be treated like a constant rather than a parameter in the
+  usual sense.}
 \begin{mnumerate}
   \item \label{large-m} For $m$ large, the posterior $p(\bmphi \cond m, \bmx) =
   p(\bmx\cond m,\bmphi) \, p(\bmphi) / p(\bmx \cond m)$ approaches a
