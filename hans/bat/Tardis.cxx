@@ -18,7 +18,6 @@
 #include <iostream>
 #include <limits>
 #include <numeric>
-#include <valarray>
 
 using std::cout;
 using std::endl;
@@ -90,6 +89,7 @@ Tardis::Tardis(const std::string& name)
     const double maxNu = maxElemNu->nu;
     cout << "Max. energy = " << maxEn << endl;
     cout << "Max. frequency = " << maxNu << endl;
+
     for (auto& s : samples) {
         s.en = 1.0 - s.en / maxEn;
         s.nu /= maxNu;
