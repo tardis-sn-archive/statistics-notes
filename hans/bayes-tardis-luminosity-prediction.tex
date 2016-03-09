@@ -167,7 +167,7 @@
 \newcommand{\npack}{n_p}
 \newcommand{\lmax}{\ell_{\rm max}}
 \newcommand{\Lmax}{L_{\rm max}}
-
+\newcommand{\rmdx}[1]{\mbox{d} #1 \,} % differential
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
@@ -188,7 +188,7 @@ disappear again.}
 \newpage %
 \hanslong{ %
   Hans 160228: \textbf{Summary of issues, based on v160218}. \\
-  
+
   Before getting into all sorts of detail, I wanted to understand the
   major changes and developments. To my mind they are:
   \begin{enumerate}
@@ -213,7 +213,7 @@ disappear again.}
 
   \item Separately, Fred introduces the idea of combining elementary
     $b$-bins into compound bins with index $m$ as this improves the
-    statistics. 
+    statistics.
 
   \item The simplification for large $N$ etc permits a Gaussian
     approximation, hence Laplace, hence the key equation (pmp) may be
@@ -237,7 +237,7 @@ disappear again.}
       to be investigated. If on the other hand you also want to
       treat $a(\nu,\bmphi)$ as some kind of ``constant function'',
       then one would have to set out how stable this constant function
-      would be against various underlying changes. In other words, 
+      would be against various underlying changes. In other words,
       if calculation of $a()$ is not part of the general algorithm,
       how is it fixed? and can it be fixed for all cases?
 
@@ -386,7 +386,7 @@ TODO: Wolfgang (or in Introduction?)
     If they say we should stay with wavelength, then I would suggest
     replacing $\nu$ by $\lambda$ here and throughout, and of course
     change the Poisson parameter below to something like $\nu$.}
-  
+
   \item We treat the results of a single TARDIS run as \textit{data}
     %%%%%
     \fred{If in the end we want to compare to actual data from a
@@ -427,7 +427,7 @@ TODO: Wolfgang (or in Introduction?)
   \end{align}
   with $\npack = \sum_b n_b$ and the total supernova luminosity $\ell
   = \sum_b \ell_b$.
-  
+
 \end{mtemize}
 \hans{Discussion of rebinning with index $m$?}
 
@@ -547,14 +547,20 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
     p(L_j) = p(L_j \cond \nu, \bmphi)
   \end{align}
   For example, assume $p(L_j)$ depends on one parameter $a$. If we fit
-  separately in each bin, we would have $B+1$ fits and $B+1$
-  parameters. In each such fit, there would be only few samples to
-  constrain $a$ in each bin. Then instead of fitting $a$ separately in
-  each bin, we assume $a = a(\nu, \bmphi)$. This greatly reduces the
-  number of parameters if $B$ is large because a handful of
-  parameters, $\bmphi$, can be inferred from the complete set of
-  packets. Necessarily, $a$ is best determined for the frequency
-  around which the density of packets is highest. %
+  separately in each bin, we would have $B+1$ fits and $B+1$ copies of
+  $a$. In each fit, there would be only few samples to constrain
+  $a$. To avoid that, we assume $a = a(\nu, \bmphi)$. For concreteness,
+  assume $\bmphi = (a_0, a_1)$ and
+  \begin{align}
+    \lleq{pmdc}
+    a(\nu, \bmphi) = a_0 +a_1 \nu
+  \end{align}
+  This greatly reduces the number of parameters from $B+1$ to 2 and
+  ensures that $a$ is continuous in $\nu$. $a$, or equivalently
+  $\bmphi$, is now determined from a single fit to all samples. The
+  uncertainty on $a$ is at a minimum for the frequency around which
+  the density of packets is highest. \fred{Refer to plot with
+    uncertainty band}
   \hans{I would replace the word ``sample'' above and throughout the
     text by ``packet''. The word ``sample'' refers in statistics to
     the entire data set $D$, not just to one data point.} %
@@ -609,7 +615,7 @@ possible values of $\lambda$,
   \ =\ \int d\lambda\,p(N\cond\lambda, n)\,p(\lambda\cond n)
   \ =\ \frac{\int d\lambda\,p(N\cond\lambda)\,p(n\cond\lambda)\,p(\lambda)}
   {\int d\lambda\, p(n\cond\lambda)\,p(\lambda)}
-\end{align}\checked{}
+\end{align}
 where $p(N\cond\lambda,n) = p(N\cond\lambda)$ is independent of $n$.
 Taking the prior (see Appendix)\footnote{For a uniform prior,
   the case $a{=}0$, we require of course a maximum $\lambda_{\rm
@@ -648,10 +654,11 @@ sequence of Bernoulli trials with success probability $\rho=1/2$
   \left(\frac{1}{2}\right)^N \left(\frac{1}{2}\right)^{n+1-a}
 \end{align}
 We shall use the properties of the Negative Binomial in the
-calculations below. For non-integer $a$, the Negative Binomial
-generalizes immediately to the Pólya distribution by replacing $x! \to
-\Gamma(x+1)$. Note that the distribution of $N$ given $n$ is
-independent of $\bmL$ and $\bml$ by construction.
+calculations below. \fred{Check if we still do later} For non-integer $a$,
+the Negative Binomial generalizes immediately to the Pólya
+distribution by replacing $x! \to \Gamma(x+1)$. Note that the
+distribution of $N$ given $n$ is independent of $\bmL$ and $\bml$ by
+construction but depends on $\bmnu$ implicitly through $n$.
 
 \subsection{Predicting the total luminosity $L$ in a bin}
 
@@ -659,120 +666,155 @@ independent of $\bmL$ and $\bml$ by construction.
   the derivations below in the final paper. Wolfgang: how much detail
   should be supplied in the paper?}
 
+\fred{One thing is bugging me: To predict the luminosity in a bin, I
+  should do this $ \int_{\nu_b}^{\nu_{b+1}} d{\nu} \, p(L, \nu) = \int_{\nu_b}^{\nu_{b+1}} d{\nu} \, p(L
+  \cond \nu) p(\nu) $. We want to avoid modeling $p(\nu)$ because of
+  the absorption lines, so we assume $p(L \cond \nu)$ indep. of $\nu$
+  in the bin, so $ = p(L \cond \nu ) \int_{\nu_b}^{\nu_{b+1}} d{\nu} \, p( \nu) \equiv p(L \cond \nu) \, p_b$. Since $p_b$ is unknown, we should marginalize over it using our knowledge from Tardis output:
+  $$
+  p(L \cond \mbox{bin } b, \npack, \bmnu, \bml) = \int d{p_b}\, p(L \cond \nu) \, p_b \, p(p_b \cond \npack, \bmnu, \bml)
+  $$
+
+  So how can we turn $\int \rmdx{p_b} p_b \to \sum_N$? Where does
+  $\npack$ come into play? If we can answer this, then we have one more
+  hidden assumption clarified in the derivation below.
+}
+
 \subsubsection{Direct probability}
 
-\fred{We should be more general: let's reserve $n$ for the number of
-  packets observed in a bin. Suppose this is $n=1$. From that, we can
-  hardly infer the luminosity distribution. Instead, we group the
-  packets in larger bins such that there are at least $m \gtrsim 300$
-  packets, and then assume the distribution doesn't change much with
-  frequency.
+% \fred{We should be more general: let's reserve $n$ for the number of
+%   packets observed in a bin. Suppose this is $n=1$. From that, we can
+%   hardly infer the luminosity distribution. Instead, we group the
+%   packets in larger bins such that there are at least $m \gtrsim 300$
+%   packets, and then assume the distribution doesn't change much with
+%   frequency.
 
-  Hence we will learn $\bmphi$ from $m$ samples, and
-  $p(\bmphi\cond N,n,\bml) \to p(\bmphi\cond N,m,\bml)$ and we can
-  keep $\bml$ with the same meaning. So we replace $n \to m$ below
-  except in $p(N \cond n$)}
+%   Hence we will learn $\bmphi$ from $m$ samples, and
+%   $p(\bmphi\cond N,n,\bml) \to p(\bmphi\cond N,m,\bml)$ and we can
+%   keep $\bml$ with the same meaning. So we replace $n \to m$ below
+%   except in $p(N \cond n$)}
 
-Our goal of predicting $L$ given the TARDIS output $(\npack,\bml,
-\bmnu)$ is captured in the probability $p(L\cond \npack,\bml, \bmnu)$
-with all relevant parameters integrated out. We first note from
-\refeq{pmh} that $p(N\cond \npack,\bml, \bmnu) = p(N\cond n)$ does not
-depend on $\bml$ or $\bmnu$ directly but only through $n$, the number
-of packets in the bin; cf. \refeq{dff}. Furthermore, since $L$ is
-fully determined by $(N,\bmL)$,
+Our goal of predicting $L$ in bin $b$ given the TARDIS output
+$(\npack,\bml, \bmnu)$ is captured in the probability $p(L\cond \nu,
+\npack,\bml, \bmnu)$ with all relevant parameters integrated out using
+the law of total probability.
+
+To simplify the treatment, we assume that the frequency bins are
+narrow or equivalently that $p(L \cond \nu, \npack, \bml, \bmnu)$ does
+not vary within a bin. This implies that all hypothetical samples
+$L_j$ in the bin follow the same distribution.  As the reference
+frequency, we choose the bin center;
+% and avoid integration over the bin
+i.e., for each bin $b$, we set
+\begin{align}
+  \lleq{pmq}
+  p(L\cond \nu, \npack,\bml, \bmnu) = p(L\cond (\nu_b + \nu_{b+1}) / 2, \npack,\bml, \bmnu)  \; \forall \nu \in [\nu_b, \nu_{b+1}] \, .
+\end{align}
+
+We first note from \refeq{pmh} that $N$ does not depend on $\bml$ at
+all and only indirectly depends on $\bmnu$ through $n$, the number of
+packets in the bin; cf. \refeq{dff}. Furthermore, since $L$ is fully
+determined by $(N,\bmL)$,
 \begin{align}
   \lleq{pmjd}
   L &= \sum_{j=1}^N L_j
 \end{align}
-is does not depend directly on $(\npack),\bml,\bmnu)$, i.e.\
+is does not depend on $(\npack,\bml,\bmnu)$, i.e.\
 \begin{align}
   \lleq{pmi}
-  p(L\cond N,\bmL,n,\bml, \bmnu)
-  = p(L\cond N,\bmL)
-  &= \delta(L - \textstyle\sum_{j=1}^N L_j).
+  p(L\cond N,\nu,\bmL,\npack,\bml, \bmnu)
+  = p(L\cond N, \bmL)
+  &= \delta(L - \textstyle\sum_{j=1}^N L_j),
 \end{align}
-Hence the prediction is given by
+where the $L_j$ occur at $\nu$.
+% For notational simplicity, we now
+% suppress $\nu$ and remember that all probabilities below are
+% conditional on $\nu$.
+Then the prediction is given by
 \begin{align}
   \lleq{pmj}
-  p(L\cond n,\bml, \bmnu)
-  &= \sum_{N=0}^\infty p(L\cond N,n,\bml, \bmnu)\,p(N\cond n,\bml, \bmnu) \\
+  p(L\cond \nu, \npack,\bml, \bmnu)
+  &= \sum_{N=0}^\infty p(L\cond N,\nu, \npack,\bml, \bmnu)\,p(N\cond \nu, \npack,\bml, \bmnu) \\
   \lleq{pmjb}
-  &= \sum_N p(N\cond n)\,\int d\bmL\, p(L\cond N,\bmL,n,\bml, \bmnu)\, p(\bmL\cond N,n,\bml, \bmnu)
+  &= \sum_N p(N\cond n)\,\int d\bmL\, p(L\cond N,\bmL,\nu, \npack,\bml, \bmnu)\, p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
   \\
   \lleq{pmjc}
   &= \sum_N p(N\cond n)\,\int d\bmL\,\delta(L - \textstyle\sum_{j=1}^N L_j)
-  \, p(\bmL\cond N,n,\bml, \bmnu)
+  \, p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
 \end{align}
-\fred{Add missing $\bmnu$! Everything that is conditional on $\bml$ is
-  also conditional on $\bmnu$} The dependence on the TARDIS ``data''
-$(\npack,\bml, \bmnu)$ enters through $p(\bmL\cond N,\npack,\bml,
-\bmnu)$ in terms of the parameters $\bmphi$ of $p(\bmL\cond
-N,\bmphi)$,
+The dependence on the TARDIS ``data'' $(\npack,\bml, \bmnu)$ enters
+through $p(\bmL\cond N,\npack,\bml, \bmnu)$ in terms of the parameters
+$\bmphi$ of $p(\bmL\cond N,\bmphi)$,
 \begin{align}
   \lleq{pmk}
-  p(\bmL\cond N,\npack,\bml, \bmnu)
-  &= \int d\bmphi\, p(\bmL\cond N,\bmphi,\npack,\bml, \bmnu)\,p(\bmphi\cond N,\npack,\bml, \bmnu) \\
-  &= \int d\bmphi\, p(\bmL\cond N,\bmphi)\,p(\bmphi\cond N,\npack,\bml, \bmnu).
+  p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
+  &= \int d\bmphi\, p(\bmL\cond N,\bmphi,\nu, \npack,\bml, \bmnu)\,p(\bmphi\cond N,\nu, \npack,\bml, \bmnu) \\
+  &= \int d\bmphi\, p(\bmL\cond N,\bmphi, \nu)\,p(\bmphi\cond N,\nu, \npack,\bml, \bmnu).
 \end{align}
-because the likelihood for $\bmL$ is fully determined by $N,\bmphi$
-and hence independent of $(\npack,\bml, \bmnu)$.
+because $\bmL$ is fully determined by $N,\bmphi, \nu$ and hence independent
+of $\npack,\bml, \bmnu$.
 %
 Again using Bayes' Theorem (\ref{bth})
 \begin{align}
   \lleq{pmkb}
-  p(\bmphi\cond N,\npack,\bml, \bmnu) &=
-  \frac{p(\bml\cond N,\npack,\bmphi,\bmnu)\,p(\bmphi\cond N,\npack,\bmnu)} %
-  {\int d\bmphi\,p(\bml\cond N,\npack,\bmphi,\bmnu)\,p(\bmphi\cond N,\npack,\bmnu)}, %
+  p(\bmphi\cond N,\nu, \npack,\bml, \bmnu) &=
+  \frac{p(\bml\cond \bmphi, N,\nu, \npack,\bmnu)\,p(\bmphi\cond N,\nu, \npack,\bmnu)} %
+  {\int d\bmphi\,p(\bml\cond \bmphi,N,\nu, \npack,\bmnu)\,p(\bmphi\cond N,\nu, \npack,\bmnu)}, %
   % \ =\ \frac{p(\bml\cond N,\npack,\bmphi)\,p(\bmphi\cond N,n)} %
   % {p(\bml\cond n)} %
 \end{align}
-
- a multiplicity-independent prior for $\bmphi$
+using a multiplicity- and frequency-independent prior for $\bmphi$
 \begin{align}
   \lleq{pml}
-  p(\bmphi\cond N,\npack,\bmnu) &= p(\bmphi),
+  p(\bmphi\cond N,\nu, \npack,\bmnu) &= p(\bmphi),
 \end{align}
-and recognizing that $N$ does not tell us anything about $\bml$
+and recognizing that $\bml$ is independent of $N$ and $\nu$
 \begin{align}
   \lleq{pmla}
-  p(\bml\cond N,\npack,\bmphi,\bmnu) = p(\bml\cond \npack,\bmphi,\bmnu)
+  p(\bml\cond \bmphi,N,\nu, \npack,\bmnu) = p(\bml\cond \bmphi,\npack,\bmnu)
 \end{align}
 we can write (\ref{pmk}) as
 \begin{align}
   \lleq{pmn}
-  p(\bmL\cond N,\npack,\bml, \bmnu)
+  p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
   &= \int d\bmphi\, p(\bmL\cond N,\bmphi)\, %
-  \frac{p(\bml\cond \npack,\bmphi)\,p(\bmphi)} %
-  {\int d\bmphi\,p(\bml\cond \npack,\bmphi)\,p(\bmphi)} \\
+  \frac{p(\bml\cond \bmphi, \npack, \bmnu)\,p(\bmphi)} %
+  {\int d\bmphi\,p(\bml\cond \bmphi,\npack,\bmnu)\,p(\bmphi)} \\
   \lleq{pmo}
-  &= \frac{1}  {p(\bml\cond n)} %
-  \int d\bmphi\, p(\bmL\cond N,\bmphi)\, %
-  p(\bml\cond \npack,\bmphi)\,p(\bmphi)
+  &= \frac{1}  {p(\bml\cond \npack, \bmnu)} %
+  \int d\bmphi\, p(\bmL\cond \bmphi, N)\, %
+  p(\bml\cond \bmphi, \npack,\bmnu)\,p(\bmphi)
 \end{align}
-with $p(\bml\cond n) = \int d\bmphi\, p(\bml\cond
-\npack,\bmphi)\,p(\bmphi)$ in the denominator.
-Inserting this into (\ref{pmjc}), we obtain
+with $p(\bml\cond \npack, \bmnu) = \int d\bmphi\, p(\bml\cond \bmphi,
+\npack,\bmnu)\,p(\bmphi)$ in the denominator.  Inserting this into
+(\ref{pmjc}), we obtain the desired result:
 \begin{equation}
   \lleq{pmp}
   \boxed{
-  p(L\cond \npack,\bml, \bmnu)
-  = \frac{1}{p(\bml\cond n)}
+  p(L\cond \nu, \npack,\bml, \bmnu)
+  = \frac{1}{p(\bml\cond \npack, \bmnu)}
   \sum_N p(N\cond n)\,\int d\bmL\,\delta(L - \textstyle\sum_j L_j)
-  \displaystyle\int d\bmphi\,p(\bmL\cond N,\bmphi) \, p(\bml\cond \npack,\bmphi)
+  \displaystyle\int d\bmphi\,p(\bmL\cond N,\bmphi) \, p(\bml\cond \bmphi,\npack,\bmnu)
   \, p(\bmphi)
   }
 \end{equation}
 with
 \begin{align}
-  p(\bmL\cond N,\bmphi) &= \prod_{j=1}^N p(L_j\cond \bmphi) \\
-  p(\bml\cond \npack,\bmphi) &= \prod_{j=1}^n p(\ell_j\cond \bmphi)
+  p(\bmL\cond \bmphi, N, \nu) &= \prod_{j=1}^N p(L_j\cond \bmphi, \nu), \\
+  p(\bml\cond \bmphi,\npack,\bmnu) &= \prod_{j=1}^{\npack} p(\ell_j\cond \bmphi, \nu_j)
 \end{align}
-\fred{And $p(\cdot \cond \bmphi)$ is the same function in both equations.}
+and $p(\cdot \cond \bmphi, \cdot)$ is the same function in both equations.
 In other words: Once we have decided on a prior $p(\bmphi)$ and a
 specific pdf to model the likelihood $p(L_j\cond \bmphi)$, we have a
 prediction for $L$ which takes into account all possible $N$,
 $\lambda$ and $\bmphi$.
 
+<<<<<<< variant A
+>>>>>>> variant B
+% \subsubsection{Narrow-bin approximation}
+% \label{sec:narr-bin-appr}
+
+======= end
 
 
 \subsubsection{Moment generating function}
@@ -784,6 +826,8 @@ $\lambda$ and $\bmphi$.
   relevant! It could be that our numbers are a very bad description of
   the posterior.}
 \\
+
+\fred{Dependence on $\nu$ is suppressed in this section}
 
 It may be possible to calculate the prediction in Eq.~(\ref{pmp})
 numerically, but it will be slow due to the multiple $d\bmL$
