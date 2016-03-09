@@ -9,7 +9,7 @@
 
 \usepackage[a4paper, left=20mm, right=20mm, top=25mm, bottom=25mm]{geometry}
 \usepackage[numbers]{natbib}
-%\usepackage{hyperref}
+\usepackage{hyperref}
 \synctex=1
 
 \usepackage[colorinlistoftodos]{todonotes} % Use 'disable' to remove todos in final version
@@ -22,7 +22,7 @@
     \begin{minipage}{\textwidth} #2\end{minipage}}} %
 
 %% CHANGE THIS DATE AS YOU MODIFY THE FILE
-\newcommand{\vdate}{160228}
+\newcommand{\vdate}{160309}
 \pagestyle{myheadings}
 \markboth{Version \vdate} {Version \vdate}
 \parindent=0mm
@@ -211,43 +211,55 @@ disappear again.}
     on shape could be captured in a slow-varying function
     $a(\nu,\bmphi)$.
 
-  \item Separately, Fred introduces the idea of combining elementary
+    \item Separately, Fred introduces the idea of combining elementary
     $b$-bins into compound bins with index $m$ as this improves the
-    statistics.
+    statistics.%
+    \fred{This was an intermediate idea, I now removed any reference
+      to it. There should be no more binning when infering $\bmphi$}
 
-  \item The simplification for large $N$ etc permits a Gaussian
+    \item The simplification for large $N$ etc permits a Gaussian
     approximation, hence Laplace, hence the key equation (pmp) may be
     simplified to some approximation, making use of the moment
-    generating function eg Eq (mgd) unnecessary.
+    generating function eg Eq (mgd) unnecessary.%
+    \fred{Yes, so you put in a lot of work to derive the equations and
+      I checked them carefully but I think in the end we will not need
+      them and we should then remove them from the draft}
 
   \item In principle, the above sounds like a very good development.
     There are some important caveats:
     \begin{enumerate}
-    \item I see no detail on how to find $a(\nu,\bmphi)$. The first
+      \item I see no detail on how to find $a(\nu,\bmphi)$. The first
       question would be if there is some numerical indication for its
       form. This seems to be equivalent to asking what the dependence
       of (say) the Gamma parameter $\alpha$ on $\nu$ is, and that is
-      of course of great interest anyway.
+      of course of great interest anyway.%
+      \fred{Yes, that's equivalent. I just started with a polynomial
+        for $a$ but that's ad-hoc.}
 
-    \item My second comment is that $a(\nu,\bmphi)$ is probably just
+      \item My second comment is that $a(\nu,\bmphi)$ is probably just
       your normal parametrisation which enters best-fit algorithms.
       If we are to treat it as a best-fit parametrisation with
       metaparameters, then that may just bring back all the
       complications which we thought had disappeared. This would have
-      to be investigated. If on the other hand you also want to
-      treat $a(\nu,\bmphi)$ as some kind of ``constant function'',
-      then one would have to set out how stable this constant function
-      would be against various underlying changes. In other words,
-      if calculation of $a()$ is not part of the general algorithm,
-      how is it fixed? and can it be fixed for all cases?
+      to be investigated. If on the other hand you also want to treat
+      $a(\nu,\bmphi)$ as some kind of ``constant function'', then one
+      would have to set out how stable this constant function would be
+      against various underlying changes. In other words, if
+      calculation of $a()$ is not part of the general algorithm, how
+      is it fixed? and can it be fixed for all cases?%
+      \fred{I don't see what you mean by ``constant function''. The
+        choice of $a$ and how it depends on $\bmphi$ is part of the
+        overal model.}
 
-    \item I think there may be a problem of combining the two proposed
-      simplifications $L \to X$ and $m$ compound bins. Depending on
-      the variability of the parametrisation as function of $\nu$, the
-      shape of $p(\bmL\cond N,\bmphi)$ for single bins with large
-      $\Lmax$ may differ significantly from the shape for many small
-      bins combined into one using $m$. In other words, rebinning
-      and rescaling may not be compatible.
+      \item I think there may be a problem of combining the two
+      proposed simplifications $L \to X$ and $m$ compound
+      bins. Depending on the variability of the parametrisation as
+      function of $\nu$, the shape of $p(\bmL\cond N,\bmphi)$ for
+      single bins with large $\Lmax$ may differ significantly from the
+      shape for many small bins combined into one using $m$. In other
+      words, rebinning and rescaling may not be compatible.%
+      \fred{No more compound bins, we just do an unbinned fit wrt
+        $\bmphi$, so there is no issue}
     \end{enumerate}
 
   \item Once these are cleared up, we can get into the details \ldots\\
@@ -387,7 +399,7 @@ TODO: Wolfgang (or in Introduction?)
     replacing $\nu$ by $\lambda$ here and throughout, and of course
     change the Poisson parameter below to something like $\nu$.}
 
-  \item We treat the results of a single TARDIS run as \textit{data}
+  \item We treat the results of a single TARDIS run as \textit{simulated data}
     %%%%%
     \fred{If in the end we want to compare to actual data from a
       telescope, I'd prefer to not call the TARDIS output
@@ -400,13 +412,13 @@ TODO: Wolfgang (or in Introduction?)
       temperature. Another useful term would be ``simdata'', symbol
       $S$.}
     %%%%%
-    $D$, i.e.\ fixed results which we do not question but accept as
-    given.  This ``data'' consists of the total number of packets
+    $S$, i.e.\ fixed results which we do not question but accept as
+    given.  These ``data'' consist of the total number of packets
     leaving the supernova $\npack$ plus the set of luminosities
     $\bml$ and frequencies $\bmnu$ of each packet,
   \begin{align}
     \lleq{dfc}
-    D = \{ \npack, \bml, \bmnu \} \,,
+    S = \{ \npack, \bml, \bmnu \} \,,
   \end{align}
   where
   \begin{align}
@@ -414,8 +426,8 @@ TODO: Wolfgang (or in Introduction?)
     % \bml_b &= (\ell_{b,1},\ell_{b,2},\ldots,\ell_{b,n_b})
     \dim \bml = \dim \bmnu = \npack \,.
   \end{align}
-  In terms of the $\mathbf{1}_V(x)$ the indicator function requiring
-  $x \in V$, the number of packets in bin $b$ is
+  In terms of $\mathbf{1}_V(x)$---the indicator function requiring
+  $x \in V$---the number of packets in bin $b$ is
   \begin{align}
     \lleq{dff}
     n_b = \sum_{j=1}^{\npack} \mathbf{1}_{[\nu_b,\nu_{b+1}]}( \nu_j )
@@ -429,14 +441,12 @@ TODO: Wolfgang (or in Introduction?)
   = \sum_b \ell_b$.
 
 \end{mtemize}
-\hans{Discussion of rebinning with index $m$?}
-
 
 \subsection{Data as realization of compound process}
 
 While we treat the TARDIS output as fixed ``data'' as discussed above,
 a repeat of the simulation with a different Monte Carlo seed would
-evidently yield different ``data'' $D'$ even when all other simulation
+evidently yield different ``data'' $S'$ even when all other simulation
 parameters remain the same. Clearly, $n_b$ is a specific realization
 of a stochastic variable $N_b$ governed by a model pdf $p(N_b)$. %
 \fred{In our general case, $\npack = \sum_b n_b$ is an instance of a
@@ -503,6 +513,8 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
   \bmnu,\bmphi,\bmlambda,\hmod)$ depends only on the number of packets
   $n_b$ in the bin, it depends on the luminosities and frequencies of
   \emph{all} packets.
+  %
+  \fred{Perhaps it doesn't simplify the reading experience to omit $b$?}
 
 \item Since we shall not be doing model comparison, we can for the
   moment drop the $\hmod$ from the probability notation.
@@ -548,7 +560,7 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
   \end{align}
   For example, assume $p(L_j)$ depends on one parameter $a$. If we fit
   separately in each bin, we would have $B+1$ fits and $B+1$ copies of
-  $a$. In each fit, there would be only few samples to constrain
+  $a$. In each fit, there would be only few packets to constrain
   $a$. To avoid that, we assume $a = a(\nu, \bmphi)$. For concreteness,
   assume $\bmphi = (a_0, a_1)$ and
   \begin{align}
@@ -557,20 +569,18 @@ luminosities $\bmL_b$. This situation is termed a \textit{compound
   \end{align}
   This greatly reduces the number of parameters from $B+1$ to 2 and
   ensures that $a$ is continuous in $\nu$. $a$, or equivalently
-  $\bmphi$, is now determined from a single fit to all samples. The
+  $\bmphi$, is now determined from a single fit to all packets. The
   uncertainty on $a$ is at a minimum for the frequency around which
   the density of packets is highest. \fred{Refer to plot with
     uncertainty band}
-  \hans{I would replace the word ``sample'' above and throughout the
-    text by ``packet''. The word ``sample'' refers in statistics to
-    the entire data set $D$, not just to one data point.} %
 
 \item The values of $\lambda$ and $\bmphi$ are unknown. It is the task
   of the analysis below to determine not just the single best values
   for these parameters, but to take into account every and all
   possible values.
 
-\item Priors: metaparameter $a$ \fred{?}  %
+  \item Priors: metaparameter $a$
+  %
   \hans{This is a placeholder to remind us that metaparameters need to
     be discussed at some point. Perhaps not here, but we should
     remember.}
@@ -667,18 +677,22 @@ construction but depends on $\bmnu$ implicitly through $n$.
   should be supplied in the paper?}
 
 \fred{One thing is bugging me: To predict the luminosity in a bin, I
-  should do this $ \int_{\nu_b}^{\nu_{b+1}} d{\nu} \, p(L, \nu) = \int_{\nu_b}^{\nu_{b+1}} d{\nu} \, p(L
-  \cond \nu) p(\nu) $. We want to avoid modeling $p(\nu)$ because of
-  the absorption lines, so we assume $p(L \cond \nu)$ indep. of $\nu$
-  in the bin, so $ = p(L \cond \nu ) \int_{\nu_b}^{\nu_{b+1}} d{\nu} \, p( \nu) \equiv p(L \cond \nu) \, p_b$. Since $p_b$ is unknown, we should marginalize over it using our knowledge from Tardis output:
+  should do this $ \int_{\nu_b}^{\nu_{b+1}} d{\nu} \, p(L, \nu) =
+  \int_{\nu_b}^{\nu_{b+1}} d{\nu} \, p(L \cond \nu) p(\nu) $. We want
+  to avoid modeling $p(\nu)$ because of the absorption lines, so we
+  assume $p(L \cond \nu)$ approx. indep. of $\nu$ in the bin, so $ \approx p(L \cond
+  \nu ) \int_{\nu_b}^{\nu_{b+1}} d{\nu} \, p( \nu) \equiv p(L \cond
+  \nu) \, p_b$. Since $p_b$ is unknown, we should marginalize over it
+  using our knowledge from Tardis output:
   $$
   p(L \cond \mbox{bin } b, \npack, \bmnu, \bml) = \int d{p_b}\, p(L \cond \nu) \, p_b \, p(p_b \cond \npack, \bmnu, \bml)
   $$
 
   So how can we turn $\int \rmdx{p_b} p_b \to \sum_N$? Where does
-  $\npack$ come into play? If we can answer this, then we have one more
-  hidden assumption clarified in the derivation below.
-}
+  $\npack$ come into play? If we can answer this, then we have one
+  more hidden assumption clarified in the derivation below that was
+  written for a binned analysis but now we want to be unbinned wrt
+  $\bmnu, \bml$.  }
 
 \subsubsection{Direct probability}
 
@@ -726,7 +740,7 @@ is does not depend on $(\npack,\bml,\bmnu)$, i.e.\
   = p(L\cond N, \bmL)
   &= \delta(L - \textstyle\sum_{j=1}^N L_j),
 \end{align}
-where the $L_j$ occur at $\nu$.
+where the $L_j$ are assumed to occur at $\nu$.
 % For notational simplicity, we now
 % suppress $\nu$ and remember that all probabilities below are
 % conditional on $\nu$.
@@ -742,7 +756,7 @@ Then the prediction is given by
   &= \sum_N p(N\cond n)\,\int d\bmL\,\delta(L - \textstyle\sum_{j=1}^N L_j)
   \, p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
 \end{align}
-The dependence on the TARDIS ``data'' $(\npack,\bml, \bmnu)$ enters
+The dependence on the TARDIS output $(\npack,\bml, \bmnu)$ enters
 through $p(\bmL\cond N,\npack,\bml, \bmnu)$ in terms of the parameters
 $\bmphi$ of $p(\bmL\cond N,\bmphi)$,
 \begin{align}
@@ -808,14 +822,6 @@ In other words: Once we have decided on a prior $p(\bmphi)$ and a
 specific pdf to model the likelihood $p(L_j\cond \bmphi)$, we have a
 prediction for $L$ which takes into account all possible $N$,
 $\lambda$ and $\bmphi$.
-
-<<<<<<< variant A
->>>>>>> variant B
-% \subsubsection{Narrow-bin approximation}
-% \label{sec:narr-bin-appr}
-
-======= end
-
 
 \subsubsection{Moment generating function}
 \label{sec:mgff}
@@ -1264,8 +1270,9 @@ peak close to but not at the boundary. \fred{refer to plot of real
   luminosity packets in some frequency bin} In order to describe the
 luminosity distribution of real packets through $\GammaDist(\alpha,
 \beta)$, we have to transform the luminosities. To this end, we first
-take the largest luminosity from the entire frequency range and
-increase it slightly to avoid numerical difficulties at the end point
+take the largest luminosity of all TARDIS packets across the entire
+frequency range and increase it slightly to avoid numerical
+difficulties at the end point
 \begin{align}
   \lleq{gme}
   \lmax \equiv (1+\epsilon) \times \max_j \ell_j,
@@ -1278,36 +1285,39 @@ samples $\bml \to \bmx$ as
   \lleq{gmf}
   x_j \equiv 1- \frac{\ell_j}{\lmax} > 0
 \end{align}
-and similarly for $L \to X$, then we infer $P(X \cond n, \bmx,
-m)$. Only in the end, we transform back to a probability density in
-$L$ via
+and similarly for $L \to X$, then we infer $P(X \cond \nu,  \npack, \bmx,
+\bmnu)$. Only in the end, we transform back to a probability density
+in $L$ via
 \begin{align}
   \lleq{gmg}
-  p(L  \cond n, \bml, m) = p(X  \cond n, \bmx, m) \frac{1}{\lmax}
+  p(L  \cond \nu,  \npack, \bml, \bmnu) = p(X  \cond \nu,  \npack, \bmx, \bmnu) \frac{1}{\lmax}
 \end{align}
-\hans{So far, $m$ appears only in your todo comment above. I would suggest
-  a short discussion of this already in Section \ref{sec:dfnr}. We
-  could then simply rewrite all equations below in terms of $m$ rather
-  than $b$.} %
-We observe good agreement between the best fit of a Gamma distribution
-to TARDIS samples; an example is shown shown in \reffig{gamma}.  While
-not obvious at first, a major numerical simplification arises because
-of the $L \to X$ transformation. Rewriting the master
+\hans{So far, $m$ appears only in your todo comment above. I would
+  suggest a short discussion of this already in Section
+  \ref{sec:dfnr}. We could then simply rewrite all equations below in
+  terms of $m$ rather than $b$.} %
+\fred{I removed $m$ whereever I saw it} We observe good agreement
+between the best fit of a Gamma distribution to TARDIS packet
+luminosities; an example is shown shown in \reffig{gamma}.  While not
+obvious at first, a major numerical simplification arises because of
+the $L \to X$ transformation. Rewriting the master
 equation~(\ref{pmp}) formally as
 \begin{align}
   \lleq{gmh}
-  p(L  \cond n, \bml, m) = \sum_{N} p(N \cond n) p(L \cond N, \bml, m)
+  p(L  \cond \nu,  \npack, \bml, \bmnu) = \sum_{N} p(N \cond \nu,  n) p(L \cond N,
+\nu, \npack, \bml, \bmnu)
 \end{align}
 we see that the right-hand side is a mixture density. In our
 application, the distribution of a single luminosity, $p(L \cond N=1,
-\bml, m)$ is narrow in the sense that the standard deviation relative
-to the mean is at the percent level. This implies that $p(L \cond n,
-\bml, m)$ has one mode from each $N$ and all modes are clearly
-separated. The transformation $L \to x$ effects a strong overlap
-between adjacent $p(X \cond N, \bmx, m)$, so $p(X \cond n, \bmx, m)$
-can be well approximated by a unimodal distribution; see
-\reffig{hedgehog}.  \fred{I'm not 100 \% sure but $p(X \cond n, \bmx,
-  m)$ should still have $N \to \infty$ modes but they aren't visible}
+\nu, \bml, \bmnu)$ is narrow in the sense that the standard deviation
+relative to the mean is at the percent level. This implies that $p(L
+\cond \nu, \npack, \bml, \bmnu)$ has one mode from each $N$ and all
+modes are clearly separated. The transformation $L \to x$ effects a
+strong overlap between the distributions $p(X \cond N, \nu, \npack, \bmx, \bmnu)$
+with similar $N$, so $p(X \cond \nu, \npack, \bmx, \bmnu)$ can be well
+approximated by a unimodal distribution; see \reffig{hedgehog}.
+\fred{I'm not 100 \% sure but $p(X \cond \nu, \npack, \bmx, \bmnu)$ should still
+  have $N \to \infty$ modes but they aren't visible}
 \missingfigure{from hedgehog to single peak \label{fig:hedgehog}}
 
 \begin{figure}[ht]
@@ -1325,28 +1335,30 @@ distribution is infinite divisibility; i.e., the sum of $N$ Gamma
 variates is again a Gamma variate
 \begin{align}
   \lleq{gmb}
-  X_j \sim \GammaDist(\alpha, \beta) \Rightarrow X \equiv \sum_{j=1}^N X_j \sim \GammaDist(N \alpha, \beta).
+  \boxed{
+    X_j \sim \GammaDist(\alpha, \beta) \Rightarrow X \equiv \sum_{j=1}^N X_j \sim \GammaDist(N \alpha, \beta).
+    }
 \end{align}
 With
 \begin{align}
   \lleq{gmi}
-  \bmphi &= (\alpha, \beta),\\
-  p(X_j \cond \bmphi) &=
+  \alpha, \beta &= \alpha(\nu \cond \bmphi), \beta(\nu \cond \bmphi),\\
+  p(X_j \cond \bmphi, \nu) &=
   \GammaDist(X_j \cond \alpha, \beta),\\
-  p(\bmX \cond N, \bmphi) &= \prod_{j=1}^N p(X_j \cond \phi)
+  p(\bmX \cond N, \bmphi, \nu) &= \prod_{j=1}^N p(X_j \cond \bmphi, \nu)
 \end{align}
  \refeq{gmb} is equivalent to
 \begin{align}
   \lleq{gmc}
- p(X \cond N, \bmphi) &= \int d\bmX\,\delta(X - \textstyle\sum_j X_j)
-  \,p(\bmX\cond N,\bmphi) = \GammaDist(X \cond N \alpha, \beta)
+ p(X \cond N, \bmphi, \nu) &= \int d\bmX\,\delta(X - \textstyle\sum_j X_j)
+  \,p(\bmX\cond N,\bmphi, \nu) = \GammaDist(X \cond N \alpha, \beta)
 \end{align}
 and this implies that the master equation~(\ref{pmp}) considerably simplifies as
 \begin{align}
   \lleq{gmd}
-    p(X\cond n,\bmx,m)
-  = \frac{1}{p(\bmx\cond m)}
-  \sum_N p(N\cond n)\, \int d\bmphi\, p(X \cond N, \bmphi)\, p(\bmx\cond m,\bmphi)
+    p(X\cond \nu, \npack,\bmx,\bmnu)
+  = \frac{1}{p(\bmx\cond \bmnu)}
+  \sum_N p(N\cond n)\, \int d\bmphi\, p(X \cond N, \bmphi, \nu)\, p(\bmx\cond \bmphi, \npack, \bmnu)
   \, p(\bmphi).
 \end{align}
 
@@ -1360,15 +1372,22 @@ form. This conjugate prior is thus of no use for us, and we turn to a
 noninformative prior. \fred{Be explicit about prior choice} The
 authors of \cite{moala2013bayesian} present an overview of possible
 choices and conclude that the point estimate given by the mode of the
-posterior is nearly insensitive to the prior choice for 30 samples. We
-require in addition that the posterior is narrow enough so we group
-samples in bins to have at least $m=150$ samples in each bin. This
-implicitly assumes that the luminosity distribution is constant in the
-frequency range defined by $m$.
+posterior is nearly insensitive to the prior choice for 30 samples in
+the iid case. Translated to our problem, this would be 30 packets at
+the same frequency. From TARDIS, we only get packets at different
+frequencies. In the following, let $m$ denote the effective number of
+packets close to $\nu$ where ``close'' is deliberately left
+unspecified.  If $m$ is large, we can well determine $\phi$
+and thus $p(X_j \cond N, \bmphi, \nu)$.
 
-Note that the bins defined by the experiment in general do not overlap
-with the bins used to infer the luminosity distribution; i.e., $n \ne
-m$.
+% We require in addition that the posterior is narrow enough so we
+% group samples in bins to have at least $m=150$ samples in each
+% bin. This implicitly assumes that the luminosity distribution is
+% constant in the frequency range defined by $m$.
+
+% Note that the bins defined by the experiment in general do not overlap
+% with the bins used to infer the luminosity distribution; i.e., $n \ne
+% m$.
 
 The following approximations can be used in different regions of the
 parameter space spanned by $n$ and $m$. %
@@ -1379,21 +1398,24 @@ parameter space spanned by $n$ and $m$. %
   stability, then presumably it will be kept constant. In that case,
   it would be treated like a constant rather than a parameter in the
   usual sense.}
+\fred{Yes, $n$ is fixed from TARDIS output. $m$ is defined only for this paragraph}
+\fred{Update approximations: don't need moments any longer}
 \begin{mnumerate}
-  \item \label{large-m} For $m$ large, the posterior $p(\bmphi \cond m, \bmx) =
-  p(\bmx\cond m,\bmphi) \, p(\bmphi) / p(\bmx \cond m)$ approaches a
-  multivariate Gaussian. We can then compute the various moments
-  $E_\bmphi[f(x)]$ with $f(x)=1,x,x^2$ by Laplace's method to good
-  accuracy.
-  \item \label{very-large-m} In the limit $m \to \infty$, the covariance of the posterior
-  $p(\bmphi \cond m, \bmx)$ tends to zero as $1/m$ and we can then fix
-  the parameters $\bmphi$ at the posterior mode $\bmphi^*$; i.e.,
-  $p(\bmphi \cond m, \bmx) \to \delta(\bmphi - \bmphi^*)$.
+  \item \label{large-m} For large $m$, the posterior $p(\bmphi \cond
+  \npack, \bmx, \bmnu) = p(\bmx\cond \bmphi, \npack, \bmnu) \, p(\bmphi) / p(\bmx \cond \npack, \bmnu)$
+  approaches a multivariate Gaussian. We can then compute the various
+  moments $E_\bmphi[f(x)]$ with $f(x)=1,x,x^2$ by Laplace's method to
+  good accuracy.
+  \item \label{very-large-m} In the limit $m \to \infty$, the
+  covariance of the posterior $p(\bmphi \cond \npack, \bmx, \bmnu)$
+  tends to zero as $1/m$ and we can then fix the parameters $\bmphi$
+  at the posterior mode $\bmphi^*$; i.e., $p(\bmphi \cond \npack,
+  \bmx, \bmnu) \to \delta(\bmphi - \bmphi^*)$.
   \item \label{large-n} For $n$ large, the cumulative of the Negative
   Binomial $p(N \cond n)$ can be approximated by a Gaussian, defining
   a region around $N=n$ with the dominant contribution to the sum over
   $N$ in \refeq{gmd}. The contribution around $N=0$ is negligible, and
-  we can replace $\sum_n \to \int dN$. The density $p(N \cond n) P(X
+  we can replace $\sum_n \to \int \rmdx{N}$. The density $p(N \cond n) P(X
   \cond N,m, \bmx)$ is close to a Gaussian and the integral can be
   accurately approximated by Laplace's method which requires the
   Hessian and the mode. We benefit from partial error cancelation
@@ -1509,5 +1531,5 @@ $\pi(\alpha, \beta) \propto \left( \frac{\Gamma(\alpha+\beta)}{\Gamma(\alpha) \G
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Local Variables:
-% compile-command:"rubber --pdf -W refs -W misc -S bayes-tardis-luminosity-prediction"
+% compile-command:"rubber --pdf -W refs -S bayes-tardis-luminosity-prediction"
 % End:
