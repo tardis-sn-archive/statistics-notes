@@ -33,7 +33,7 @@ Tardis::Tardis(const std::string& name)
 {
     AddParameter("alpha0",  1, 2, "#alpha_{0}");
     AddParameter("alpha1", -3, 3, "#alpha_{1}");    // GetParameter(1).Fix(0);
-#if 0
+#if 1
     AddParameter("alpha2", -10, 10, "#alpha_{2}");  // GetParameter(2).Fix(0);
 #else
     AddParameter("alpha2", -30, 30, "#alpha_{2}");  // GetParameter(2).Fix(0);
@@ -138,30 +138,30 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
 #endif
     double res = 0;
 
-    double alphaj, betaj;
     auto alpha_start = parameters.begin();
     auto split = parameters.begin() + order;
     auto beta_end = parameters.end();
 
-    unsigned counter = 0;
-    static const unsigned nsamples = 10000;
+    static const unsigned nsamples = 74000;
     assert(nsamples <= samples.size());
+
+#pragma omp parallel for reduction(+:res) schedule(static)
     for (unsigned i = 0; i < nsamples; ++i) {
         const auto& s = samples[i];
 
         // alpha(lambda_j)
-        alphaj = Polyn(alpha_start, split, s.nu);
-        betaj = Polyn(split, beta_end, s.nu);
+        const double alphaj = Polyn(alpha_start, split, s.nu);
+        const double betaj = Polyn(split, beta_end, s.nu);
 
         // use samples to check parameter space for a value inconsistent with prior
         if (alphaj <= alphaMin || betaj <= betaMin)
-            return -std::numeric_limits<double>::infinity();
+            res = -std::numeric_limits<double>::infinity();
 
         // cout << "alphaj " << alphaj << ", betaj "<< betaj << endl;
 
-        double extra = alphaj * log(betaj) - lgamma(alphaj) + (alphaj - 1) * log(s.en) - betaj * s.en;
+        const double extra = alphaj * log(betaj) - lgamma(alphaj) + (alphaj - 1) * log(s.en) - betaj * s.en;
         if (!std::isfinite(extra)) {
-            cout << "res not finite at " << counter << ", nu = " << s.nu << ", x = " << s.en << ", "<< alphaj << ", " << betaj << endl;
+            cout << "res not finite at " << i << ", nu = " << s.nu << ", x = " << s.en << ", "<< alphaj << ", " << betaj << endl;
             std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<double>(cout, " " ));
             cout << endl;
             throw 2;
@@ -214,7 +214,7 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
      return -log(beta) + 0.5 * log(alpha * PolyGamma(alpha) - 1.0);
 #endif
      // uniform prior
-     return 0;
+     return valid;
 }
 
 void Tardis::CalculateObservables(const std::vector<double>& parameters)

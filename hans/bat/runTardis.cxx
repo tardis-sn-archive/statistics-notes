@@ -47,6 +47,8 @@ int main()
 //    m.SetInitialPositions(v);
 
     m.FindMode(v);
+    return 0;
+
 
     // clumsy way to set only the parameters but not the observables at the mode
     Tardis::Vec harr(m.GetBestFitParameters().begin(), m.GetBestFitParameters().begin() + m.GetNParameters());
