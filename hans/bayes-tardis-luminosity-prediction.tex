@@ -327,7 +327,7 @@ TODO: Wolfgang
     &= \frac{p(D\cond\theta,\hmod)\;p(\theta\cond\hmod)}
     {p(D\cond\hmod)}
     = \frac{p(D\cond\theta,\hmod)\;p(\theta\cond\hmod)}
-    {\int d\theta'\; p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)}
+    {\int \rmdx{\theta'} p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)}
   \end{align}
   where the integral in the denominator is replaced by a sum if
   $\theta$ takes on discrete values.
@@ -337,7 +337,7 @@ TODO: Wolfgang
   \begin{equation}
     \lleq{bthu}
     p(\theta\cond D,\hmod)
-    = \frac{p(D\cond\theta,\hmod)} {\int d\theta'\; p(D\cond\theta',\hmod)}
+    = \frac{p(D\cond\theta,\hmod)} {\int \rmdx{\theta'} p(D\cond\theta',\hmod)}
   \end{equation}
 
 \item \textbf{Prediction using Bayes' Theorem:} By contrast, the
@@ -345,25 +345,25 @@ TODO: Wolfgang
   contained in previous data:
   \begin{align}
     p(x_{n+1}\cond D,\hmod)
-    &= \int d\theta'\; p(x_{n+1}\cond\theta',D,\hmod)\;p(\theta'\cond
+    &= \int \rmdx{\theta'} p(x_{n+1}\cond\theta',D,\hmod)\;p(\theta'\cond
     D,\hmod)
   \end{align}
   i.e.\ all possible values of $\theta$ are taken into account. Using
   Bayes' theorem, this can be written also as
   \begin{align}
     p(x_{n+1}\cond D,\hmod)
-    &= \frac{\int d\theta'\; p(x_{n+1}\cond\theta',D,\hmod)\;
+    &= \frac{\int \rmdx{\theta'} p(x_{n+1}\cond\theta',D,\hmod)\;
       p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)}
-    {\int d\theta'\; p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)}
+    {\int \rmdx{\theta'} p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)}
   \end{align}
   which shows that the prediction for $x_{n+1}$ is a weighted average
   of $p(x_{n+1}\cond\theta',D,\hmod)$ with the weight given by
   \begin{align}
   \frac{p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)}
-  {\int d\theta'\; p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)}
+  {\int \rmdx{\theta'} p(D\cond\theta',\hmod)\;p(\theta'\cond\hmod)}
   &=
   \frac{p(D,\theta'\cond\hmod)}
-  {\int d\theta'\; p(D,\theta'\cond\hmod)}
+  {\int \rmdx{\theta'} p(D,\theta'\cond\hmod)}
   \end{align}
 \end{mtemize}
 
@@ -614,17 +614,17 @@ data $n$ and the Poisson hypothesis
   p(\lambda\cond n) %
   &= \frac{p(n\cond\lambda)\,p(\lambda)} {p(n)}
   \ =\ \frac{p(n\cond\lambda)\,p(\lambda)} %
-  {\int d\lambda\, p(n\cond\lambda)\,p(\lambda)}
+  {\int \rmdx{\lambda} p(n\cond\lambda)\,p(\lambda)}
 \end{align}
 to find the prediction of $N$ given $n$ taking into account all
 possible values of $\lambda$,
 \begin{align}
   \lleq{pme}
   p(N\cond n)
-  &= \int d\lambda\,p(N,\lambda\cond n)
-  \ =\ \int d\lambda\,p(N\cond\lambda, n)\,p(\lambda\cond n)
-  \ =\ \frac{\int d\lambda\,p(N\cond\lambda)\,p(n\cond\lambda)\,p(\lambda)}
-  {\int d\lambda\, p(n\cond\lambda)\,p(\lambda)}
+  &= \int \rmdx{\lambda}p(N,\lambda\cond n)
+  \ =\ \int \rmdx{\lambda} p(N\cond\lambda, n)\,p(\lambda\cond n)
+  \ =\ \frac{\int \rmdx{\lambda} p(N\cond\lambda)\,p(n\cond\lambda)\,p(\lambda)}
+  {\int \rmdx{\lambda} p(n\cond\lambda)\,p(\lambda)}
 \end{align}
 where $p(N\cond\lambda,n) = p(N\cond\lambda)$ is independent of $n$.
 Taking the prior (see Appendix)\footnote{For a uniform prior,
@@ -685,7 +685,7 @@ construction but depends on $\bmnu$ implicitly through $n$.
   \nu) \, p_b$. Since $p_b$ is unknown, we should marginalize over it
   using our knowledge from Tardis output:
   $$
-  p(L \cond \mbox{bin } b, \npack, \bmnu, \bml) = \int d{p_b}\, p(L \cond \nu) \, p_b \, p(p_b \cond \npack, \bmnu, \bml)
+  p(L \cond \mbox{bin } b, \npack, \bmnu, \bml) = \int \rmdx{p_b} p(L \cond \nu) \, p_b \, p(p_b \cond \npack, \bmnu, \bml)
   $$
 
   So how can we turn $\int \rmdx{p_b} p_b \to \sum_N$? Where does
@@ -750,10 +750,10 @@ Then the prediction is given by
   p(L\cond \nu, \npack,\bml, \bmnu)
   &= \sum_{N=0}^\infty p(L\cond N,\nu, \npack,\bml, \bmnu)\,p(N\cond \nu, \npack,\bml, \bmnu) \\
   \lleq{pmjb}
-  &= \sum_N p(N\cond n)\,\int d\bmL\, p(L\cond N,\bmL,\nu, \npack,\bml, \bmnu)\, p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
+  &= \sum_N p(N\cond n)\,\int \rmdx{\bmL} p(L\cond N,\bmL,\nu, \npack,\bml, \bmnu)\, p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
   \\
   \lleq{pmjc}
-  &= \sum_N p(N\cond n)\,\int d\bmL\,\delta(L - \textstyle\sum_{j=1}^N L_j)
+  &= \sum_N p(N\cond n)\,\int \rmdx{\bmL} \delta(L - \textstyle\sum_{j=1}^N L_j)
   \, p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
 \end{align}
 The dependence on the TARDIS output $(\npack,\bml, \bmnu)$ enters
@@ -762,8 +762,8 @@ $\bmphi$ of $p(\bmL\cond N,\bmphi)$,
 \begin{align}
   \lleq{pmk}
   p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
-  &= \int d\bmphi\, p(\bmL\cond N,\bmphi,\nu, \npack,\bml, \bmnu)\,p(\bmphi\cond N,\nu, \npack,\bml, \bmnu) \\
-  &= \int d\bmphi\, p(\bmL\cond N,\bmphi, \nu)\,p(\bmphi\cond N,\nu, \npack,\bml, \bmnu).
+  &= \int \rmdx{\bmphi} p(\bmL\cond N,\bmphi,\nu, \npack,\bml, \bmnu)\,p(\bmphi\cond N,\nu, \npack,\bml, \bmnu) \\
+  &= \int \rmdx{\bmphi} p(\bmL\cond N,\bmphi, \nu)\,p(\bmphi\cond N,\nu, \npack,\bml, \bmnu).
 \end{align}
 because $\bmL$ is fully determined by $N,\bmphi, \nu$ and hence independent
 of $\npack,\bml, \bmnu$.
@@ -773,7 +773,7 @@ Again using Bayes' Theorem (\ref{bth})
   \lleq{pmkb}
   p(\bmphi\cond N,\nu, \npack,\bml, \bmnu) &=
   \frac{p(\bml\cond \bmphi, N,\nu, \npack,\bmnu)\,p(\bmphi\cond N,\nu, \npack,\bmnu)} %
-  {\int d\bmphi\,p(\bml\cond \bmphi,N,\nu, \npack,\bmnu)\,p(\bmphi\cond N,\nu, \npack,\bmnu)}, %
+  {\int \rmdx{\bmphi} p(\bml\cond \bmphi,N,\nu, \npack,\bmnu)\,p(\bmphi\cond N,\nu, \npack,\bmnu)}, %
   % \ =\ \frac{p(\bml\cond N,\npack,\bmphi)\,p(\bmphi\cond N,n)} %
   % {p(\bml\cond n)} %
 \end{align}
@@ -791,15 +791,15 @@ we can write (\ref{pmk}) as
 \begin{align}
   \lleq{pmn}
   p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
-  &= \int d\bmphi\, p(\bmL\cond N,\bmphi)\, %
+  &= \int \rmdx{\bmphi} p(\bmL\cond N,\bmphi)\, %
   \frac{p(\bml\cond \bmphi, \npack, \bmnu)\,p(\bmphi)} %
-  {\int d\bmphi\,p(\bml\cond \bmphi,\npack,\bmnu)\,p(\bmphi)} \\
+  {\int \rmdx{\bmphi} p(\bml\cond \bmphi,\npack,\bmnu)\,p(\bmphi)} \\
   \lleq{pmo}
   &= \frac{1}  {p(\bml\cond \npack, \bmnu)} %
-  \int d\bmphi\, p(\bmL\cond \bmphi, N)\, %
+  \int \rmdx{\bmphi} p(\bmL\cond \bmphi, N)\, %
   p(\bml\cond \bmphi, \npack,\bmnu)\,p(\bmphi)
 \end{align}
-with $p(\bml\cond \npack, \bmnu) = \int d\bmphi\, p(\bml\cond \bmphi,
+with $p(\bml\cond \npack, \bmnu) = \int \rmdx{\bmphi} p(\bml\cond \bmphi,
 \npack,\bmnu)\,p(\bmphi)$ in the denominator.  Inserting this into
 (\ref{pmjc}), we obtain the desired result:
 \begin{equation}
@@ -807,8 +807,8 @@ with $p(\bml\cond \npack, \bmnu) = \int d\bmphi\, p(\bml\cond \bmphi,
   \boxed{
   p(L\cond \nu, \npack,\bml, \bmnu)
   = \frac{1}{p(\bml\cond \npack, \bmnu)}
-  \sum_N p(N\cond n)\,\int d\bmL\,\delta(L - \textstyle\sum_j L_j)
-  \displaystyle\int d\bmphi\,p(\bmL\cond N,\bmphi) \, p(\bml\cond \bmphi,\npack,\bmnu)
+  \sum_N p(N\cond n)\,\int \rmdx{\bmL} \delta(L - \textstyle\sum_j L_j)
+  \displaystyle\int \rmdx{\bmphi} p(\bmL\cond N,\bmphi) \, p(\bml\cond \bmphi,\npack,\bmnu)
   \, p(\bmphi)
   }
 \end{equation}
@@ -852,12 +852,12 @@ For the mgf, the convolution is easily accomplished:
   M(t;L\cond n,\bml) &= M[t\cond p(L|n,\bml)]
   \ =\ \int_0^\infty dL\,p(L\cond n,\bml)\,e^{-tL} \\
   &= \frac{1}{p(\bml\cond n)}
-  \sum_N p(N\cond n)\,\int dL e^{-tL} \int d\bmL\,\delta(L - \textstyle\sum_j L_j)
-  \displaystyle\int d\bmphi\,p(\bmL\cond N,\bmphi) \, p(\bml\cond n,\bmphi)
+  \sum_N p(N\cond n)\,\int \rmdx{L} e^{-tL} \int \rmdx{\bmL} \delta(L - \textstyle\sum_j L_j)
+  \displaystyle\int \rmdx{\bmphi} p(\bmL\cond N,\bmphi) \, p(\bml\cond n,\bmphi)
   \, p(\bmphi)\\
   &= \frac{1}{p(\bml\cond n)}
-  \sum_N p(N\cond n)\,\int d\bmphi\,
-  \prod_{j=1}^N \left[ \int dL_j\,p(L_j\cond \bmphi)\,e^{-tL_j}\right]
+  \sum_N p(N\cond n)\,\int \rmdx{\bmphi}
+  \prod_{j=1}^N \left[ \int \rmdx{L_j} p(L_j\cond \bmphi)\,e^{-tL_j}\right]
    p(\bml\cond n,\bmphi) \, p(\bmphi)
 \end{align}
 The term in the square bracket is the moment generating function of
@@ -865,7 +865,7 @@ $p(L_j\cond \bmphi)$,
 \begin{align}
   \lleq{mgcb}
   M(t; L_j\cond \bmphi) &=
-  \int dL_j\,p(L_j\cond \bmphi)\,e^{-tL_j}
+  \int \rmdx{L_j} p(L_j\cond \bmphi)\,e^{-tL_j}
 \end{align}
 and since this is the same for all packets $L_j$, we obtain
 \begin{equation}
@@ -873,7 +873,7 @@ and since this is the same for all packets $L_j$, we obtain
   \boxed{
   M(t;L\cond n,\bml) %
   = \frac{1}{p(\bml\cond n)}
-  \sum_N p(N\cond n)\,\int d\bmphi\,
+  \sum_N p(N\cond n)\,\int \rmdx{\bmphi}
   M(t; L_j\cond \bmphi)^N
    p(\bml\cond n,\bmphi) \, p(\bmphi)
    }
@@ -895,7 +895,7 @@ to find successive derivatives of $\left[ M(t; L_j\cond \bmphi)
 $p(L_j\cond\bmphi)$ as
 \begin{align}
   \lleq{mgf}
-  \mu_q(\bmphi) &= \int dL_j\,p(L_j\cond\bmphi)\,L_j^q \qquad q = 1,2,\ldots,
+  \mu_q(\bmphi) &= \int \rmdx{L_j} p(L_j\cond\bmphi)\,L_j^q \qquad q = 1,2,\ldots,
 \end{align}
 we find
 \begin{align}
@@ -926,7 +926,7 @@ given $(n,\bml)$
   \lleq{mgk}
   E[L\cond n,\bml]
   &= \frac{1}{p(\bml\cond n)}
-  \sum_N p(N\cond n)\,N \int d\bmphi\, \mu_1(\bmphi) \,
+  \sum_N p(N\cond n)\,N \int \rmdx{\bmphi} \mu_1(\bmphi) \,
   p(\bml\cond n,\bmphi) \, p(\bmphi).
 \end{align}
 Given that $p(N\cond n)$ is a Negative Binomial pdf, the sum is trivially
@@ -941,14 +941,14 @@ so that
   \lleq{mgm}
   E[L\cond n,\bml]
   &= \frac{n}{p(\bml\cond n)}
-  \int d\bmphi\, \mu_1(\bmphi) \, p(\bml\cond n,\bmphi) \, p(\bmphi)
+  \int \rmdx{\bmphi} \mu_1(\bmphi) \, p(\bml\cond n,\bmphi) \, p(\bmphi)
 \end{align}
 Since the integral is an average of $\mu_1(\bmphi)$ weighted by
 $p(\bmphi\cond n, \bml)$, let us give it a name. Given a function
 $f(\bmphi)$, its ``$\bmphi$-expectation value'' is defined as
 \begin{align}
   \lleq{mgn}
-  E_\phi[ f ] &= \int d\bmphi\, f(\bmphi) \, p(\bml\cond n,\bmphi) \, p(\bmphi)
+  E_\phi[ f ] &= \int \rmdx{\bmphi} f(\bmphi) \, p(\bml\cond n,\bmphi) \, p(\bmphi)
 \end{align}
 in terms of which
 \begin{align}
@@ -977,7 +977,7 @@ the second moment of $p(L\cond n,\bml)$ is
   \lleq{mgq}
   E[L^2\cond n,\bml]
   &= \frac{1}{p(\bml\cond n)}
-  \sum_N p(N\cond n)\, \int d\bmphi\,
+  \sum_N p(N\cond n)\, \int \rmdx{\bmphi}
   \left[ N^{\underline{2}}\mu_1^2(\bmphi) + N \mu_2(\bmphi)\right]
   p(\bml\cond n,\bmphi) \, p(\bmphi) \\
   &= n^2\,\frac{E_\phi[\mu_1^2]}{E_\phi[1]}
@@ -1107,7 +1107,7 @@ $\ell_{\rm max}$ is known and fixed.  \fred{Rather: we approximate
 The moments of the beta distibution are simple,
 \begin{align}
   \lleq{btg}
-  \mu_q(a,b) &= \int dx\,x^q\,p(x\cond a,b)
+  \mu_q(a,b) &= \int \rmdx{x} x^q\,p(x\cond a,b)
   = \frac{(a)_q}{(a+b)_q}
   = \frac{a(a+1)\cdots(a+q-1)} {(a+b)(a+b+1)\cdots(a+b+q-1)}
   \qquad q = 0,1,2,\ldots
@@ -1350,7 +1350,7 @@ With
  \refeq{gmb} is equivalent to
 \begin{align}
   \lleq{gmc}
- p(X \cond N, \bmphi, \nu) &= \int d\bmX\,\delta(X - \textstyle\sum_j X_j)
+ p(X \cond N, \bmphi, \nu) &= \int \rmdx{\bmX} \delta(X - \textstyle\sum_j X_j)
   \,p(\bmX\cond N,\bmphi, \nu) = \GammaDist(X \cond N \alpha, \beta)
 \end{align}
 and this implies that the master equation~(\ref{pmp}) considerably simplifies as
