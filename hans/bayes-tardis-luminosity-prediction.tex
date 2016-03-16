@@ -1326,7 +1326,11 @@ approximated by a unimodal distribution; see \reffig{hedgehog}.
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.48\textwidth]{hedgehog}
-  \caption{Hedgehog. }
+  \caption{Left: Prediction $p(L \cond  \nu,  \npack, \bml, \bmnu)$, right: $p(x \cond  \nu,  \npack, \bmx, \bmnu)$. I sum over $N$ in both cases. }
+  \fred{I still need to pretty this up. I used the old binned approach
+    with 50 samples in a bin from which I computed the mean and
+    variance to plug into \refeq{gmr} but I computed the sum over $N$
+    instead of the integral.}
 \label{fig:hedgehog}
 \end{figure}
 
