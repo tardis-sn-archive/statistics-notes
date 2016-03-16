@@ -164,6 +164,8 @@
 \newcommand{\reffig}[1]{Fig.~\ref{fig:#1}}
 
 \DeclareMathOperator{\GammaDist}{Gamma}
+\newcommand{\Kalpha}{{K_\alpha}}
+\newcommand{\Kbeta}{{K_\beta}}
 \newcommand{\npack}{n_p}
 \newcommand{\lmax}{\ell_{\rm max}}
 \newcommand{\Lmax}{L_{\rm max}}
@@ -1296,12 +1298,14 @@ in $L$ via
   suggest a short discussion of this already in Section
   \ref{sec:dfnr}. We could then simply rewrite all equations below in
   terms of $m$ rather than $b$.} %
-\fred{I removed $m$ whereever I saw it} We observe good agreement
-between the best fit of a Gamma distribution to TARDIS packet
-luminosities; an example is shown shown in \reffig{gamma}.  While not
-obvious at first, a major numerical simplification arises because of
-the $L \to X$ transformation. Rewriting the master
-equation~(\ref{pmp}) formally as
+\fred{I removed $m$ whereever I saw it except below where I define it
+  explicitly}
+%
+We observe good agreement between the best fit of a Gamma distribution
+to TARDIS packet luminosities; an example is shown shown in
+\reffig{gamma}.  While not obvious at first, a major numerical
+simplification arises because of the $L \to X$
+transformation. Rewriting the master equation~(\ref{pmp}) formally as
 \begin{align}
   \lleq{gmh}
   p(L  \cond \nu,  \npack, \bml, \bmnu) = \sum_{N} p(N \cond \nu,  n) p(L \cond N,
@@ -1335,19 +1339,18 @@ distribution is infinite divisibility; i.e., the sum of $N$ Gamma
 variates is again a Gamma variate
 \begin{align}
   \lleq{gmb}
-  \boxed{
     X_j \sim \GammaDist(\alpha, \beta) \Rightarrow X \equiv \sum_{j=1}^N X_j \sim \GammaDist(N \alpha, \beta).
-    }
 \end{align}
-With
+Let us assume that $\alpha$ and $\beta$ are functions of $\nu$ with unknown parameters $\bmphi$
 \begin{align}
   \lleq{gmi}
-  \alpha, \beta &= \alpha(\nu \cond \bmphi), \beta(\nu \cond \bmphi),\\
+  \alpha &= \alpha(\nu \cond \bmphi),\\
+  \beta &= \beta(\nu \cond \bmphi),\\
   p(X_j \cond \bmphi, \nu) &=
   \GammaDist(X_j \cond \alpha, \beta),\\
-  p(\bmX \cond N, \bmphi, \nu) &= \prod_{j=1}^N p(X_j \cond \bmphi, \nu)
+  p(\bmX \cond N, \bmphi, \nu) &= \prod_{j=1}^N p(X_j \cond \bmphi, \nu).
 \end{align}
- \refeq{gmb} is equivalent to
+With these definitions, \refeq{gmb} is equivalent to
 \begin{align}
   \lleq{gmc}
  p(X \cond N, \bmphi, \nu) &= \int \rmdx{\bmX} \delta(X - \textstyle\sum_j X_j)
@@ -1356,29 +1359,82 @@ With
 and this implies that the master equation~(\ref{pmp}) considerably simplifies as
 \begin{align}
   \lleq{gmd}
+    \boxed{
     p(X\cond \nu, \npack,\bmx,\bmnu)
   = \frac{1}{p(\bmx\cond \bmnu)}
-  \sum_N p(N\cond n)\, \int d\bmphi\, p(X \cond N, \bmphi, \nu)\, p(\bmx\cond \bmphi, \npack, \bmnu)
+  \sum_N p(N\cond n)\, \int \rmdx{\bmphi} \GammaDist(X_j \cond \alpha, \beta) % p(X \cond N, \bmphi, \nu)
+  \, p(\bmx\cond \bmphi, \npack, \bmnu)
   \, p(\bmphi).
+  }
 \end{align}
 
-\subsection*{Approximations}
+\subsubsection*{Linear model}
+
+In the absence of a physical model to determine $\alpha(\nu \cond
+\bmphi)$ and $\beta(\nu \cond \bmphi)$, we propose to start with a simple polynomial ansatz
+\begin{align}
+  \lleq{gmp}
+  \alpha(\nu \cond \bmphi) &= \sum_{k=0}^\Kalpha \alpha_k \nu^k,
+  &\beta(\nu \cond \bmphi) &= \sum_{k=0}^\Kbeta \beta_k \nu^k
+\end{align}
+such that
+\begin{align}
+  \lleq{gmq}
+  \bmphi = (\alpha_0, \dots \alpha_\Kalpha , \beta_0, \dots \beta_\Kbeta)
+\end{align}
+The usual trade off between parsimony and the ability to accurately
+model the frequency dependence determines the orders of the
+polynomials. This is outside the scope of this paper.
+
+\subsubsection*{Priors} \label{sec:priors}
+
+To explicitly evaluate \refeq{gmd}, we need to specify the prior
+$p(\bmphi)$. To gain some insight, we first consider the special case
+$\alpha = \bmphi_1$, $\beta = \bmphi_2$ where we ignore the dependence
+on $\nu$; i.e., $\Kalpha = \Kbeta = 0$. For this standard $\GammaDist$
+model, there is a conjugate prior but unfortunately the normalization
+constant cannot be evaluated in closed form, so it is thus of no use
+for us. How about a noninformative prior? The authors of
+\cite{moala2013bayesian} present an overview of possible choices and
+conclude that the point estimate given by the mode of the posterior is
+nearly insensitive to the prior choice starting from around 30
+independent identically distributed samples. We posit that there are
+this many samples available near any $\nu$ under consideration, so the
+prior is not crucial for our application.
+
+There is some explicit prior information that we want to build into
+our analysis. The distribution $p(x \cond \alpha, \beta)$ should
+always vanish at the origin. This is equivalent to requiring a maximum
+away from the boundary leading us to the condition
+\begin{align}
+  \lleq{gmn}
+  \alpha > 1.
+\end{align}
+
+For simplicity, we choose a uniform prior on $\bmphi$ on a finite box $V$ subject to the constraint \refeq{gmn}
+\begin{align}
+  p(\bmphi) = \mathbf{1}_{\alpha(\bmphi) > 1}(\bmphi) \mathbf{1}_V(\bmphi).
+\end{align}
+The box $V$ is chosen by trial and error to be large enough to contain
+the relevant region of $p(\bmx\cond \bmphi, \npack, \bmnu)$. For
+simple functions $\alpha(\nu \cond \bmphi)$, one can find the minimum
+value of $\alpha$ over the entire range of $\nu$ analytically. If this
+is too complicated, we propose to simplify by requiring $\alpha(\nu_j
+\cond \phi) > 1$ only at each packet frequency $\nu_j$. In the
+evaluation of $p(\bmx \cond \bmphi, \npack, \bmnu)$, one has to loop
+over all packets and compute $\alpha$ and $\beta$ anyways, so the
+constraint imposes essentially no computational overhead.
+
+\subsection{Approximations}
 
 To explicitly evaluate \refeq{gmd}, we have to overcome the remaining
 two difficulties: the sum over $N$ and the integral over
-$\bmphi$. Regarding the latter, there is a conjugate prior but
-unfortunately the normalization constant cannot be evaluated in closed
-form. This conjugate prior is thus of no use for us, and we turn to a
-noninformative prior. \fred{Be explicit about prior choice} The
-authors of \cite{moala2013bayesian} present an overview of possible
-choices and conclude that the point estimate given by the mode of the
-posterior is nearly insensitive to the prior choice for 30 samples in
-the iid case. Translated to our problem, this would be 30 packets at
-the same frequency. From TARDIS, we only get packets at different
-frequencies. In the following, let $m$ denote the effective number of
-packets close to $\nu$ where ``close'' is deliberately left
-unspecified.  If $m$ is large, we can well determine $\phi$
-and thus $p(X_j \cond N, \bmphi, \nu)$.
+$\bmphi$. Translated to our problem, this would be 30 packets at the
+\emph{same} frequency. But TARDIS only outputs packets at
+\emph{different} frequencies. In the following, let $m$ denote the
+effective number of packets close to $\nu$ where ``close'' is
+deliberately left unspecified.  If $m$ is large, we can well determine
+$\phi$ and thus $p(X_j \cond N, \bmphi, \nu)$.
 
 % We require in addition that the posterior is narrow enough so we
 % group samples in bins to have at least $m=150$ samples in each
@@ -1390,7 +1446,7 @@ and thus $p(X_j \cond N, \bmphi, \nu)$.
 % m$.
 
 The following approximations can be used in different regions of the
-parameter space spanned by $n$ and $m$. %
+parameter space spanned by $n$, $N$, and $m$. %
 \hans{$n$ is TARDIS output ``data'', so not a parameter. From the
   above paragraph, $m$ seems to be a parameter governing rebinning to
   nonuniform bins. I would have no idea how to handle $m$ formally in
@@ -1400,51 +1456,91 @@ parameter space spanned by $n$ and $m$. %
   usual sense.}
 \fred{Yes, $n$ is fixed from TARDIS output. $m$ is defined only for this paragraph}
 \fred{Update approximations: don't need moments any longer}
-\begin{mnumerate}
-  \item \label{large-m} For large $m$, the posterior $p(\bmphi \cond
-  \npack, \bmx, \bmnu) = p(\bmx\cond \bmphi, \npack, \bmnu) \, p(\bmphi) / p(\bmx \cond \npack, \bmnu)$
-  approaches a multivariate Gaussian. We can then compute the various
-  moments $E_\bmphi[f(x)]$ with $f(x)=1,x,x^2$ by Laplace's method to
-  good accuracy.
-  \item \label{very-large-m} In the limit $m \to \infty$, the
-  covariance of the posterior $p(\bmphi \cond \npack, \bmx, \bmnu)$
-  tends to zero as $1/m$ and we can then fix the parameters $\bmphi$
-  at the posterior mode $\bmphi^*$; i.e., $p(\bmphi \cond \npack,
-  \bmx, \bmnu) \to \delta(\bmphi - \bmphi^*)$.
-  \item \label{large-n} For $n$ large, the cumulative of the Negative
-  Binomial $p(N \cond n)$ can be approximated by a Gaussian, defining
-  a region around $N=n$ with the dominant contribution to the sum over
-  $N$ in \refeq{gmd}. The contribution around $N=0$ is negligible, and
-  we can replace $\sum_n \to \int \rmdx{N}$. The density $p(N \cond n) P(X
-  \cond N,m, \bmx)$ is close to a Gaussian and the integral can be
-  accurately approximated by Laplace's method which requires the
-  Hessian and the mode. We benefit from partial error cancelation
-  because we apply Laplace's method both in the numerator and
-  denominator~\cite{tierney_accurate_1986} as each moment has to be
-  normalized by the evidence $p(\bmx \cond m)$. The former is
-  available in closed form and the latter has to be determined
-  numerically. Fortunately, Newton's method leads to a solution in
-  only a few steps~\cite{minka2002estimating}. \fred{The reference is
-    for max. likelihood of a $\GammaDist(\cdot)$ but I'm sure the
-    performance is similar for max. posterior and the first moments}
-  \item \label{central-limit} The central limit theorem states that for large $N$,
-  $P(X \cond N, \bmphi) \approx \mathcal{N}(X \cond N \,
-  E_\bmphi[X_j], N \, V_\bmphi[X_j])$. For $m$ large enough, we could
-  then plug in the sample-mean and sample-variance estimates and
-  bypass the assumption of a Gamma distribution altogether.
-  \item \label{large-n-large-m} For large $n$ and $m$, $ p(X\cond
-  n,\bmx,m)$ can be approximated by a Gaussian whose mean and variance
-  are given by \refeq{mgo} and \refeq{mgr} in terms of
-  $\bmphi$-expectation values. The latter are integrals with no known
-  closed-form solutions but we can easily and accurately approximate
-  them with Laplace's method.
-\end{mnumerate}
-To simplify, we assume that $m$ is large. In our application, we may
-have to combine several frequency bins to achieve $m \gtrsim 150$ for
-the purpose of infering $\bmphi$. This is equivalent to assuming that
-the distribution changes only slowly with the frequency, a condition
-that we verified for TARDIS. It is thus justified to use
-approximations \ref{large-m} or even \ref{very-large-m}.
+
+\subsubsection*{Large $\bmn$} \label{large-n}
+
+For large $n$, the cumulative of the Negative Binomial $p(N \cond n)$
+can be approximated by the cumulative of a Gaussian with mean $n$ and
+variance $2 (n - a + 1)$. Intuitively, this variance arises because the
+Poisson variance appears twice, once when observing $n$ and once when
+predicting $N$ given $n$.  The region around $N=n$ yields the dominant
+contribution to the sum over $N$ in \refeq{gmd}. The contribution
+around $N=0$ is then negligible, and we can approximate $\sum_N$ by
+$\int \rmdx{N}$. The density $p(N \cond n) P(X \cond N, \npack, \bmx,
+\bmnu)$ is close to a Gaussian (in the $x$ parametrization) and the
+integral can be accurately approximated by Laplace's method which
+requires the Hessian and the mode.
+  % as each moment has to be
+  % normalized by the evidence $p(\bmx \cond m)$.
+The former is available in closed form and the latter has to be
+determined numerically. Fortunately, Newton's method leads to a
+solution in only a few steps~\cite{minka2002estimating}.
+%
+\fred{The reference is for max. likelihood of a $\GammaDist(\cdot)$
+  but I'm sure the performance is similar for max. posterior and the
+  first moments} We benefit from partial error cancelation when we
+apply Laplace's method both in the numerator and
+denominator~\cite{tierney_accurate_1986}.
+  %
+\fred{Might actually evaluate numerator and denominator at posterior
+  mode to do only one instead of two optimizations;
+  cf.~\cite{lindley_approximate_1980}}
+
+\subsubsection*{Large $\bmN$} \label{large-N}
+
+The central limit theorem states that for large $N$, $P(X \cond N,
+\bmphi, \nu) \approx \mathcal{N}(X \cond N \, E_\bmphi[X_j \cond \nu],
+N \, V_\bmphi[X_j \cond \nu])$. The expectation values have no known
+closed-form solutions but we can easily and accurately approximate
+them with Laplace's method.
+% This is true independent of our model
+assumption \refeq{gmi} that $X_j \sim \GammaDist(\alpha, \beta)$.
+%
+\fred{This only helps because the Laplace approx. when combined with
+  large $n$ has an analytical result for the mode which saves us
+  numerical optimization. But it requires extra (Laplace
+  approximated?) integrals to compute $E_\bmphi[X_j \cond \nu]$ and
+  $V_\bmphi[X_j \cond \nu]$. I can't get the Hessian analytically for
+  $\npack$ samples. But we could use \texttt{Hesse} from
+  \href{http://seal.web.cern.ch/seal/snapshot/work-packages/mathlibs/minuit/}{Minuit}
+  or similar to approximate the Hessian at the mode by finite
+  differences.}
+
+\subsubsection*{Large $\bmm$}\label{large-m}
+
+By asymptotic normality, the posterior $p(\bmphi \cond \npack, \bmx,
+\bmnu) = p(\bmx\cond \bmphi, \npack, \bmnu) \, p(\bmphi) / p(\bmx
+\cond \npack, \bmnu)$ approaches a multivariate Gaussian. In the limit
+$m \to \infty$, the covariance of the posterior $p(\bmphi \cond
+\npack, \bmx, \bmnu)$ tends to zero as $1/m$ and we can then fix the
+parameters $\bmphi$ at the posterior mode $\bmphi^*$; i.e., $p(\bmphi
+\cond \npack, \bmx, \bmnu) \to \delta(\bmphi - \bmphi^*)$ which removes the integral in \refeq{gmd}.
+
+\subsubsection*{Large $\bmn, \bmN$,  and very large $\bmm$} \label{large-n-large-m}
+
+With many samples observed in a narrow bin, both $n$ and $m$ are large
+and the dominant contribution to \refeq{gmd} arises from large
+$N$. Combining all of the above approximations, we find
+\begin{align}
+  \lleq{gmr} %
+  p(X\cond \nu, \npack,\bmx,\bmnu) &= %
+  \int \rmdx{N} \mathcal{N}(N \cond n, 2 (n -a + 1)) \, \mathcal{N}(X \cond
+  N \, E_{\bmphi^*}[X_j \cond \nu], N \, V_{\bmphi^*}[X_j \cond \nu])
+\end{align}
+where
+\begin{align}
+  \lleq{gms}%
+  E_{\bmphi^*}[X_j \cond \nu] &= \frac{\alpha(\nu \cond
+    \bmphi^*)}{\beta(\nu \cond \bmphi^*)}, & %
+  V_{\bmphi^*}[X_j \cond \nu] = \frac{\alpha(\nu \cond
+    \bmphi^*)}{\beta(\nu \cond \bmphi^*)^2}.
+\end{align}
+Again, this integral does not have a closed-form expression but it is
+unimodal and can be well approximated with Laplace's method. The mode
+of the integrand is the single real root of a cubic polynomial. We
+compute the root as well as the Hessian analytically with mathematica; the results are lengthy and not shown here.
+
+\subsubsection*{Comparison of approximations}
 
 Numerically, the most challenging case is small $n$ because the sum
 over $N$ in \refeq{gmd} has to be computed explicitly starting at
@@ -1452,8 +1548,6 @@ $N=1$ until contributions become negligible. Since $p(N \cond n)$
 falls off quickly, it is sufficient in our application to do this
 until $n \lesssim 20-30$. Beyond that, we use approximations
 \ref{large-n}--\ref{large-n-large-m}.
-
-\subsection*{Comparison of approximations}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results}
