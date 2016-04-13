@@ -1372,8 +1372,8 @@ and this implies that the master equation~(\ref{pmp}) considerably simplifies as
   \lleq{gmd}
     \boxed{
     p(X\cond \nu, \npack,\bmx,\bmnu)
-  = \frac{1}{p(\bmx\cond \bmnu)}
-  \sum_N p(N\cond n)\, \int \rmdx{\bmphi} \GammaDist(X_j \cond \alpha, \beta) % p(X \cond N, \bmphi, \nu)
+  = \frac{1}{p(\bmx\cond \npack, \bmnu)}
+  \sum_N p(N\cond n)\, \int \rmdx{\bmphi} \GammaDist(X_j \cond N \alpha, \beta) % p(X \cond N, \bmphi, \nu)
   \, p(\bmx\cond \bmphi, \npack, \bmnu)
   \, p(\bmphi).
   }
