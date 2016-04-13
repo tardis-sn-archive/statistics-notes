@@ -10,13 +10,15 @@
 
 #include "Tardis.h"
 
+using namespace std;
+
 int main()
 {
     // set nicer style for drawing than the ROOT default
     BCAux::SetStyle();
 
     // open log file
-    BCLog::OpenLog("log.txt", BCLog::detail, BCLog::detail);
+    BCLog::OpenLog("log.txt", BCLog::debug, BCLog::debug);
 
     // create new Tardis object
     Tardis m("tardis");
@@ -47,6 +49,9 @@ int main()
 //    m.SetInitialPositions(v);
 
     m.FindMode(v);
+
+
+
     return 0;
 
 
@@ -81,3 +86,7 @@ int main()
 
     return 0;
 }
+
+// Local Variables:
+// compile-command: "make && ./runTardis"
+// End:
