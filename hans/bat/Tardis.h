@@ -40,6 +40,14 @@ public:
     unsigned GetOrder() const
     { return order; }
 
+    /**
+     * Multiply the likelihood by this factor to avoid overflows.
+     *
+     * @param scale factor on the log(!) scale
+     */
+    void rescale(double scale)
+    { this->scale = scale; }
+
 private:
     Vec ReadData(const std::string& fileName, const std::string& dataSet);
 
@@ -64,6 +72,7 @@ private:
     unsigned order;
     const unsigned npoints;
     const double nuMax, alphaMin, betaMin;
+    double scale;
 };
 // ---------------------------------------------------------
 

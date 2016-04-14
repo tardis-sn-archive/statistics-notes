@@ -50,10 +50,16 @@ int main()
 
     m.FindMode(v);
 
-
+    // change normalization to avoid overflow
+    m.rescale(-m.LogEval(m.GetBestFitParameters()));
+    // running minuit again might be superfluous but I do it to be
+    // safe after redefining the target density with rescale()
+    m.FindMode(m.GetBestFitParameters());
+    m.Integrate(BCIntegrate::kIntLaplace);
 
     return 0;
 
+#if 0
 
     // clumsy way to set only the parameters but not the observables at the mode
     Tardis::Vec harr(m.GetBestFitParameters().begin(), m.GetBestFitParameters().begin() + m.GetNParameters());
@@ -85,6 +91,7 @@ int main()
     BCLog::CloseLog();
 
     return 0;
+#endif
 }
 
 // Local Variables:

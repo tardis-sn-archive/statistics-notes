@@ -29,11 +29,12 @@ Tardis::Tardis(const std::string& name)
       npoints(10),
       nuMax(0.5),
       alphaMin(1.0),
-      betaMin(0.0)
+      betaMin(0.0),
+      scale(0.0)
 {
     AddParameter("alpha0",  1, 2, "#alpha_{0}");
     AddParameter("alpha1", -3, 3, "#alpha_{1}");    // GetParameter(1).Fix(0);
-#if 1
+#if 0
     AddParameter("alpha2", -10, 10, "#alpha_{2}");  // GetParameter(2).Fix(0);
 #else
     AddParameter("alpha2", -30, 30, "#alpha_{2}");  // GetParameter(2).Fix(0);
@@ -136,14 +137,14 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
         throw 1;
     }
 #endif
-    double res = 0;
+    double res = this->scale;
 
     auto alpha_start = parameters.begin();
     auto split = parameters.begin() + order;
     auto beta_end = parameters.end();
 
-    static const unsigned nsamples = 74000;
-    assert(nsamples <= samples.size());
+    // static const unsigned nsamples = 74000;
+    // assert(nsamples <= samples.size());
 
 #pragma omp parallel for reduction(+:res) schedule(static)
     for (unsigned i = 0; i < nsamples; ++i) {
