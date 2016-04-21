@@ -38,7 +38,7 @@ namespace
 }
 
 // ---------------------------------------------------------
-Tardis::Tardis(const std::string& name)
+Tardis::Tardis(const std::string& name, const std::string& fileName, unsigned run)
     : BCModel(name),
       npoints(10),
       nuMax(0.5),
@@ -79,9 +79,8 @@ Tardis::Tardis(const std::string& name)
 
     AddObservable("Gamma(0.01|nu=0.2)", 25, 40);
 
-    static const char* fileName = "../../posterior/real_tardis_250.h5";
-    Vec energies = ReadData(fileName, "energies");
-    Vec nus = ReadData(fileName, "nus");
+    Vec energies = ReadData(fileName, "energies", run);
+    Vec nus = ReadData(fileName, "nus", run);
     assert(energies.size() == nus.size());
 
     // remove negative energies
@@ -324,11 +323,10 @@ double Tardis::MinPolyn(Vec::const_iterator begin, Vec::const_iterator end)
     }
 }
 
-
-Tardis::Vec Tardis::ReadData(const std::string& fileName, const std::string& dataSet)
+Tardis::Vec Tardis::ReadData(const std::string& fileName, const std::string& dataSet, unsigned run)
 {
     // identify the run of tardis = row in column
-    static const hsize_t run = 9;
+//    static const hsize_t run = 9;
 
     H5File file(fileName.c_str(), H5F_ACC_RDONLY );
     DataSet dataset = file.openDataSet(dataSet);
@@ -465,7 +463,7 @@ double Tardis::PredictSmall(unsigned n, double X, double nu, double Xmean, doubl
     return res / evidence;
 }
 
-double Tardis::SumX(double numin, double numax) const
+std::tuple<unsigned, double> Tardis::SumX(double numin, double numax) const
 {
     // find first element in bin
     auto min = std::lower_bound(samples.begin(), samples.end(), numin,
@@ -480,9 +478,10 @@ double Tardis::SumX(double numin, double numax) const
         [](const double & res, const Tardis::Point& s2)
         { return res + s2.en; });
 
-    cout << "Found " << std::distance(min, max)
+    unsigned n = std::distance(min, max);
+    cout << "Found " << n
     << " elements in bin [" << numin << ", " << numax
     << "] with X = " << X << endl;
 
-    return X;
+    return std::tuple<unsigned, double> {n, X};
 }

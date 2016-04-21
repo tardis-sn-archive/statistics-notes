@@ -14,8 +14,31 @@
 
 using namespace std;
 
-int main()
+void extractBinX(double numin, double numax, const std::string& outFile)
 {
+    std::ofstream file(outFile);
+    for (unsigned i = 0; i < 250; ++i) {
+        Tardis m("harr", "../../posterior/real_tardis_250.h5", i);
+        file << std::get<1>(m.SumX(numin, numax)) << endl;
+    }
+}
+
+int main(int argc, char* argv[])
+{
+    static const double numin = 0.018;
+    static const double numax = 0.0185;
+
+#if 0
+    extractBinX(numin, numax, "X.out");
+    return 0;
+#endif
+
+    if (argc < 2) {
+        cerr << "Provide run number 0..249!" << endl;
+        return 1;
+    }
+    int run = stoi(argv[1]);
+
     // set nicer style for drawing than the ROOT default
     BCAux::SetStyle();
 
@@ -23,7 +46,7 @@ int main()
     BCLog::OpenLog("log.txt", BCLog::detail, BCLog::detail);
 
     // create new Tardis object
-    Tardis m("tardis");
+    Tardis m("tardis", "../../posterior/real_tardis_250.h5", run);
 
     // set precision
     m.SetPrecision(BCEngineMCMC::kLow);
@@ -40,12 +63,11 @@ int main()
 
     BCLog::OutSummary("Test model created");
 
-    static const unsigned n = 8;
     static const double mean = 0.02;
-    static const double nu = 0.0125;
-
-    // find bin edge
-
+    static const double nu = (numax - numin) / 2.0;
+    auto res = m.SumX(numin, numax);
+    unsigned n = std::get<0>(res);
+    //    double X = std::get<1>(res);
 
 //    double meanX = m.SumX(0.018, 0.0185) / n;
 
@@ -64,7 +86,8 @@ int main()
      */
 
     m.PreparePrediction();
-    std::ofstream file("out.txt");
+
+    std::ofstream file(std::string("out") + to_string(run) + ".txt");
 
     for (unsigned i = 1; i <= 4 * n; ++i) {
         const double X = mean * i;

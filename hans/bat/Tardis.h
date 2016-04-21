@@ -24,7 +24,7 @@ public:
     using Vec = std::vector<double>;
 
     // Constructor
-    Tardis(const std::string& name);
+    Tardis(const std::string& name, const std::string& fileName, unsigned run = 9);
 
     // Destructor
     ~Tardis();
@@ -69,16 +69,16 @@ public:
     /**
      * Compute sum of X in frequency bin
      */
-    double SumX(double numin, double numax) const;
+    std::tuple<unsigned, double> SumX(double numin, double numax) const;
 
 private:
-    Vec ReadData(const std::string& fileName, const std::string& dataSet);
+    Vec ReadData(const std::string& fileName, const std::string& dataSet, unsigned run);
 
     /*
      * @param init use as initial position, write back updated results from minimization
      * @return for N posited events and n observed events, check if the contribution to res = sum_N P(X|N) is negligible with latest/ res < precision
 */
-    bool SearchStep(unsigned N, unsigned n, double& res, double precision, std::vector<double>& init);
+    bool SearchStep(unsigned N, unsigned n, double& res, double precision, Vec& init);
 
     /**
      * Polynomial as a function of nu with coefficients given in range
