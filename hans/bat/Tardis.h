@@ -65,6 +65,11 @@ public:
      */
     double PredictSmall(unsigned n, double X, double nu, double precision = 1e-2);
 
+    /**
+     * Compute sum of X in frequency bin
+     */
+    double SumX(double numin, double numax) const;
+
 private:
     Vec ReadData(const std::string& fileName, const std::string& dataSet);
 

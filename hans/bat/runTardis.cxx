@@ -5,10 +5,12 @@
 // BAT can be downloaded from http://mpp.mpg.de/bat
 // ***************************************************************
 
+#include "Tardis.h"
+
 #include <BAT/BCLog.h>
 #include <BAT/BCAux.h>
 
-#include "Tardis.h"
+#include <fstream>
 
 using namespace std;
 
@@ -38,11 +40,22 @@ int main()
 
     BCLog::OutSummary("Test model created");
 
-    m.PreparePrediction();
     static const unsigned n = 8;
     static const double mean = 0.02;
     static const double nu = 0.0125;
-    cout << "Predict " << m.PredictSmall(n, n * mean, nu, 1e-3) << endl;
+
+    // find bin edge
+
+
+    m.SumX(0.018, 0.0185);
+
+    m.PreparePrediction();
+    std::ofstream file("out.txt");
+
+    for (unsigned i = 1; i <= 2 * n; ++i) {
+        const double X = mean * i;
+        file << X << '\t' << m.PredictSmall(n, X, nu, 5e-3) << endl;
+    }
 
 #if 0
 

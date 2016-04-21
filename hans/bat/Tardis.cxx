@@ -96,17 +96,23 @@ Tardis::Tardis(const std::string& name)
     cout << "Parsed " << nus.size() << " elements from " << fileName
          << ", retain " << samples.size() << " positive-energy elements\n";
 
+    // sort by frequency
+    std::sort(samples.begin(), samples.end(),
+              [](const Tardis::Point& s1, const Tardis::Point& s2)
+              { return s1.nu < s2.nu; } );
+
     // rescale and flip the energies
     // rescale frequencies
-    // auto maxElem = std::max_element(energies.begin(), energies.end());
-    auto maxElem = std::max_element(samples.begin(), samples.end(),
-                                    [](const Tardis::Point& s1, const Tardis::Point& s2)
-                                    { return s1.en < s2.en; } );
-    auto maxElemNu = std::max_element(samples.begin(), samples.end(),
-                                    [](const Tardis::Point& s1, const Tardis::Point& s2)
-                                    { return s1.nu < s2.nu; } );
+
+    auto enOrder =
+            [](const Tardis::Point& s1, const Tardis::Point& s2)
+            { return s1.en < s2.en; };
+
+    auto maxElem = std::max_element(samples.begin(), samples.end(), enOrder);
+
     const double maxEn = (1 + 1e-6) * maxElem->en;
-    const double maxNu = maxElemNu->nu;
+    const double maxNu = samples.back().nu;
+    cout << "Before data transformation" << endl;
     cout << "Max. energy = " << maxEn << endl;
     cout << "Max. frequency = " << maxNu << endl;
 
@@ -114,14 +120,12 @@ Tardis::Tardis(const std::string& name)
         s.en = 1.0 - s.en / maxEn;
         s.nu /= maxNu;
     }
-    maxElem = std::max_element(samples.begin(), samples.end(),
-                                    [](const Tardis::Point& s1, const Tardis::Point& s2)
-                                    { return s1.en < s2.en; } );
-    maxElemNu = std::max_element(samples.begin(), samples.end(),
-                                    [](const Tardis::Point& s1, const Tardis::Point& s2)
-                                    { return s1.nu < s2.nu; } );
+
+    // frequency sorting maintained but energy flipped => search again
+    cout << "After data transformation" << endl;
+    maxElem = std::max_element(samples.begin(), samples.end(), enOrder);
     cout << "Max. energy = " << maxElem->en << endl;
-    cout << "Max. frequency = " << maxElemNu->nu << endl;
+    cout << "Max. frequency = " << samples.back().nu << endl;
 
 #if 0
     // plot data
@@ -169,7 +173,7 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
     auto split = parameters.begin() + order;
     auto beta_end = parameters.end();
 
-    const unsigned nsamples = 2000; //samples.size();
+    const unsigned nsamples = samples.size();
     assert(nsamples <= samples.size());
 
 #pragma omp parallel for reduction(+:res) schedule(static)
@@ -346,8 +350,8 @@ Tardis::Vec Tardis::ReadData(const std::string& fileName, const std::string& dat
     // read one row from large matrix into 1D array
     static const int rankOut = 1;
     hsize_t N = dims_out[1];
-    std::array<hsize_t, 2> offsetIn = {run, 0};
-    std::array<hsize_t, 2> countIn = {1, N};
+    std::array<hsize_t, 2> offsetIn = {{ run, 0 }};
+    std::array<hsize_t, 2> countIn = {{1, N}};
     dataspace.selectHyperslab(H5S_SELECT_SET, &countIn[0], &offsetIn[0]);
 
     // reserve memory to hold the data, resize so vector know how many
@@ -436,4 +440,26 @@ double Tardis::PredictSmall(unsigned n, double X, double nu, double precision)
     nuPrediction = -1;
 
     return res / evidence;
+}
+
+double Tardis::SumX(double numin, double numax) const
+{
+    // find first element in bin
+    auto min = std::lower_bound(samples.begin(), samples.end(), numin,
+                                [](const Tardis::Point& s1, double value)
+                                { return s1.nu < value; } );
+    // first element outside of bin
+    auto max = std::upper_bound(min, samples.end(), numax,
+                                [](double value, const Tardis::Point& s1)
+                                { return value < s1.nu; } );
+    // sum energies in bin
+    const double X = std::accumulate(min, max, 0.0,
+        [](const double & res, const Tardis::Point& s2)
+        { return res + s2.en; });
+
+    cout << "Found " << std::distance(min, max)
+    << " elements in bin [" << numin << ", " << numax
+    << "] with X = " << X << endl;
+
+    return X;
 }
