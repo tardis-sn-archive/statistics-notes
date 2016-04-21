@@ -26,7 +26,7 @@ PRGSRCS = runTardis.cxx
 
 # compiler and flags
 CXX       = h5c++
-CXXFLAGS  = -g -O0 -Wall -fPIC -Wno-deprecated -fopenmp
+CXXFLAGS  = -g -O0 -Wall -fPIC -Wno-deprecated -fopenmp -Wpedantic -Werror -Wfatal-errors
 LD        = h5++
 LDFLAGS   = -g -O0 -fopenmp
 
