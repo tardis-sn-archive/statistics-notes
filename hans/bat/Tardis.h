@@ -61,9 +61,10 @@ public:
      * n+1. Continue until contributions are negligible. Bear in mind
      * N>0! Stay on log scale as much as possible?
      *
+     * @param Xmean If positive, use floor(X / Xmean) as starting guess for most likely N
      * @param precision Stop searching if contribution from current point is less than `precision * currentValue`
      */
-    double PredictSmall(unsigned n, double X, double nu, double precision = 1e-2);
+    double PredictSmall(unsigned n, double X, double nu, double Xmean = -1, double precision = 1e-2);
 
     /**
      * Compute sum of X in frequency bin
@@ -74,9 +75,10 @@ private:
     Vec ReadData(const std::string& fileName, const std::string& dataSet);
 
     /*
+     * @param init use as initial position, write back updated results from minimization
      * @return for N posited events and n observed events, check if the contribution to res = sum_N P(X|N) is negligible with latest/ res < precision
 */
-    bool SearchStep(unsigned N, unsigned n, double& res, double precision);
+    bool SearchStep(unsigned N, unsigned n, double& res, double precision, std::vector<double>& init);
 
     /**
      * Polynomial as a function of nu with coefficients given in range

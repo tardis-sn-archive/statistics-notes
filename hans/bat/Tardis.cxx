@@ -391,14 +391,24 @@ void Tardis::PreparePrediction()
     evidence = Integrate(BCIntegrate::kIntLaplace);
 }
 
-bool Tardis::SearchStep(unsigned N, unsigned n, double& res, double precision)
+bool Tardis::SearchStep(unsigned N, unsigned n, double& res, double precision, std::vector<double>& init)
 {
     // N>0 required to search
     if (N == 0)
         return false;
 
     NPrediction = N;
-    FindMode(GetBestFitParameters());
+
+    // run minuit manually assuming that current position and step
+    // size are good gives a factor 2-3 in speed
+    //    FindMode(GetBestFitParameters());
+    auto& min = GetMinuit();
+    min.SetVariableValues(&init[0]);
+    min.Minimize();
+
+    // copy result back
+    std::copy(min.X(), min.X() + GetNParameters(), init.begin());
+
     const double latest = std::exp(logNegativeBinomial(N, n, a)) * Integrate(BCIntegrate::kIntLaplace);
     res += latest;
 
@@ -409,21 +419,29 @@ bool Tardis::SearchStep(unsigned N, unsigned n, double& res, double precision)
     return (latest / res) > precision;
 }
 
-double Tardis::PredictSmall(unsigned n, double X, double nu, double precision)
+double Tardis::PredictSmall(unsigned n, double X, double nu, double Xmean, double precision)
 {
     // fix frequency and X
     nuPrediction = nu;
     XPrediction = X;
 
-    // start N at mode of NegativeBinomial
-    unsigned N = unsigned(std::max(1.0, floor(n - a + 1)));
+    // start N at mode of NegativeBinomial if invalid Xmean given
+    double guess = floor(n - a + 1);
+    if (Xmean > 0)
+        guess = X / Xmean;
+
+    unsigned N = std::max(1.0, guess);
     NPrediction = N;
 
     double res = 0;
-    SearchStep(N, n, res, precision);
 
     // index difference down/up
     unsigned Nup = N, Ndown = N;
+
+    std::vector<double> initUp(GetBestFitParameters());
+    auto initDown = initUp;
+
+    SearchStep(N, n, res, precision, initUp);
 
     // continue searching up or down
     bool goUp = true, goDown = true;
@@ -431,13 +449,18 @@ double Tardis::PredictSmall(unsigned n, double X, double nu, double precision)
     // now move up or down
     while (goUp || goDown) {
         if (goUp)
-            goUp = SearchStep(++Nup, n, res, precision);
+            goUp = SearchStep(++Nup, n, res, precision, initUp);
 
         if (goDown)
-            goDown = SearchStep(--Ndown, n,res, precision);
+            goDown = SearchStep(--Ndown, n,res, precision, initDown);
     }
 
     nuPrediction = -1;
+
+    unsigned totalN = Nup - Ndown;
+    if (Ndown == 0)
+        --totalN;
+    cout << "Total number of calls " << totalN << endl;
 
     return res / evidence;
 }

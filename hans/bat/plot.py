@@ -20,12 +20,19 @@ P /= norm
 
 mean = simps(P * X, X)
 print("Mean", mean)
-print("std. dev", np.sqrt(simps(P * (X - mean)**2, X)))
+
+stddev = np.sqrt(simps(P * (X - mean)**2, X))
+print("std. dev", stddev)
+
+mode = X[np.argmax(P)]
+print("Mode", mode)
 
 plt.plot(X, P)
 plt.xlabel("$X$")
 plt.ylabel("$P(X)$")
+plt.title("Mode = %g\nmean x = %g +- %g" % (mode, mean, stddev))
 
+plt.tight_layout()
 plt.show()
 
 # Local Variables:

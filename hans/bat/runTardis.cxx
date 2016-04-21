@@ -20,7 +20,7 @@ int main()
     BCAux::SetStyle();
 
     // open log file
-    BCLog::OpenLog("log.txt", BCLog::debug, BCLog::debug);
+    BCLog::OpenLog("log.txt", BCLog::detail, BCLog::detail);
 
     // create new Tardis object
     Tardis m("tardis");
@@ -47,14 +47,28 @@ int main()
     // find bin edge
 
 
-    m.SumX(0.018, 0.0185);
+//    double meanX = m.SumX(0.018, 0.0185) / n;
+
+    /*
+     * Surprising behavior: passing the mean reduces the total number
+     * of calls to minuit from 549 to 472 but the number of calls to
+     * the likelihood increases from 36266 to 45117.  The reason may
+     * be that jumping from left side to right side of mode in N
+     * changes the parameters a lot so minuit has to search longer
+     * based on the previous point. When the search is only in on
+     * direction, the modes don't change very much.
+     *
+     * Running minuit from the last mode in that search direction gives the best overall result with 33749 calls but more debug output.
+     *
+     * Hyperthreading gives an improvement of ~15 - 20 % for the single likelihood
+     */
 
     m.PreparePrediction();
     std::ofstream file("out.txt");
 
-    for (unsigned i = 1; i <= 2 * n; ++i) {
+    for (unsigned i = 1; i <= 4 * n; ++i) {
         const double X = mean * i;
-        file << X << '\t' << m.PredictSmall(n, X, nu, 5e-3) << endl;
+        file << X << '\t' << m.PredictSmall(n, X, nu, mean, 5e-3) << endl;
     }
 
 #if 0
