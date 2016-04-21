@@ -38,26 +38,11 @@ int main()
 
     BCLog::OutSummary("Test model created");
 
-    //////////////////////////////
-    // perform your analysis here
-
-    // Normalize the posterior by integrating it over the full par. space
-    // m.Normalize();
-    Tardis::Vec v(m.GetNParameters(), 0.0);
-    v[0] = 1.5;
-    v[m.GetOrder()] = 60;
-//    m.SetInitialPositions(v);
-
-    m.FindMode(v);
-
-    // change normalization to avoid overflow
-    m.rescale(-m.LogEval(m.GetBestFitParameters()));
-    // running minuit again might be superfluous but I do it to be
-    // safe after redefining the target density with rescale()
-    m.FindMode(m.GetBestFitParameters());
-    m.Integrate(BCIntegrate::kIntLaplace);
-
-    return 0;
+    m.PreparePrediction();
+    static const unsigned n = 8;
+    static const double mean = 0.02;
+    static const double nu = 0.0125;
+    cout << "Predict " << m.PredictSmall(n, n * mean, nu, 1e-3) << endl;
 
 #if 0
 
@@ -72,7 +57,6 @@ int main()
     m.MarginalizeAll(BCIntegrate::kMargMetropolis);
 //
 //    // run mode finding; by default using Minuit
-    m.FindMode(m.GetBestFitParameters());
 
     // draw all marginalized distributions into a PDF file
     m.PrintAllMarginalized(m.GetSafeName() + "_plots.pdf");

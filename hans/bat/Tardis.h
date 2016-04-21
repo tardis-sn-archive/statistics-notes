@@ -48,8 +48,30 @@ public:
     void rescale(double scale)
     { this->scale = scale; }
 
+    /**
+     * Set state to update the prior such that minuit gets the correct
+     * target density for prediction and compute the evidence.
+     */
+    void PreparePrediction();
+
+    /**
+     * Predict X for small n at a given nu (=bin center).
+     *
+     * Algorithm: Start computing for N=n, then go to n-1,
+     * n+1. Continue until contributions are negligible. Bear in mind
+     * N>0! Stay on log scale as much as possible?
+     *
+     * @param precision Stop searching if contribution from current point is less than `precision * currentValue`
+     */
+    double PredictSmall(unsigned n, double X, double nu, double precision = 1e-2);
+
 private:
     Vec ReadData(const std::string& fileName, const std::string& dataSet);
+
+    /*
+     * @return for N posited events and n observed events, check if the contribution to res = sum_N P(X|N) is negligible with latest/ res < precision
+*/
+    bool SearchStep(unsigned N, unsigned n, double& res, double precision);
 
     /**
      * Polynomial as a function of nu with coefficients given in range
@@ -73,6 +95,14 @@ private:
     const unsigned npoints;
     const double nuMax, alphaMin, betaMin;
     double scale;
+    double evidence;
+
+    // parameter of prior on Poisson parameter
+    double a;
+
+    ///> prediction
+    double nuPrediction, XPrediction;
+    unsigned NPrediction;
 };
 // ---------------------------------------------------------
 

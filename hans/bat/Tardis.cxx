@@ -23,6 +23,20 @@ using std::cout;
 using std::endl;
 using namespace H5;
 
+namespace
+{
+    inline double logGamma(double x, double alpha, double beta)
+    {
+        return alpha * log(beta) - lgamma(alpha) + (alpha - 1) * log(x) - beta * x;
+    }
+
+    inline double logNegativeBinomial(const unsigned N, const unsigned n, const double a)
+    {
+        double tmp = N + n - a + 1;
+        return lgamma(tmp) - lgamma(N + 1) - lgamma(n - a + 1) - tmp * std::log(2);
+    }
+}
+
 // ---------------------------------------------------------
 Tardis::Tardis(const std::string& name)
     : BCModel(name),
@@ -30,7 +44,12 @@ Tardis::Tardis(const std::string& name)
       nuMax(0.5),
       alphaMin(1.0),
       betaMin(0.0),
-      scale(0.0)
+      scale(0.0),
+      evidence(0.0),
+      a(0.5),
+      nuPrediction(-1),
+      XPrediction(-1),
+      NPrediction(0)
 {
     AddParameter("alpha0",  1, 2, "#alpha_{0}");
     AddParameter("alpha1", -3, 3, "#alpha_{1}");    // GetParameter(1).Fix(0);
@@ -104,17 +123,24 @@ Tardis::Tardis(const std::string& name)
     cout << "Max. energy = " << maxElem->en << endl;
     cout << "Max. frequency = " << maxElemNu->nu << endl;
 
-
+#if 0
     // plot data
     // create new histogram
-    TH1D hist("data", ";x;N", 100, 0.0, 1);
+    TH1D hist("data", ";x;N", 2000, 0.0, 1);
     // hist.SetStats(kFALSE);
     for (auto& s : samples)
         hist.Fill(s.nu);
 
+    for (int i = 1; i <= hist.GetNbinsX(); ++i)
+        cout << "bin " << i << ": [" << hist.GetBinLowEdge(i)
+             << ", " << hist.GetBinLowEdge(i+1)
+             << "], value = " << hist.GetBinContent(i)
+             << endl;
+
     TCanvas c;
-    hist.Draw("");
+    hist.Draw();
     c.Print("samples.pdf");
+#endif
 }
 
 // ---------------------------------------------------------
@@ -137,14 +163,14 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
         throw 1;
     }
 #endif
-    double res = this->scale;
+    double res = 0;
 
     auto alpha_start = parameters.begin();
     auto split = parameters.begin() + order;
     auto beta_end = parameters.end();
 
-    // static const unsigned nsamples = 74000;
-    // assert(nsamples <= samples.size());
+    const unsigned nsamples = 2000; //samples.size();
+    assert(nsamples <= samples.size());
 
 #pragma omp parallel for reduction(+:res) schedule(static)
     for (unsigned i = 0; i < nsamples; ++i) {
@@ -160,22 +186,25 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
 
         // cout << "alphaj " << alphaj << ", betaj "<< betaj << endl;
 
-        const double extra = alphaj * log(betaj) - lgamma(alphaj) + (alphaj - 1) * log(s.en) - betaj * s.en;
+        const double extra = ::logGamma(s.en, alphaj, betaj);
         if (!std::isfinite(extra)) {
             cout << "res not finite at " << i << ", nu = " << s.nu << ", x = " << s.en << ", "<< alphaj << ", " << betaj << endl;
             std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<double>(cout, " " ));
             cout << endl;
             throw 2;
         }
-        res += extra;
+        // results are different from run to run with more than 2 threads
+        // addition not commutative with floating point
+        // change by 50% possible on linear scale if scale added only once
+        // => apply part of scale each time to retain precision
+        res += extra + this->scale / nsamples;
     }
-//     cout << "likelihood " << res << endl;
 
     return res;
 }
 
 // ---------------------------------------------------------
- double Tardis::LogAPrioriProbability(const std::vector<double> & parameters) {
+double Tardis::LogAPrioriProbability(const std::vector<double> & parameters) {
 #if 0
      // This returns the log of the prior probability for the parameters
      // If you use built-in 1D priors, don't uncomment this function.
@@ -193,9 +222,16 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
      if (std::accumulate(parameters.begin() + order, parameters.end(), 0.0) <= 0.0)
          return -std::numeric_limits<double>::infinity();
 #endif
+    constexpr double invalid = -std::numeric_limits<double>::infinity();
+    double valid = 0;
 
-     static const double invalid = -std::numeric_limits<double>::infinity();
-     static const double valid = 0;
+     // modify integrand for prediction
+     if (nuPrediction > 0)
+     {
+         const double alpha = Polyn(parameters.begin(), parameters.begin() + order, nuPrediction);
+         const double beta = Polyn(parameters.begin() + order, parameters.end(), nuPrediction);
+         valid = logGamma(XPrediction, NPrediction * alpha, beta);
+     }
 
      const double alphaMin = MinPolyn(parameters.begin(), parameters.begin() + order);
      if (alphaMin <= this->alphaMin)
@@ -332,4 +368,72 @@ Tardis::Vec Tardis::ReadData(const std::string& fileName, const std::string& dat
     dataset.read(&buffer[0], PredType::NATIVE_DOUBLE, memspace, dataspace);
 
     return buffer;
+}
+
+void Tardis::PreparePrediction()
+{
+    Tardis::Vec v(GetNParameters(), 0.0);
+    v[0] = 1.5;
+    v[GetOrder()] = 60;
+//    SetInitialPositions(v);
+
+    FindMode(v);
+
+    // change normalization to avoid overflow
+    rescale(-LogEval(GetBestFitParameters()));
+    // running minuit again might after redefining the
+    // target density
+    FindMode(GetBestFitParameters());
+    evidence = Integrate(BCIntegrate::kIntLaplace);
+}
+
+bool Tardis::SearchStep(unsigned N, unsigned n, double& res, double precision)
+{
+    // N>0 required to search
+    if (N == 0)
+        return false;
+
+    NPrediction = N;
+    FindMode(GetBestFitParameters());
+    const double latest = std::exp(logNegativeBinomial(N, n, a)) * Integrate(BCIntegrate::kIntLaplace);
+    res += latest;
+
+    cout << "total = " << res << ", P(" << XPrediction << "|" << N
+    << ") = " << latest
+    << endl;
+
+    return (latest / res) > precision;
+}
+
+double Tardis::PredictSmall(unsigned n, double X, double nu, double precision)
+{
+    // fix frequency and X
+    nuPrediction = nu;
+    XPrediction = X;
+
+    // start N at mode of NegativeBinomial
+    unsigned N = unsigned(std::max(1.0, floor(n - a + 1)));
+    NPrediction = N;
+
+    double res = 0;
+    SearchStep(N, n, res, precision);
+
+    // index difference down/up
+    unsigned Nup = N, Ndown = N;
+
+    // continue searching up or down
+    bool goUp = true, goDown = true;
+
+    // now move up or down
+    while (goUp || goDown) {
+        if (goUp)
+            goUp = SearchStep(++Nup, n, res, precision);
+
+        if (goDown)
+            goDown = SearchStep(--Ndown, n,res, precision);
+    }
+
+    nuPrediction = -1;
+
+    return res / evidence;
 }
