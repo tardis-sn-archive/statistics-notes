@@ -19,14 +19,17 @@ void extractBinX(double numin, double numax, const std::string& outFile)
     std::ofstream file(outFile);
     for (unsigned i = 0; i < 250; ++i) {
         Tardis m("harr", "../../posterior/real_tardis_250.h5", i);
-        file << std::get<1>(m.SumX(numin, numax)) << endl;
+        auto res = m.SumX(numin, numax);
+        file << std::get<0>(res) << '\t' << std::get<1>(res) << endl;
     }
 }
 
 int main(int argc, char* argv[])
 {
-    static const double numin = 0.018;
-    static const double numax = 0.0185;
+    // static const double numin = 0.018;
+    // static const double numax = 0.0185;
+    static const double numin = 0.01;
+    static const double numax = 0.02;
 
 #if 0
     extractBinX(numin, numax, "X.out");
@@ -43,31 +46,18 @@ int main(int argc, char* argv[])
     BCAux::SetStyle();
 
     // open log file
-    BCLog::OpenLog("log.txt", BCLog::detail, BCLog::detail);
+    BCLog::OpenLog("log.txt", BCLog::detail, BCLog::debug);
 
     // create new Tardis object
     Tardis m("tardis", "../../posterior/real_tardis_250.h5", run);
 
-    // set precision
-    m.SetPrecision(BCEngineMCMC::kLow);
-    // m.SetProposeMultivariate(false);
-    m.SetMinimumEfficiency(0.15);
-    m.SetMaximumEfficiency(0.40);
-    m.SetNChains(5);
-    m.SetRValueParametersCriterion(1.15);
-//    m.SetInitialPositionScheme(BCEngineMCMC::kInitRandomUniform);
-    m.SetNIterationsPreRunMax(20000);
-   m.SetProposalFunctionDof(-1);
-
-    m.SetNIterationsRun(3000);
-
-    BCLog::OutSummary("Test model created");
-
     static const double mean = 0.02;
     static const double nu = (numax - numin) / 2.0;
     auto res = m.SumX(numin, numax);
-    unsigned n = std::get<0>(res);
+    const unsigned n = std::get<0>(res);
+
     //    double X = std::get<1>(res);
+
 
 //    double meanX = m.SumX(0.018, 0.0185) / n;
 
@@ -89,12 +79,30 @@ int main(int argc, char* argv[])
 
     std::ofstream file(std::string("out") + to_string(run) + ".txt");
 
-    for (unsigned i = 1; i <= 4 * n; ++i) {
+    // P(0) = 0 but leads to numerical break down
+    file << 0. << '\t' << 0. << endl;
+
+    for (unsigned i = 1; i <= 2 * n; ++i) {
         const double X = mean * i;
-        file << X << '\t' << m.PredictSmall(n, X, nu, mean, 5e-3) << endl;
+//        const double P = m.PredictSmall(n, X, nu, mean, 5e-3);
+        const double P = m.PredictMedium(n, X, nu);
+//        const double P = m.PredictVeryLarge(n, X, nu);
+        file << X << '\t' << P << endl;
     }
 
 #if 0
+    // set precision
+    m.SetPrecision(BCEngineMCMC::kLow);
+    // m.SetProposeMultivariate(false);
+    m.SetMinimumEfficiency(0.15);
+    m.SetMaximumEfficiency(0.40);
+    m.SetNChains(5);
+    m.SetRValueParametersCriterion(1.15);
+//    m.SetInitialPositionScheme(BCEngineMCMC::kInitRandomUniform);
+    m.SetNIterationsPreRunMax(20000);
+   m.SetProposalFunctionDof(-1);
+
+    m.SetNIterationsRun(3000);
 
     // clumsy way to set only the parameters but not the observables at the mode
     Tardis::Vec harr(m.GetBestFitParameters().begin(), m.GetBestFitParameters().begin() + m.GetNParameters());

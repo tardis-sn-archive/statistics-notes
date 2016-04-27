@@ -28,9 +28,10 @@ PRGSRCS = runTardis.cxx
 CXX       = h5c++
 # export HDF5_CXX = clang++
 # export HDF5_CXXLINKER = clang++
-CXXFLAGS  = -O3 -Wall -fPIC -Wno-deprecated -fopenmp -Wpedantic -Werror
+OPTIM     = -g -O0
+CXXFLAGS  = $(OPTIM) -Wall -fPIC -Wno-deprecated -fopenmp -Wpedantic -Werror
 LD        = h5++
-LDFLAGS   = -O3 -fopenmp
+LDFLAGS   = $(OPTIM) -fopenmp
 
 # ----------------------------------------------------------------------
 # The following definitions rely on the script bat-config being
@@ -38,7 +39,7 @@ LDFLAGS   = -O3 -fopenmp
 # directories, update $PATH accordingly.
 
 CXXFLAGS += $(shell bat-config --cflags)
-LIBS := $(shell bat-config --libs)
+LIBS := $(shell bat-config --libs) -lgsl -lgslcblas
 
 # ----------------------------------------------------------------------
 # don't change lines below unless you know what you're doing

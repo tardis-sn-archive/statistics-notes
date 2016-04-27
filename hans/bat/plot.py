@@ -7,7 +7,7 @@ def plot_estimate(run):
     a = np.loadtxt("out%s.txt" % run)
 
     # modify data to include the origin
-    a = np.vstack((np.zeros(2), a))
+#     a = np.vstack((np.zeros(2), a))
 
     X = a.T[0]
     P = a.T[1]
@@ -34,11 +34,18 @@ def plot_estimate(run):
     plt.title("Mode = %g\nmean x = %g +- %g" % (mode, mean, stddev))
 
     replicas = np.loadtxt("X.out")
-    plt.hist(replicas, bins=15, normed=True)
+    print("Mean number of packets in bin", replicas.T[0].mean())
+    plt.hist(replicas.T[1], bins=15, normed=True)
 
     plt.tight_layout()
     # plt.show()
     plt.savefig("X%s.pdf" % run)
+
+    plt.clf()
+    plt.hist(replicas.T[0], bins=15, normed=False)
+    plt.xlabel("#packets in bin")
+    plt.tight_layout()
+    plt.savefig("npackets.pdf")
 
 if __name__ == '__main__':
     plot_estimate(sys.argv[1])

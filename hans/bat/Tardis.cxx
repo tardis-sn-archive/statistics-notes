@@ -13,6 +13,8 @@
 
 #include <H5Cpp.h>
 
+#include <gsl/gsl_poly.h>
+
 #include <cassert>
 #include <cmath>
 #include <iostream>
@@ -20,36 +22,111 @@
 #include <numeric>
 
 using std::cout;
+using std::cerr;
 using std::endl;
 using namespace H5;
 
 namespace
 {
-    inline double logGamma(double x, double alpha, double beta)
-    {
-        return alpha * log(beta) - lgamma(alpha) + (alpha - 1) * log(x) - beta * x;
+
+inline double logGamma(double X, double alpha, double beta)
+{
+    return alpha * log(beta) - lgamma(alpha) + (alpha - 1) * log(X) - beta * X;
+}
+
+inline double logNegativeBinomial(const unsigned N, const unsigned n, const double a)
+{
+    double tmp = N + n - a + 1;
+    return lgamma(tmp) - lgamma(N + 1) - lgamma(n - a + 1) - tmp * std::log(2);
+}
+
+// mathematica output
+#define Power(a, b) std::pow(a, b)
+#define Sqrt(x) std::sqrt(x)
+
+/*
+ * All-very-large approximation
+ */
+double logF(double X, double N, unsigned n, double r, double mean, double var)
+{
+    const double diffn = N - n;
+    const double diffX = X - N * mean;
+    return -log(2 * M_PI) - 0.5 * log(2 * r * N * var)
+    - 0.5 * diffn * diffn / ( 2 * r) - 0.5 * diffX * diffX / (N * var);
+}
+double solveGradient(double X, unsigned n, double r, double mean, double var)
+{
+    /* solve cubic polynomial */
+    // transform to standard form with unit leading coefficient
+    const double a = r * (mean * mean / var - 1);
+    const double c = - r * X * X /var ;
+
+    std::array<double, 3> roots;
+    int nRealRoots = gsl_poly_solve_cubic(a, r, c, &roots[0], &roots[1], &roots[2]);
+    int nPositiveRealRoots = 0;
+
+    std::string msg = Form(" for X=%g, r=%g, mean=%g, var=%g:\n"
+            "%g, %g, %g", X, r, mean, var, roots[0], roots[1], roots[2]);
+
+    if (nRealRoots == 1) {
+        if (roots[0] <= 0)
+            throw std::runtime_error(std::string("Only found negative root") + msg);
+        return roots[0];
     }
 
-    inline double logNegativeBinomial(const unsigned N, const unsigned n, const double a)
-    {
-        double tmp = N + n - a + 1;
-        return lgamma(tmp) - lgamma(N + 1) - lgamma(n - a + 1) - tmp * std::log(2);
+    auto N = -std::numeric_limits<double>::infinity();
+    double maxf = N;
+
+    for (auto& r : roots) {
+        // find positive root
+        if (r > 0) {
+            ++nPositiveRealRoots;
+            double tmp = logF(X, N, n, r, mean, var);
+            cerr << r << " " << tmp << endl;
+            if (std::isnan(tmp))
+                continue;
+            if (tmp > maxf) {
+                maxf = tmp;
+                N = r;
+            }
+        }
     }
+    if (nPositiveRealRoots == 0)
+        throw std::runtime_error(std::string("Found no positive root with ") + msg);
+    if (N < 0)
+        cerr << "Found no valid root, return -inf" << msg << endl;
+
+    if (nPositiveRealRoots > 1)
+        cerr << "Found multiple positive roots for" << msg << endl;
+
+    return N;
+}
+double hessian(double X, double N, double r, double var)
+{
+    return (-Power(N,-2) + 1/r + (2*Power(X,2))/(Power(N,3)*var))/2.;
+}
+
+/** 1D */
+double logLaplace(double logf, double hessianDeterminant)
+{
+    return logf + 0.5 * log(2 * M_PI / hessianDeterminant);
+}
 }
 
 // ---------------------------------------------------------
 Tardis::Tardis(const std::string& name, const std::string& fileName, unsigned run)
-    : BCModel(name),
-      npoints(10),
-      nuMax(0.5),
-      alphaMin(1.0),
-      betaMin(0.0),
-      scale(0.0),
-      evidence(0.0),
-      a(0.5),
-      nuPrediction(-1),
-      XPrediction(-1),
-      NPrediction(0)
+: BCModel(name),
+  npoints(10),
+  nuMax(0.5),
+  alphaMin(1.0),
+  betaMin(0.0),
+  scale(0.0),
+  evidence(0.0),
+  a(0.5),
+  target(Target::Default),
+  nuPrediction(-1),
+  XPrediction(-1),
+  NPrediction(0)
 {
     AddParameter("alpha0",  1, 2, "#alpha_{0}");
     AddParameter("alpha1", -3, 3, "#alpha_{1}");    // GetParameter(1).Fix(0);
@@ -61,12 +138,14 @@ Tardis::Tardis(const std::string& name, const std::string& fileName, unsigned ru
 #endif
 //    AddParameter("alpha4", -30, 30, "#alpha_{4}"); // GetParameter(3).Fix(0);
 
-    order = GetNParameters();
+    orderAlpha = GetNParameters();
 
     AddParameter("beta0",  0, 100, "#beta_{0}");
     AddParameter("beta1", -200, 50, "#beta_{1}");  // GetParameter(order + 1).Fix(0);
 //    AddParameter("beta2",  0, 250, "#beta_{2}"); // GetParameter(order + 2).Fix(0);
     // AddParameter("beta3",  -300, 300, "#beta_{3}"); // GetParameter(order + 3).Fix(0);
+
+    orderBeta = GetNParameters() - orderAlpha;
 
     for (unsigned i = 0; i <= npoints; ++i) {
         double nu =  double(i) * nuMax / npoints;
@@ -168,9 +247,9 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
 #endif
     double res = 0;
 
-    auto alpha_start = parameters.begin();
-    auto split = parameters.begin() + order;
-    auto beta_end = parameters.end();
+//    auto alpha_start = parameters.begin();
+//    auto split = parameters.begin() + order;
+//    auto beta_end = parameters.end();
 
     const unsigned nsamples = samples.size();
     assert(nsamples <= samples.size());
@@ -180,8 +259,8 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
         const auto& s = samples[i];
 
         // alpha(lambda_j)
-        const double alphaj = Polyn(alpha_start, split, s.nu);
-        const double betaj = Polyn(split, beta_end, s.nu);
+        const double alphaj = alphaNu(parameters, s.nu);
+        const double betaj = betaNu(parameters, s.nu);
 
         // use samples to check parameter space for a value inconsistent with prior
         if (alphaj <= alphaMin || betaj <= betaMin)
@@ -209,83 +288,69 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
 // ---------------------------------------------------------
 double Tardis::LogAPrioriProbability(const std::vector<double> & parameters) {
 #if 0
-     // This returns the log of the prior probability for the parameters
-     // If you use built-in 1D priors, don't uncomment this function.
-     cout << "alpha_j = " << std::accumulate(parameters.begin(), parameters.begin() + order, 0) << ", beta_j = " << std::accumulate(parameters.begin() + order, parameters.end(), 0) << endl;
+    // This returns the log of the prior probability for the parameters
+    // If you use built-in 1D priors, don't uncomment this function.
+    cout << "alpha_j = " << std::accumulate(parameters.begin(), parameters.begin() + order, 0) << ", beta_j = " << std::accumulate(parameters.begin() + order, parameters.end(), 0) << endl;
 
-     std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<double>(std::cout, " "));
-     cout << endl;
+    std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<double>(std::cout, " "));
+    cout << endl;
 
-     cout << std::accumulate(parameters.begin(), parameters.begin() + 1, 0.0) << endl;
-     // TODO compute minimum of alpha(nu) for nu in [0,1] and test that it is > 1
-     // alpha > 1
-     if (std::accumulate(parameters.begin(), parameters.begin() + order, 0.0) <= 1.0)
-         return -std::numeric_limits<double>::infinity();
-     // beta > 0
-     if (std::accumulate(parameters.begin() + order, parameters.end(), 0.0) <= 0.0)
-         return -std::numeric_limits<double>::infinity();
+    cout << std::accumulate(parameters.begin(), parameters.begin() + 1, 0.0) << endl;
+    // TODO compute minimum of alpha(nu) for nu in [0,1] and test that it is > 1
+    // alpha > 1
+    if (std::accumulate(parameters.begin(), parameters.begin() + order, 0.0) <= 1.0)
+        return -std::numeric_limits<double>::infinity();
+    // beta > 0
+    if (std::accumulate(parameters.begin() + order, parameters.end(), 0.0) <= 0.0)
+        return -std::numeric_limits<double>::infinity();
 #endif
     constexpr double invalid = -std::numeric_limits<double>::infinity();
     double valid = 0;
 
-     // modify integrand for prediction
-     if (nuPrediction > 0)
-     {
-         const double alpha = Polyn(parameters.begin(), parameters.begin() + order, nuPrediction);
-         const double beta = Polyn(parameters.begin() + order, parameters.end(), nuPrediction);
-         valid = logGamma(XPrediction, NPrediction * alpha, beta);
-     }
+    // modify integrand for prediction
+    const double alpha = alphaNu(parameters, nuPrediction);
+    const double beta = betaNu(parameters, nuPrediction);
+    switch (target) {
+    case Target::NBGamma:
+        NPrediction = parameters.at(orderAlpha + orderBeta);
+        valid += logNegativeBinomial(NPrediction, nPrediction, a);
+    case Target::Gamma:
+        valid += logGamma(XPrediction, NPrediction * alpha, beta);
+        break;
+    default:
+        valid = 0;
+    }
 
-     const double alphaMin = MinPolyn(parameters.begin(), parameters.begin() + order);
-     if (alphaMin <= this->alphaMin)
-         return invalid;
+    const double alphaMin = MinPolyn(parameters.begin(), parameters.begin() + orderAlpha);
+    if (alphaMin <= this->alphaMin)
+        return invalid;
 
-     const double betaMin = MinPolyn(parameters.begin() + order, parameters.end());
-     if (betaMin <= this->betaMin)
-         return invalid;
+    const double betaMin = MinPolyn(parameters.begin() + orderAlpha, parameters.begin() + orderAlpha + orderBeta);
+    if (betaMin <= this->betaMin)
+        return invalid;
 
-     // TODO
-     // default: Jeffreys prior for Gamma shape parameter alpha and scale parameter beta
-     // at some average frequency
-#if 0
-     const double nu = 0.2;
-     double alpha = Polyn(parameters.begin(), parameters.begin() + order, nu);
-     double beta = Polyn(parameters.begin() + order, parameters.end(), nu);
-     return -log(beta) + 0.5 * log(alpha * PolyGamma(alpha) - 1.0);
-#endif
-     // uniform prior
-     return valid;
+    // uniform prior
+    return valid;
 }
 
 void Tardis::CalculateObservables(const std::vector<double>& parameters)
 {
-    auto alpha_begin = parameters.begin();
-    auto split = parameters.begin() + order;
-    auto beta_end = parameters.end();
+//    auto alpha_begin = parameters.begin();
+//    auto split = parameters.begin() + order;
+//    auto beta_end = parameters.end();
 
     // alpha and beta
     for (unsigned i = 0; i <= npoints; ++i) {
         double nu = double(i) * nuMax / npoints;
-        GetObservable(i).Value(Polyn(alpha_begin, split, nu));
-        GetObservable(i + npoints).Value(Polyn(split, beta_end, nu));
+        GetObservable(i).Value(alphaNu(parameters, nu));
+        GetObservable(i + npoints).Value(betaNu(parameters, nu));
     }
 
     double en = 0.01;
     double nu = 0.2;
-    double alpha = Polyn(alpha_begin, split, nu);
-    double beta = Polyn(split, beta_end, nu);
+    double alpha = alphaNu(parameters, nu);
+    double beta = betaNu(parameters, nu);
     GetObservable(GetNObservables() - 1).Value(exp(alpha * log(beta) - lgamma(alpha) + (alpha - 1) * log(en) - beta * en));
-}
-
-double Tardis::Polyn(Vec::const_iterator first, Vec::const_iterator last, const double& nu)
-{
-    double res = 0.;
-    double power = 1.;
-    for (; first != last; ++first) {
-        res += (*first) * power;
-        power *= nu;
-    }
-    return res;
 }
 
 double Tardis::MinPolyn(Vec::const_iterator begin, Vec::const_iterator end)
@@ -376,7 +441,7 @@ void Tardis::PreparePrediction()
 {
     Tardis::Vec v(GetNParameters(), 0.0);
     v[0] = 1.5;
-    v[GetOrder()] = 60;
+    v[orderAlpha] = 60;
 //    SetInitialPositions(v);
 
     FindMode(v);
@@ -419,14 +484,13 @@ bool Tardis::SearchStep(unsigned N, unsigned n, double& res, double precision, s
 
 double Tardis::PredictSmall(unsigned n, double X, double nu, double Xmean, double precision)
 {
-    // fix frequency and X
-    nuPrediction = nu;
-    XPrediction = X;
+    FixPredicted(Target::Gamma, n, X, nu);
 
     // start N at mode of NegativeBinomial if invalid Xmean given
     double guess = floor(n - a + 1);
     if (Xmean > 0)
         guess = X / Xmean;
+//    double guess = X /
 
     unsigned N = std::max(1.0, guess);
     NPrediction = N;
@@ -460,7 +524,59 @@ double Tardis::PredictSmall(unsigned n, double X, double nu, double Xmean, doubl
         --totalN;
     cout << "Total number of calls " << totalN << endl;
 
+    Unfix();
+
     return res / evidence;
+}
+
+double Tardis::PredictMedium(unsigned n, double X, double nu)
+{
+    try {
+        GetParameter("N");
+    } catch (std::out_of_range& e) {
+        // assume optimization over alpha and beta has been done
+        // then add N as a new parameter, optimize again
+        Vec oldMode = GetBestFitParameters();
+
+        AddParameter("N", 0, 1000);
+        oldMode.push_back(n);
+        FindMode(oldMode);
+        evidence = Integrate(BCIntegrate::kIntLaplace);
+    }
+
+    FixPredicted(Target::NBGamma, n, X, nu);
+
+    auto& min = GetMinuit();
+    min.Minimize();
+
+    const double res = Integrate(BCIntegrate::kIntLaplace) / evidence;
+    cout << "Medium res for X = " << X << " = " << res << endl;
+
+    Unfix();
+
+    return res;
+}
+
+double Tardis::PredictVeryLarge(unsigned n, double X, double nu)
+{
+    const double r = n - a + 1;
+
+    const auto & mode = GetBestFitParameters();
+    const double alpha = alphaNu(mode, nu);
+    const double beta = betaNu(mode, nu);
+
+    const double mean = alpha / beta;
+    const double var = mean / beta;
+    const auto N = solveGradient(X, n, r, mean, var);
+
+    const double logF = ::logF(X, N, n, r, mean, var);
+    const double hessianDeterminant = ::hessian(X, N, r, var);
+    const double res = ::logLaplace(logF, hessianDeterminant);
+
+    if (std::isnan(res))
+        return 0.0;
+
+    return std::exp(res);
 }
 
 std::tuple<unsigned, double> Tardis::SumX(double numin, double numax) const

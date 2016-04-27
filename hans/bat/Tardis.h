@@ -10,10 +10,6 @@
 #include <BAT/BCModel.h>
 
 #include <string>
-#include <valarray>
-
-// This is a Tardis header file.
-// Model source code is located in file Tardis/Tardis.cxx
 
 // ---------------------------------------------------------
 class Tardis : public BCModel
@@ -36,9 +32,6 @@ public:
     virtual double LogAPrioriProbability(const std::vector<double> & parameters);
 
     virtual void CalculateObservables(const std::vector<double>& parameters);
-
-    unsigned GetOrder() const
-    { return order; }
 
     /**
      * Multiply the likelihood by this factor to avoid overflows.
@@ -66,39 +59,80 @@ public:
      */
     double PredictSmall(unsigned n, double X, double nu, double Xmean = -1, double precision = 1e-2);
 
+    double PredictMedium(unsigned n, double X, double nu);
+
+    double PredictVeryLarge(unsigned n, double X, double nu);
+
     /**
      * Compute sum of X in frequency bin
      */
     std::tuple<unsigned, double> SumX(double numin, double numax) const;
 
+    /**
+     * Polynomial as a function of nu with coefficients given in range
+     */
+    template <typename T>
+    static double Polyn(T first, T last, const double& nu)
+    {
+        double res = 0.;
+        double power = 1.;
+        for (; first != last; ++first) {
+            res += (*first) * power;
+            power *= nu;
+        }
+        return res;
+    }
+
+    double alphaNu(const Vec& x, const double& nu)
+    {
+        return Polyn(std::begin(x), std::begin(x) + orderAlpha, nu);
+    }
+
+    double betaNu(const Vec& x, const double& nu)
+    {
+        return Polyn(std::begin(x) + orderAlpha, std::begin(x) + orderAlpha + orderBeta, nu);
+    }
+
 private:
+    enum class Target { Default, Gamma, NBGamma };
+
     Vec ReadData(const std::string& fileName, const std::string& dataSet, unsigned run);
 
-    /*
+    /**
      * @param init use as initial position, write back updated results from minimization
      * @return for N posited events and n observed events, check if the contribution to res = sum_N P(X|N) is negligible with latest/ res < precision
 */
     bool SearchStep(unsigned N, unsigned n, double& res, double precision, Vec& init);
 
-    /**
-     * Polynomial as a function of nu with coefficients given in range
-     */
-    double Polyn(Vec::const_iterator begin, Vec::const_iterator end, const double& nu);
-
-    /**
+   /**
      * Minimum of polynomial given by coefficients in range. The argument is assumed to lie in [0,1].
      */
-    double MinPolyn(Vec::const_iterator begin, Vec::const_iterator end);
+    static double MinPolyn(Vec::const_iterator begin, Vec::const_iterator end);
 
     struct Point
     {
          double en, nu;
     };
 
-    std::vector<Point> samples;
-    /* Vec energies, nus; */
+    void FixPredicted(Target target, unsigned n, double X, double nu)
+    {
+        this->target = target;
+        nPrediction = n;
+        XPrediction = X;
+        nuPrediction = nu;
+    }
 
-    unsigned order;
+    void Unfix()
+    {
+        target = Target::Default;
+        nPrediction = 0;
+        XPrediction = -1;
+        nuPrediction = -1;
+    }
+
+    std::vector<Point> samples;
+
+    unsigned orderAlpha, orderBeta;
     const unsigned npoints;
     const double nuMax, alphaMin, betaMin;
     double scale;
@@ -108,8 +142,9 @@ private:
     double a;
 
     ///> prediction
+    Target target;
     double nuPrediction, XPrediction;
-    unsigned NPrediction;
+    unsigned nPrediction, NPrediction;
 };
 // ---------------------------------------------------------
 
