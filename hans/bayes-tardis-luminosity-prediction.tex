@@ -1472,12 +1472,13 @@ parameter space spanned by $n$, $N$, and $m$. %
 
 For large $n$, the cumulative of the Negative Binomial $p(N \cond n)$
 can be approximated by the cumulative of a Gaussian with mean $n$ and
-variance $2 (n - a + 1)$. Intuitively, this variance arises because the
-Poisson variance appears twice, once when observing $n$ and once when
-predicting $N$ given $n$.  The region around $N=n$ yields the dominant
-contribution to the sum over $N$ in \refeq{gmd}. The contribution
-around $N=0$ is then negligible, and we can approximate $\sum_N$ by
-$\int \rmdx{N}$. The density $p(N \cond n) P(X \cond N, \npack, \bmx,
+variance $2 (n - a + 1)$. For our purposes, the variance is $ \approx
+2 n$. The intuitive reason for this value is that the Poisson variance
+appears twice, once when observing $n$ and once when predicting $N$
+given $n$.  The region around $N=n$ yields the dominant contribution
+to the sum over $N$ in \refeq{gmd}. The contribution near $N=0$ is
+then negligible, and we can approximate $\sum_N$ by $\int
+\rmdx{N}$. The density $p(N \cond n) P(X \cond N, \npack, \bmx,
 \bmnu)$ is close to a Gaussian (in the $x$ parametrization) and the
 integral can be accurately approximated by Laplace's method which
 requires the Hessian and the mode.
@@ -1504,8 +1505,6 @@ The central limit theorem states that for large $N$, $P(X \cond N,
 N \, V_\bmphi[X_j \cond \nu])$. The expectation values have no known
 closed-form solutions but we can easily and accurately approximate
 them with Laplace's method.
-% This is true independent of our model
-assumption \refeq{gmi} that $X_j \sim \GammaDist(\alpha, \beta)$.
 %
 \fred{This only helps because the Laplace approx. when combined with
   large $n$ has an analytical result for the mode which saves us
@@ -1527,7 +1526,7 @@ $m \to \infty$, the covariance of the posterior $p(\bmphi \cond
 parameters $\bmphi$ at the posterior mode $\bmphi^*$; i.e., $p(\bmphi
 \cond \npack, \bmx, \bmnu) \to \delta(\bmphi - \bmphi^*)$ which removes the integral in \refeq{gmd}.
 
-\subsubsection*{Large $\bmn, \bmN$,  and very large $\bmm$} \label{large-n-large-m}
+\subsubsection*{Large $\bmn, \bmN$,  and large $\bmm$} \label{large-n-large-m}
 
 With many samples observed in a narrow bin, both $n$ and $m$ are large
 and the dominant contribution to \refeq{gmd} arises from large
