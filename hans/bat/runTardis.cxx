@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
     // static const double numin = 0.018;
     // static const double numax = 0.0185;
     static const double numin = 0.01;
-    static const double numax = 0.02;
+    static const double numax = 0.05;
 
 #if 0
     extractBinX(numin, numax, "X.out");
@@ -49,7 +49,8 @@ int main(int argc, char* argv[])
     BCLog::OpenLog("log.txt", BCLog::detail, BCLog::debug);
 
     // create new Tardis object
-    Tardis m("tardis", "../../posterior/real_tardis_250.h5", run);
+    constexpr unsigned maxElements = 10000;
+    Tardis m("tardis", "../../posterior/real_tardis_250.h5", run, maxElements);
 
     static const double mean = 0.02;
     static const double nu = (numax - numin) / 2.0;
@@ -82,8 +83,10 @@ int main(int argc, char* argv[])
     // P(0) = 0 but leads to numerical break down
     file << 0. << '\t' << 0. << endl;
 
-    for (unsigned i = 1; i <= 2 * n; ++i) {
-        const double X = mean * i;
+    constexpr auto K = 100;
+    auto Xmax = 3.0 * n * mean;
+    for (auto i = 1; i <= K; ++i) {
+        const double X = double(i) / K * Xmax;
 //        const double P = m.PredictSmall(n, X, nu, mean, 5e-3);
         const double P = m.PredictMedium(n, X, nu);
 //        const double P = m.PredictVeryLarge(n, X, nu);

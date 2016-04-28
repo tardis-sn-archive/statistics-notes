@@ -20,7 +20,7 @@ public:
     using Vec = std::vector<double>;
 
     // Constructor
-    Tardis(const std::string& name, const std::string& fileName, unsigned run = 9);
+    Tardis(const std::string& name, const std::string& fileName, unsigned run = 9, unsigned maxElements = 0);
 
     // Destructor
     ~Tardis();
@@ -96,7 +96,7 @@ public:
 private:
     enum class Target { Default, Gamma, NBGamma };
 
-    Vec ReadData(const std::string& fileName, const std::string& dataSet, unsigned run);
+    Vec ReadData(const std::string& fileName, const std::string& dataSet, unsigned run, unsigned maxElements = 0);
 
     /**
      * @param init use as initial position, write back updated results from minimization

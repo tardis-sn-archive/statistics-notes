@@ -114,7 +114,8 @@ double logLaplace(double logf, double hessianDeterminant)
 }
 
 // ---------------------------------------------------------
-Tardis::Tardis(const std::string& name, const std::string& fileName, unsigned run)
+Tardis::Tardis(const std::string& name, const std::string& fileName,
+               unsigned run, unsigned maxElements)
 : BCModel(name),
   npoints(10),
   nuMax(0.5),
@@ -158,8 +159,8 @@ Tardis::Tardis(const std::string& name, const std::string& fileName, unsigned ru
 
     AddObservable("Gamma(0.01|nu=0.2)", 25, 40);
 
-    Vec energies = ReadData(fileName, "energies", run);
-    Vec nus = ReadData(fileName, "nus", run);
+    Vec energies = ReadData(fileName, "energies", run, maxElements);
+    Vec nus = ReadData(fileName, "nus", run, maxElements);
     assert(energies.size() == nus.size());
 
     // remove negative energies
@@ -247,15 +248,8 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
 #endif
     double res = 0;
 
-//    auto alpha_start = parameters.begin();
-//    auto split = parameters.begin() + order;
-//    auto beta_end = parameters.end();
-
-    const unsigned nsamples = samples.size();
-    assert(nsamples <= samples.size());
-
 #pragma omp parallel for reduction(+:res) schedule(static)
-    for (unsigned i = 0; i < nsamples; ++i) {
+    for (unsigned i = 0; i < samples.size(); ++i) {
         const auto& s = samples[i];
 
         // alpha(lambda_j)
@@ -279,7 +273,7 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
         // addition not commutative with floating point
         // change by 50% possible on linear scale if scale added only once
         // => apply part of scale each time to retain precision
-        res += extra + this->scale / nsamples;
+        res += extra + this->scale / samples.size();
     }
 
     return res;
@@ -388,7 +382,8 @@ double Tardis::MinPolyn(Vec::const_iterator begin, Vec::const_iterator end)
     }
 }
 
-Tardis::Vec Tardis::ReadData(const std::string& fileName, const std::string& dataSet, unsigned run)
+Tardis::Vec Tardis::ReadData(const std::string& fileName, const std::string& dataSet,
+                             unsigned run, unsigned maxElements)
 {
     // identify the run of tardis = row in column
 //    static const hsize_t run = 9;
@@ -413,6 +408,9 @@ Tardis::Vec Tardis::ReadData(const std::string& fileName, const std::string& dat
     // read one row from large matrix into 1D array
     static const int rankOut = 1;
     hsize_t N = dims_out[1];
+    if (maxElements > 0)
+        N = std::min(N, hsize_t(maxElements));
+
     std::array<hsize_t, 2> offsetIn = {{ run, 0 }};
     std::array<hsize_t, 2> countIn = {{1, N}};
     dataspace.selectHyperslab(H5S_SELECT_SET, &countIn[0], &offsetIn[0]);
