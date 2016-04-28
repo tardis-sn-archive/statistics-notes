@@ -10,7 +10,7 @@ def plot_estimate(run):
 #     a = np.vstack((np.zeros(2), a))
 
     X = a.T[0]
-    P = a.T[1]
+    P = np.nan_to_num(a.T[1])
 
     # check normalization of pdf using Simpson's rule
     norm = simps(P, X)
