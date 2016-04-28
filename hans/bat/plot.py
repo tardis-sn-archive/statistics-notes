@@ -6,6 +6,8 @@ import sys
 def plot_estimate(run):
     a = np.loadtxt("out%s.txt" % run)
 
+    run = int(run)
+
     # modify data to include the origin
 #     a = np.vstack((np.zeros(2), a))
 
@@ -31,11 +33,14 @@ def plot_estimate(run):
     plt.plot(X, P)
     plt.xlabel("$X$")
     plt.ylabel("$P(X)$")
-    plt.title("Mode = %g\nmean x = %g +- %g" % (mode, mean, stddev))
 
     replicas = np.loadtxt("X.out")
+    print("Observed %d packets and X = %g in run %d" % (replicas[run,0], replicas[run,1], run))
     print("Mean number of packets in bin", replicas.T[0].mean())
     plt.hist(replicas.T[1], bins=15, normed=True)
+    plt.vlines(replicas[run, 1], 0, P.max(), color='red', linestyle='dashed')
+
+    plt.title("Mode = %g\nmean x = %g +- %g\nsample mean %g +- %g" % (mode, mean, stddev, replicas.T[1].mean(), replicas.T[1].std()))
 
     plt.tight_layout()
     # plt.show()

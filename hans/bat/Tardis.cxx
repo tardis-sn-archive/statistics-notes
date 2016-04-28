@@ -147,7 +147,7 @@ Tardis::Tardis(const std::string& name, const std::string& fileName,
     // AddParameter("beta3",  -300, 300, "#beta_{3}"); // GetParameter(order + 3).Fix(0);
 
     orderBeta = GetNParameters() - orderAlpha;
-
+#if 0
     for (unsigned i = 0; i <= npoints; ++i) {
         double nu =  double(i) * nuMax / npoints;
         AddObservable(Form("alpha(%g)",nu), 1, 2,   Form("#alpha(%g)", nu));
@@ -158,7 +158,7 @@ Tardis::Tardis(const std::string& name, const std::string& fileName,
     }
 
     AddObservable("Gamma(0.01|nu=0.2)", 25, 40);
-
+#endif
     Vec energies = ReadData(fileName, "energies", run, maxElements);
     Vec nus = ReadData(fileName, "nus", run, maxElements);
     assert(energies.size() == nus.size());
@@ -536,7 +536,7 @@ double Tardis::PredictMedium(unsigned n, double X, double nu)
         // then add N as a new parameter, optimize again
         Vec oldMode = GetBestFitParameters();
 
-        AddParameter("N", 0, 1000);
+        AddParameter("N", 1, 200);
         oldMode.push_back(n);
         FindMode(oldMode);
         evidence = Integrate(BCIntegrate::kIntLaplace);
@@ -550,7 +550,7 @@ double Tardis::PredictMedium(unsigned n, double X, double nu)
     const double res = Integrate(BCIntegrate::kIntLaplace) / evidence;
     cout << "Medium res for X = " << X << " = " << res << endl;
 
-    Unfix();
+//    Unfix();
 
     return res;
 }

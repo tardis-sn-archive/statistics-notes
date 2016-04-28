@@ -14,11 +14,11 @@
 
 using namespace std;
 
-void extractBinX(double numin, double numax, const std::string& outFile)
+void extractBinX(double numin, double numax, const std::string& outFile, unsigned maxElements)
 {
     std::ofstream file(outFile);
     for (unsigned i = 0; i < 250; ++i) {
-        Tardis m("harr", "../../posterior/real_tardis_250.h5", i);
+        Tardis m("harr", "../../posterior/real_tardis_250.h5", i, maxElements);
         auto res = m.SumX(numin, numax);
         file << std::get<0>(res) << '\t' << std::get<1>(res) << endl;
     }
@@ -30,9 +30,10 @@ int main(int argc, char* argv[])
     // static const double numax = 0.0185;
     static const double numin = 0.01;
     static const double numax = 0.05;
+    constexpr unsigned maxElements = 20000;
 
-#if 0
-    extractBinX(numin, numax, "X.out");
+#if 1
+    extractBinX(numin, numax, "X.out", maxElements);
     return 0;
 #endif
 
@@ -49,7 +50,6 @@ int main(int argc, char* argv[])
     BCLog::OpenLog("log.txt", BCLog::detail, BCLog::debug);
 
     // create new Tardis object
-    constexpr unsigned maxElements = 10000;
     Tardis m("tardis", "../../posterior/real_tardis_250.h5", run, maxElements);
 
     static const double mean = 0.02;
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
      *
      * Hyperthreading gives an improvement of ~15 - 20 % for the single likelihood
      */
-
+#if 1
     m.PreparePrediction();
 
     std::ofstream file(std::string("out") + to_string(run) + ".txt");
@@ -87,13 +87,16 @@ int main(int argc, char* argv[])
     auto Xmax = 3.0 * n * mean;
     for (auto i = 1; i <= K; ++i) {
         const double X = double(i) / K * Xmax;
-//        const double P = m.PredictSmall(n, X, nu, mean, 5e-3);
-        const double P = m.PredictMedium(n, X, nu);
+        const double P = m.PredictSmall(n, X, nu, mean, 0.05);
+//        const double P = m.PredictMedium(n, X, nu);
 //        const double P = m.PredictVeryLarge(n, X, nu);
         file << X << '\t' << P << endl;
     }
-
+#endif
 #if 0
+    m.PreparePrediction();
+    m.PredictMedium(n, n * mean, nu);
+
     // set precision
     m.SetPrecision(BCEngineMCMC::kLow);
     // m.SetProposeMultivariate(false);
@@ -106,14 +109,15 @@ int main(int argc, char* argv[])
    m.SetProposalFunctionDof(-1);
 
     m.SetNIterationsRun(3000);
-
+#if 1
     // clumsy way to set only the parameters but not the observables at the mode
     Tardis::Vec harr(m.GetBestFitParameters().begin(), m.GetBestFitParameters().begin() + m.GetNParameters());
     // BCLog::OutDetail(Form("length %u", harr.size()));
     // BCLog::OutDetail(Form("npar %u", m.GetNParameters()));
-    m.SetInitialPositions(std::vector<double>(m.GetBestFitParameters().begin(), m.GetBestFitParameters().begin() + m.GetNParameters()));
+//    m.SetInitialPositions(std::vector<double>(m.GetBestFitParameters().begin(), m.GetBestFitParameters().begin() + m.GetNParameters()));
+    m.SetInitialPositions(std::vector<double>(m.GetMinuit().X(), m.GetMinuit().X() + m.GetNParameters()));
 //    return 0;
-
+#endif
 //    // run MCMC, marginalizing posterior
     m.MarginalizeAll(BCIntegrate::kMargMetropolis);
 //
