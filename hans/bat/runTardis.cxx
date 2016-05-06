@@ -14,28 +14,52 @@
 
 using namespace std;
 
-void extractBinX(double numin, double numax, const std::string& outFile, unsigned maxElements)
+bool file_exists(const std::string& filename)
 {
-    std::ofstream file(outFile);
-    for (unsigned i = 0; i < 250; ++i) {
-        Tardis m("harr", "../../posterior/real_tardis_250.h5", i, maxElements);
-        auto res = m.SumX(numin, numax);
-        file << std::get<0>(res) << '\t' << std::get<1>(res) << endl;
+    std::ifstream infile(filename);
+    return infile.good();
+}
+
+array<double, 2> extractBinX(double numin, double numax, const std::string& filename, unsigned maxElements)
+{
+    double min = std::numeric_limits<double>::infinity();
+    double max = -min;
+
+    if (file_exists(filename)) {
+        /* read it in */
+        std::ifstream infile(filename);
+        int ninbin, totaln;
+        double X;
+        while (infile >> ninbin >> X >> totaln) {
+            min = std::min(min, X);
+            max = std::max(max, X);
+        }
+    } else {
+        /* compute numbers and write to file */
+        std::ofstream file(filename);
+        for (unsigned i = 0; i < 250; ++i) {
+            Tardis m("harr", "../../posterior/real_tardis_250.h5", i, maxElements);
+            auto res = m.SumX(numin, numax);
+            const auto& X = std::get<1>(res);
+            min = std::min(min, X);
+            max = std::max(max, X);
+            file << std::get<0>(res) << '\t' << X
+                    << '\t' << m.Nsamples() << endl;
+        }
     }
+
+    return array<double, 2>{{min, max}};
 }
 
 int main(int argc, char* argv[])
 {
-    // static const double numin = 0.018;
-    // static const double numax = 0.0185;
-    static const double numin = 0.01;
-    static const double numax = 0.05;
+    constexpr double numin = 0.2;
+    constexpr double numax = 0.3;
     constexpr unsigned maxElements = 20000;
 
-#if 1
-    extractBinX(numin, numax, "X.out", maxElements);
-    return 0;
-#endif
+    std::string outprefix("X" + std::to_string(numin) + "-" + std::to_string(numax));
+    auto minmaxX = extractBinX(numin, numax, outprefix + "_replica.out", maxElements);
+    cout << "min " << get<0>(minmaxX)<< ", max " << get<1>(minmaxX)<< endl;
 
     if (argc < 2) {
         cerr << "Provide run number 0..249!" << endl;
@@ -78,16 +102,25 @@ int main(int argc, char* argv[])
 #if 1
     m.PreparePrediction();
 
-    std::ofstream file(std::string("out") + to_string(run) + ".txt");
+    std::ofstream file(outprefix + "_run" + to_string(run) + ".out");
 
     // P(0) = 0 but leads to numerical break down
     file << 0. << '\t' << 0. << endl;
 
-    constexpr auto K = 100;
-    auto Xmax = 3.0 * n * mean;
+    /* use range of values to define where prediction is needed
+     *
+     * Go from max(0, Xmin - (Xmax-xmin)/2
+     *  */
+
+    // number of points
+    constexpr auto K = 25;
+    const auto DX = (get<1>(minmaxX) - get<0>(minmaxX));
+    const auto Xmin = max(0.0, get<0>(minmaxX) - 0.5 * DX);
+    const auto Xmax = get<1>(minmaxX) + 0.5 * DX;
+    const auto dx = (Xmax - Xmin) / K;
     for (auto i = 1; i <= K; ++i) {
-        const double X = double(i) / K * Xmax;
-        const double P = m.PredictSmall(n, X, nu, mean, 0.05);
+        const double X = Xmin + i * dx;
+        const double P = m.PredictSmall(n, X, nu, mean, 0.01);
 //        const double P = m.PredictMedium(n, X, nu);
 //        const double P = m.PredictVeryLarge(n, X, nu);
         file << X << '\t' << P << endl;

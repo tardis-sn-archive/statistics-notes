@@ -93,6 +93,11 @@ public:
         return Polyn(std::begin(x) + orderAlpha, std::begin(x) + orderAlpha + orderBeta, nu);
     }
 
+    size_t Nsamples() const
+    {
+        return samples.size();
+    }
+
 private:
     enum class Target { Default, Gamma, NBGamma };
 
@@ -101,7 +106,7 @@ private:
     /**
      * @param init use as initial position, write back updated results from minimization
      * @return for N posited events and n observed events, check if the contribution to res = sum_N P(X|N) is negligible with latest/ res < precision
-*/
+     */
     bool SearchStep(unsigned N, unsigned n, double& res, double precision, Vec& init);
 
    /**

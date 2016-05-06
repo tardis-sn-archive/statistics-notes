@@ -189,15 +189,18 @@ Tardis::Tardis(const std::string& name, const std::string& fileName,
 
     auto maxElem = std::max_element(samples.begin(), samples.end(), enOrder);
 
-    const double maxEn = (1 + 1e-6) * maxElem->en;
+    const double maxEn = 1.5e38; // (1 + 1e-6) * maxElem->en;
     const double maxNu = samples.back().nu;
     cout << "Before data transformation" << endl;
-    cout << "Max. energy = " << maxEn << endl;
+    cout << "Max. energy = " << maxElem->en << endl;
     cout << "Max. frequency = " << maxNu << endl;
 
     for (auto& s : samples) {
         s.en = 1.0 - s.en / maxEn;
-        s.nu /= maxNu;
+        // very subtle but important: need a constant independent of
+        // the data here to avoid bias: some simulations have outliers
+        // with very large frequency
+        s.nu /= 1e15;
     }
 
     // frequency sorting maintained but energy flipped => search again
@@ -247,7 +250,7 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
     }
 #endif
     double res = 0;
-
+    const auto invalid = -std::numeric_limits<double>::infinity();
 #pragma omp parallel for reduction(+:res) schedule(static)
     for (unsigned i = 0; i < samples.size(); ++i) {
         const auto& s = samples[i];
@@ -258,17 +261,15 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
 
         // use samples to check parameter space for a value inconsistent with prior
         if (alphaj <= alphaMin || betaj <= betaMin)
-            res = -std::numeric_limits<double>::infinity();
+            res = invalid;
 
         // cout << "alphaj " << alphaj << ", betaj "<< betaj << endl;
 
         const double extra = ::logGamma(s.en, alphaj, betaj);
         if (!std::isfinite(extra)) {
-            cout << "res not finite at " << i << ", nu = " << s.nu << ", x = " << s.en << ", "<< alphaj << ", " << betaj << endl;
-            std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<double>(cout, " " ));
-            cout << endl;
-            throw 2;
+            res = invalid;
         }
+
         // results are different from run to run with more than 2 threads
         // addition not commutative with floating point
         // change by 50% possible on linear scale if scale added only once
