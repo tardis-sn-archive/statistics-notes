@@ -1,0 +1,65 @@
+# List of all class (models) sources used in the program
+# Add classes to the end. Backslash indicates continuation
+# on the next line
+CXXSRCS = Tardis.cxx
+
+# List of all program sources used in the program
+# Add classes to the end. Backslash indicates continuation
+# on the next line
+PRGSRCS = runTardis.cxx
+
+# compiler and flags
+CXX       = h5c++
+# export HDF5_CXX = clang++
+# export HDF5_CXXLINKER = clang++
+OPTIM     = -g -O0
+CXXFLAGS  = $(OPTIM) -Wall -fPIC -Wno-deprecated -fopenmp -Wpedantic -Werror
+LD        = h5++
+LDFLAGS   = $(OPTIM) -fopenmp
+
+# ----------------------------------------------------------------------
+# The following definitions rely on the script bat-config being
+# available in $PATH. If BAT is not installed in the standard system
+# directories, update $PATH accordingly.
+
+CXXFLAGS += $(shell bat-config --cflags)
+LIBS := $(shell bat-config --libs) -lgsl -lgslcblas
+
+# ----------------------------------------------------------------------
+# don't change lines below unless you know what you're doing
+#
+
+CXXOBJS = $(addsuffix .o,$(basename $(CXXSRCS)))
+MYPROGS = $(basename $(PRGSRCS))
+PRGOBJS = $(addsuffix .o,$(basename $(PRGSRCS)))
+
+GARBAGE = $(CXXOBJS) $(PRGOBJS) link.d $(MYPROGS)
+
+# targets
+all : $(MYPROGS)
+
+.PHONY : all clean print
+
+link.d : $(addsuffix .h,$(basename $(CXXSRCS))) $(CXXSRCS) $(PRGSRCS)
+	$(CXX) -MM $(CXXFLAGS) $(filter-out %.h,$^) > link.d;
+	@$(foreach prog,$(MYPROGS), echo $(prog) : $(prog).o >> link.d;)
+#
+-include link.d
+
+$(CXXOBJS) $(PRGOBJS) :
+	$(CXX) $(CXXFLAGS) -c $(filter $(basename $@).%,$(filter-out %.h,$^)) -o $@
+
+$(MYPROGS) : $(CXXOBJS) $(PRGOBJS)
+	$(CXX) $(LDFLAGS) $(PRGOBJS) $(CXXOBJS) $(LIBS) -o $@
+
+clean :
+	rm -f $(GARBAGE)
+
+print :
+	@echo compiler  : $(CXX)
+	@echo c++ srcs  : $(CXXSRCS) $(PRGSRCS)
+	@echo c++ objs  : $(CXXOBJS) $(PRGOBJS)
+	@echo myprogs   : $(MYPROGS)
+	@echo c++ flags : $(CXXFLAGS)
+	@echo ld flags  : $(LDFLAGS)
+	@echo libs      : $(LIBS)
