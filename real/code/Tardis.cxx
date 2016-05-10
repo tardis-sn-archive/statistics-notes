@@ -14,6 +14,8 @@
 #include <H5Cpp.h>
 
 #include <gsl/gsl_poly.h>
+#include <gsl/gsl_multimin.h>
+#include <gsl/gsl_sf_psi.h>
 
 #include <cassert>
 #include <cmath>
@@ -36,7 +38,7 @@ inline double logGamma(double X, double alpha, double beta)
 
 inline double logNegativeBinomial(const unsigned N, const unsigned n, const double a)
 {
-    double tmp = N + n - a + 1;
+    const double tmp = N + n - a + 1;
     return lgamma(tmp) - lgamma(N + 1) - lgamma(n - a + 1) - tmp * std::log(2);
 }
 
@@ -111,8 +113,121 @@ double logLaplace(double logf, double hessianDeterminant)
 {
     return logf + 0.5 * log(2 * M_PI / hessianDeterminant);
 }
+
+
+Tardis& tardis(void* m)
+{
+    return *static_cast<Tardis*>(m);
 }
 
+inline void update_alpha_gradient(const double alpha, const double beta,
+        const double x, const double nu, const double N,
+        gsl_vector* vec, const Tardis& m)
+{
+    double tmp = (log(beta) - gsl_sf_psi(N * alpha) + log(x)) * N;
+    for (auto i = 0; i < m.orderAlpha; ++i) {
+        gsl_vector_set(vec, i, tmp);
+        tmp *= nu;
+    }
+}
+
+inline void update_beta_gradient(const double alpha, const double beta,
+        const double x, const double nu, const double N,
+        gsl_vector* vec, const Tardis& m)
+{
+    double tmp = N * alpha / beta - x;
+    for (auto i = 0; i < m.orderBeta; ++i) {
+        gsl_vector_set(vec, m.orderAlpha + i, tmp);
+        tmp *= nu;
+    }
+}
+
+/*
+ * free standing functions for gsl
+ */
+void log_likelihood_and_gradient(const gsl_vector * x, void *params,
+        double *f, gsl_vector *df)
+{
+    Tardis& m = tardis(params);
+
+    *f = 0;
+    gsl_vector_set_zero(df);
+
+    const auto invalid = -std::numeric_limits<double>::infinity();
+
+#pragma omp parallel for reduction(+:res) schedule(static)
+    for (unsigned n = 0; n < m.samples.size(); ++n) {
+        const auto& s = m.samples[n];
+
+        // alpha(lambda_j)
+        const double alpha_n = m.alphaNu_p(x->data, s.nu);
+        const double beta_n = m.betaNu_p(x->data, s.nu);
+
+        // use samples to check parameter space for a value inconsistent with prior
+        if (alpha_n <= m.alphaMin || beta_n <= m.betaMin)
+            *f = invalid;
+
+        // cout << "alpha_n " << alpha_n << ", beta_n "<< beta_n << endl;
+        const double extra = ::logGamma(s.en, alpha_n, beta_n);
+        // const double extra = ::logGamma(1 - s.en / maxEn, alpha_n, beta_n);
+        if (!std::isfinite(extra)) {
+            *f = invalid;
+        }
+
+        // results are different from run to run with more than 2 threads
+        // addition not commutative with floating point
+        // change by 50% possible on linear scale if scale added only once
+        // => apply part of scale each time to retain precision
+        *f += extra + m.scale / m.samples.size();
+
+        /* gradient (no update of N component) */
+        update_alpha_gradient(alpha_n, beta_n, s.en, s.nu, 1.0, df, m);
+        update_beta_gradient(alpha_n, beta_n, s.en, s.nu, 1.0, df, m);
+    }
+
+    if (m.target == Tardis::Target::Default)
+        return;
+
+    const auto alpha = m.alphaNu_p(x->data, m.nuPrediction);
+    const auto beta = m.betaNu_p(x->data, m.nuPrediction);
+    const auto N = gsl_vector_get(x, m.orderN());
+    const auto& X = m.XPrediction;
+    const auto& nu = m.nuPrediction;
+    const auto& n = m.nPrediction;
+    const auto& a = m.a;
+
+    /* function */
+    *f += logGamma(X, N * alpha, beta);
+
+    /* gradient */
+
+    update_alpha_gradient(alpha, beta, X, nu, N, df, m);
+    update_beta_gradient(alpha, beta, X, nu, N, df, m);
+
+    // N almost the same as alpha_0
+    gsl_vector_set(df, m.orderN(), gsl_vector_get(df, 0) / N * alpha);
+
+    if (m.target == Tardis::Target::Gamma)
+        return;
+
+    /* function */
+    *f += logNegativeBinomial(N, n, a);
+
+    /* gradient (only N) */
+    gsl_vector_set(df, m.orderN(), gsl_sf_psi(N + n -a + 1) - gsl_sf_psi(N + 1) - log(2));
+
+    if (m.target == Tardis::Target::NBGamma)
+        return;
+}
+
+}
+#if 0
+template <>
+double Tardis::alphaNu(const double*& x, const double& nu)
+{
+    return Polyn(&x, &x + orderAlpha, nu);
+}
+#endif
 // ---------------------------------------------------------
 Tardis::Tardis(const std::string& name, const std::string& fileName,
                unsigned run, unsigned maxElements)

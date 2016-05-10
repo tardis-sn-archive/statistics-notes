@@ -10,12 +10,12 @@ PRGSRCS = runTardis.cxx
 
 # compiler and flags
 CXX       = h5c++
-# export HDF5_CXX = clang++
-# export HDF5_CXXLINKER = clang++
-OPTIM     = -g -O0
-CXXFLAGS  = $(OPTIM) -Wall -fPIC -Wno-deprecated -fopenmp -Wpedantic -Werror
+export HDF5_CXX = clang++
+export HDF5_CXXLINKER = clang++
+OPTIM     = -g -O0 # -fopenmp
+CXXFLAGS  = $(OPTIM) -Wall -fPIC -Wno-deprecated -Wpedantic -Werror
 LD        = h5++
-LDFLAGS   = $(OPTIM) -fopenmp
+LDFLAGS   = $(OPTIM)
 
 # ----------------------------------------------------------------------
 # The following definitions rely on the script bat-config being
@@ -23,7 +23,7 @@ LDFLAGS   = $(OPTIM) -fopenmp
 # directories, update $PATH accordingly.
 
 CXXFLAGS += $(shell bat-config --cflags)
-LIBS := $(shell bat-config --libs) -lgsl -lgslcblas
+LIBS := $(shell bat-config --libs) -lgsl -L/usr/lib/openblas-base/ -lopenblas # -lgslcblas
 
 # ----------------------------------------------------------------------
 # don't change lines below unless you know what you're doing

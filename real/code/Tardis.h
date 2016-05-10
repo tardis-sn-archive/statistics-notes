@@ -61,6 +61,11 @@ public:
      */
     std::tuple<unsigned, double> SumX(double numin, double numax) const;
 
+    double * begin(double * const x)
+    {
+        return x;
+    }
+
     /**
      * Polynomial as a function of nu with coefficients given in range
      */
@@ -76,14 +81,28 @@ public:
         return res;
     }
 
-    double alphaNu(const Vec& x, const double& nu)
+    template <typename T>
+    double alphaNu(const T& x, const double& nu)
     {
-        return Polyn(std::begin(x), std::begin(x) + orderAlpha, nu);
+        using std::begin;
+        return Polyn(begin(x), begin(x) + orderAlpha, nu);
     }
 
-    double betaNu(const Vec& x, const double& nu)
+    template <typename T>
+    double betaNu(const T& x, const double& nu)
     {
-        return Polyn(std::begin(x) + orderAlpha, std::begin(x) + orderAlpha + orderBeta, nu);
+        using std::begin;
+        return Polyn(begin(x) + orderAlpha, begin(x) + orderAlpha + orderBeta, nu);
+    }
+
+    double alphaNu_p(double* x, const double& nu)
+    {
+        return Polyn(x, x + orderAlpha, nu);
+    }
+
+    double betaNu_p(double* x, const double& nu)
+    {
+        return Polyn(x + orderAlpha, x + orderAlpha + orderBeta, nu);
     }
 
     size_t Nsamples() const
@@ -101,7 +120,6 @@ public:
         return sum / Nsamples();
     }
 
-private:
     enum class Target { Default, Gamma, NBGamma };
 
     Vec ReadData(const std::string& fileName, const std::string& dataSet, unsigned run, unsigned maxElements = 0);
@@ -136,6 +154,11 @@ private:
         nPrediction = 0;
         XPrediction = -1;
         nuPrediction = -1;
+    }
+
+    unsigned orderN() const
+    {
+        return orderAlpha + orderBeta;
     }
 
     std::vector<Point> samples;
