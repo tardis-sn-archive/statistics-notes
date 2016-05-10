@@ -329,9 +329,9 @@ Tardis::Tardis(const std::string& name, const std::string& fileName,
   NPrediction(0)
 {
     AddParameter("alpha0",  1, 2, "#alpha_{0}");
-    AddParameter("alpha1", -3, 3, "#alpha_{1}");    // GetParameter(1).Fix(0);
-#if 0
-    AddParameter("alpha2", -10, 10, "#alpha_{2}");  // GetParameter(2).Fix(0);
+//    AddParameter("alpha1", -3, 3, "#alpha_{1}");    // GetParameter(1).Fix(0);
+#if 1
+//    AddParameter("alpha2", -10, 10, "#alpha_{2}");  // GetParameter(2).Fix(0);
 #else
     AddParameter("alpha2", -30, 30, "#alpha_{2}");  // GetParameter(2).Fix(0);
     AddParameter("alpha3", -50, 50, "#alpha_{3}");  // GetParameter(3).Fix(0);
@@ -341,7 +341,7 @@ Tardis::Tardis(const std::string& name, const std::string& fileName,
     orderAlpha = GetNParameters();
 
     AddParameter("beta0",  0, 100, "#beta_{0}");
-    AddParameter("beta1", -200, 50, "#beta_{1}");  // GetParameter(order + 1).Fix(0);
+//    AddParameter("beta1", -200, 50, "#beta_{1}");  // GetParameter(order + 1).Fix(0);
 //    AddParameter("beta2",  0, 250, "#beta_{2}"); // GetParameter(order + 2).Fix(0);
     // AddParameter("beta3",  -300, 300, "#beta_{3}"); // GetParameter(order + 3).Fix(0);
 
@@ -732,15 +732,34 @@ void Tardis::minimize_gsl()
     gsl_vector *v = gsl_vector_alloc(ndim);
     gsl_vector_set_zero(v);
 
-    gsl_vector_set(v, 0,  1.60339e+00);
-    gsl_vector_set(v, 1, -1.73325e-01);
-    gsl_vector_set(v, 2, -4.89087e-02);
-    gsl_vector_set(v, 3,  4.73753e-02);
-    gsl_vector_set(v, 4,  7.597191e+01);
-    gsl_vector_set(v, 5, -1.151438e+01);
+    switch (GetNParameters()) {
+    case 2:
+        gsl_vector_set(v, 0,  1.30339e+00);
+        gsl_vector_set(v, 1,  4.597191e+01);
+        break;
+    case 5:
+        gsl_vector_set(v, 0,  1.30339e+00);
+        gsl_vector_set(v, 1, 0);
+        gsl_vector_set(v, 2, 0);
+        gsl_vector_set(v, 3,  6.597191e+01);
+        gsl_vector_set(v, 4, -1.151438e+01);
+        break;
+    case 6:
+        gsl_vector_set(v, 0,  1.60339e+00);
+        gsl_vector_set(v, 1, -1.73325e-01);
+        gsl_vector_set(v, 2, -4.89087e-02);
+        gsl_vector_set(v, 3,  4.73753e-02);
+        gsl_vector_set(v, 4,  7.597191e+01);
+        gsl_vector_set(v, 5, -1.151438e+01);
+        break;
+    default:
+        cout << " Don't know how to initialize GSL." << endl;
+        return;
+        break;
+    }
 
     T = gsl_multimin_fdfminimizer_vector_bfgs2;
-//    T = gsl_multimin_fdfminimizer_conjugate_pr;
+//    T = gsl_multimin_fdfminimizer_conjugate_fr;
     s = gsl_multimin_fdfminimizer_alloc (T, ndim);
 
     gsl_multimin_fdfminimizer_set(s, &my_func, v, 0.1, 1e-4);
