@@ -170,6 +170,7 @@
 \newcommand{\lmax}{\ell_{\rm max}}
 \newcommand{\Lmax}{L_{\rm max}}
 \newcommand{\rmdx}[1]{\mbox{d} #1 \,} % differential
+\newcommand{\firstDeriv}[1]{\frac{\partial}{\partial #1}}
 \newcommand{\secDeriv}[1]{\frac{\partial^2}{\partial #1^2}} % second partial derivative
 \newcommand{\secPartial}[2]{\frac{\partial^2}{\partial #1 \, \partial #2}} % second partial derivative
 
@@ -189,7 +190,33 @@
 
 \section{Example} \label{sec:example}
 
-\subsection{Hessians} \label{sec:hessian}
+\subsection{Gradients} \label{sec:gradients}
+
+\begin{align}
+  \label{eq:grad-posterior}
+  \left( \firstDeriv{\alpha_i}, \firstDeriv{\beta_i} \right) \log P(\bmx \cond \npack, \bmnu, \bmphi) &=
+  \left(
+    \left[ \log \beta - \Psi(\alpha) + \log x \right] \nu^i,
+    \left[ \frac{\alpha}{\beta} - x \right]\nu^i
+  \right)
+\end{align}
+
+\begin{align}
+  \label{eq:grad-prediction}
+  \left( \firstDeriv{\alpha_i}, \firstDeriv{\beta_i}, \firstDeriv{N} \right) \log P(\bmx \cond \npack, \bmnu, \bmphi) &=
+  \left(
+    \left[ \log \beta - \Psi(N \alpha) + \log x \right] N \nu^i,
+    \left[ \frac{N\alpha}{\beta} - x \right]\nu^i,
+    \left[ \log \beta -\Psi(N \alpha) + \log x \right] \alpha
+  \right)
+\end{align}
+
+\begin{align}
+  \label{eq:grad-nb}
+  \firstDeriv{N} \log P(N \cond n) = \Psi(N+n-a=1) - \Psi(N+1) - \log 2
+\end{align}
+
+\subsection{Hessians} \label{sec:hessians}
 
 \begin{align}
   \label{eq:hess-posterior}
@@ -235,8 +262,6 @@ with $\alpha \equiv \alpha(\nu \cond \bmphi), \beta \equiv \beta(\nu \cond \bmph
 \end{align}
 
 \section{Conclusion} \label{sec:conclusion}
-
-
 
 \end{document}
 
