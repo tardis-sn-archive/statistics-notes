@@ -98,7 +98,16 @@ public:
         return samples.size();
     }
 
-private:
+    double mean() const
+    {
+        const double sum = std::accumulate(samples.begin(), samples.end(), 0.0,
+                [](double value, const Point& s1)
+                {
+                    return value + s1.en;
+                });
+        return sum / Nsamples();
+    }
+
     enum class Target { Default, Gamma, NBGamma };
 
     Vec ReadData(const std::string& fileName, const std::string& dataSet, unsigned run, unsigned maxElements = 0);

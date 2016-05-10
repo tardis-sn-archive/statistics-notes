@@ -147,6 +147,7 @@ Tardis::Tardis(const std::string& name, const std::string& fileName,
     // AddParameter("beta3",  -300, 300, "#beta_{3}"); // GetParameter(order + 3).Fix(0);
 
     orderBeta = GetNParameters() - orderAlpha;
+
 #if 0
     for (unsigned i = 0; i <= npoints; ++i) {
         double nu =  double(i) * nuMax / npoints;
@@ -189,25 +190,37 @@ Tardis::Tardis(const std::string& name, const std::string& fileName,
 
     auto maxElem = std::max_element(samples.begin(), samples.end(), enOrder);
 
-    const double maxEn = 1.5e38; // (1 + 1e-6) * maxElem->en;
+    const auto energyScale =  (1 + 1e-6) * maxElem->en; //1e38;
+    const auto frequencyScale = 1e15;
+
     const double maxNu = samples.back().nu;
     cout << "Before data transformation" << endl;
     cout << "Max. energy = " << maxElem->en << endl;
     cout << "Max. frequency = " << maxNu << endl;
 
     for (auto& s : samples) {
-        s.en = 1.0 - s.en / maxEn;
+        // rescale data
+        // s.en /= energyScale;
+        s.en = 1.0 - s.en / energyScale;
         // very subtle but important: need a constant independent of
         // the data here to avoid bias: some simulations have outliers
         // with very large frequency
-        s.nu /= 1e15;
+        s.nu /= frequencyScale;
     }
 
     // frequency sorting maintained but energy flipped => search again
-    cout << "After data transformation" << endl;
+    cout << "After data transformation with frequency scale " << frequencyScale
+            << " and energy scale " << energyScale << endl;
     maxElem = std::max_element(samples.begin(), samples.end(), enOrder);
     cout << "Max. energy = " << maxElem->en << endl;
     cout << "Max. frequency = " << samples.back().nu << endl;
+
+    // set index to the parameter itself and not beyond by one
+    // so param[orderEnmax] works as expected
+    // AddParameter ("maxEn", (1 + 1e-10) * maxElem->en, 1.01 * maxElem->en, "E_{max}");
+    // orderEnmax = GetNParameters() - 1;
+
+    // GetParameter(orderEnmax).Fix((1 + 1e-6) * maxElem->en);
 
 #if 0
     // plot data
@@ -237,20 +250,9 @@ Tardis::~Tardis()
 // ---------------------------------------------------------
 double Tardis::LogLikelihood(const std::vector<double>& parameters)
 {
-#if 0
-    cout << "like: (";
-    std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<double>(cout, ", " ));
-    cout << ")" << endl;
-
-    if (!std::isfinite(parameters.front())) {
-        std::cout << "Got invalid parameter values in likelihood\n";
-        std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<double>(cout, " " ));
-        cout << endl;
-        throw 1;
-    }
-#endif
     double res = 0;
     const auto invalid = -std::numeric_limits<double>::infinity();
+
 #pragma omp parallel for reduction(+:res) schedule(static)
     for (unsigned i = 0; i < samples.size(); ++i) {
         const auto& s = samples[i];
@@ -264,8 +266,8 @@ double Tardis::LogLikelihood(const std::vector<double>& parameters)
             res = invalid;
 
         // cout << "alphaj " << alphaj << ", betaj "<< betaj << endl;
-
         const double extra = ::logGamma(s.en, alphaj, betaj);
+
         if (!std::isfinite(extra)) {
             res = invalid;
         }
@@ -441,7 +443,6 @@ void Tardis::PreparePrediction()
     Tardis::Vec v(GetNParameters(), 0.0);
     v[0] = 1.5;
     v[orderAlpha] = 60;
-//    SetInitialPositions(v);
 
     FindMode(v);
 
@@ -465,7 +466,13 @@ bool Tardis::SearchStep(unsigned N, unsigned n, double& res, double precision, s
     // size are good gives a factor 2-3 in speed
     //    FindMode(GetBestFitParameters());
     auto& min = GetMinuit();
-    min.SetVariableValues(&init[0]);
+    assert(min.NDim() == init.size());
+    assert(GetNParameters() == init.size());
+    // set values manually even though SetVariableValues() exist
+    // but that produces undesired warnings
+    for (unsigned i = 0; i < init.size(); ++i)
+        min.SetVariableValue(i, init[i]);
+
     min.Minimize();
 
     // copy result back
@@ -501,7 +508,6 @@ double Tardis::PredictSmall(unsigned n, double X, double nu, double Xmean, doubl
 
     std::vector<double> initUp(GetBestFitParameters());
     auto initDown = initUp;
-
     SearchStep(N, n, res, precision, initUp);
 
     // continue searching up or down
@@ -536,8 +542,8 @@ double Tardis::PredictMedium(unsigned n, double X, double nu)
         // assume optimization over alpha and beta has been done
         // then add N as a new parameter, optimize again
         Vec oldMode = GetBestFitParameters();
-
-        AddParameter("N", 1, 200);
+        cout << "Adding N with start value " << n << endl;
+        AddParameter("N", 1, 3 * n);
         oldMode.push_back(n);
         FindMode(oldMode);
         evidence = Integrate(BCIntegrate::kIntLaplace);

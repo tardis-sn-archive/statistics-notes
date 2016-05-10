@@ -53,8 +53,8 @@ array<double, 2> extractBinX(double numin, double numax, const std::string& file
 
 int main(int argc, char* argv[])
 {
-    constexpr double numin = 0.2;
-    constexpr double numax = 0.3;
+    constexpr double numin = 0.1;
+    constexpr double numax = 0.2;
     constexpr unsigned maxElements = 20000;
 
     std::string outprefix("X" + std::to_string(numin) + "-" + std::to_string(numax));
@@ -76,8 +76,7 @@ int main(int argc, char* argv[])
     // create new Tardis object
     Tardis m("tardis", "../../posterior/real_tardis_250.h5", run, maxElements);
 
-    static const double mean = 0.02;
-    static const double nu = (numax - numin) / 2.0;
+    constexpr double nu = (numax - numin) / 2.0;
     auto res = m.SumX(numin, numax);
     const unsigned n = std::get<0>(res);
 
@@ -113,14 +112,15 @@ int main(int argc, char* argv[])
      *  */
 
     // number of points
-    constexpr auto K = 25;
+    constexpr auto K = 20;
     const auto DX = (get<1>(minmaxX) - get<0>(minmaxX));
-    const auto Xmin = max(0.0, get<0>(minmaxX) - 0.5 * DX);
-    const auto Xmax = get<1>(minmaxX) + 0.5 * DX;
+    const auto extra = 0.5;
+    const auto Xmin = max(0.0, get<0>(minmaxX) - extra * DX);
+    const auto Xmax = get<1>(minmaxX) + extra * DX;
     const auto dx = (Xmax - Xmin) / K;
     for (auto i = 1; i <= K; ++i) {
         const double X = Xmin + i * dx;
-        const double P = m.PredictSmall(n, X, nu, mean, 0.01);
+        const double P = m.PredictSmall(n, X, nu, m.mean(), 0.01);
 //        const double P = m.PredictMedium(n, X, nu);
 //        const double P = m.PredictVeryLarge(n, X, nu);
         file << X << '\t' << P << endl;

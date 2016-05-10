@@ -47,8 +47,11 @@ def plot_estimate(runfile):
 
     plt.title("mode = %g\nmean x = %g +- %g\nsample mean %g +- %g" % (mode, mean, stddev, replicas.T[1].mean(), replicas.T[1].std()))
 
+    plt.xlim(X[1], X[-1])
+    plt.ylim(0.0)
     plt.tight_layout()
     # plt.show()
+
     plt.savefig(s + ".pdf")
 
     plt.clf()
