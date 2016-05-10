@@ -190,24 +190,28 @@
 
 \section{Example} \label{sec:example}
 
+We use the shorthand $\alpha_n \equiv \alpha(\nu_n \cond \bmphi),
+\beta_n \equiv \beta(\nu_n \cond \bmphi), \alpha \equiv
+\alpha(\nu \cond \bmphi), \beta \equiv \beta(\nu \cond \bmphi)$.
+
 \subsection{Gradients} \label{sec:gradients}
 
 \begin{align}
   \label{eq:grad-posterior}
-  \left( \firstDeriv{\alpha_i}, \firstDeriv{\beta_i} \right) \log P(\bmx \cond \npack, \bmnu, \bmphi) &=
+  \left( \firstDeriv{\alpha_i}, \firstDeriv{\beta_i} \right) \log P(\bmx \cond \alpha, \beta) &=
   \left(
-    \left[ \log \beta - \Psi(\alpha) + \log x \right] \nu^i,
-    \left[ \frac{\alpha}{\beta} - x \right]\nu^i
+    \sum_n \left[ \log \beta_n - \Psi(\alpha_n) + \log x_n \right] \nu_n^i \;,
+    \sum_n \left[ \frac{\alpha_n}{\beta_n} - x_n \right]\nu_n^i
   \right)
 \end{align}
 
 \begin{align}
   \label{eq:grad-prediction}
-  \left( \firstDeriv{\alpha_i}, \firstDeriv{\beta_i}, \firstDeriv{N} \right) \log P(\bmx \cond \npack, \bmnu, \bmphi) &=
+  \left( \firstDeriv{\alpha_i}, \firstDeriv{\beta_i}, \firstDeriv{N} \right) \log P(X \cond N \alpha, \beta)  &=
   \left(
-    \left[ \log \beta - \Psi(N \alpha) + \log x \right] N \nu^i,
-    \left[ \frac{N\alpha}{\beta} - x \right]\nu^i,
-    \left[ \log \beta -\Psi(N \alpha) + \log x \right] \alpha
+    \left[ \log \beta - \Psi(N \alpha) + \log X \right] N \nu^i,
+    \left[ \frac{N\alpha}{\beta} - X \right]\nu^i,
+    \left[ \log \beta -\Psi(N \alpha) + \log X \right] \alpha
   \right)
 \end{align}
 
@@ -220,14 +224,13 @@
 
 \begin{align}
   \label{eq:hess-posterior}
-   &= - \left(
+    - \left(
     \begin{array}{ccc}
       \secPartial{\alpha_i}{\alpha_j} & \secPartial{\alpha_i}{\beta_j}\\
       \dots & \secPartial{\beta_i}{\beta_j}
     \end{array}
-  \right) \log P(\bmx \cond \npack, \bmnu, \bmphi)
-  \\
-  &= \left(
+  \right) \log P(\bmx \cond \alpha, \beta)
+    &= \left(
     \begin{array}{cc}
       \sum_n \Psi'(\alpha_n) \nu_n^{i+j} & -\sum_n \frac{\nu_n^{i+j}}{\beta_n}\\
       \dots & \sum_n \frac{\alpha_n}{\beta_n^2} \nu_n^{i+j}
