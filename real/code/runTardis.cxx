@@ -1,14 +1,4 @@
-// ***************************************************************
-// This file was created using the bat-project script
-// for project Tardis.
-// bat-project is part of Bayesian Analysis Toolkit (BAT).
-// BAT can be downloaded from http://mpp.mpg.de/bat
-// ***************************************************************
-
 #include "Tardis.h"
-
-#include <BAT/BCLog.h>
-#include <BAT/BCAux.h>
 
 #include <fstream>
 
@@ -55,7 +45,7 @@ int main(int argc, char* argv[])
 {
     constexpr double numin = 0.1;
     constexpr double numax = 0.2;
-    constexpr unsigned maxElements = 20000;
+    constexpr unsigned maxElements = 0; // 20000;
 
     std::string outprefix("X" + std::to_string(numin) + "-" + std::to_string(numax));
     auto minmaxX = extractBinX(numin, numax, outprefix + "_replica.out", maxElements);
@@ -67,14 +57,11 @@ int main(int argc, char* argv[])
     }
     int run = stoi(argv[1]);
 
-    // set nicer style for drawing than the ROOT default
-    BCAux::SetStyle();
-
-    // open log file
-    BCLog::OpenLog("log.txt", BCLog::detail, BCLog::debug);
-
     // create new Tardis object
     Tardis m("tardis", "../../posterior/real_tardis_250.h5", run, maxElements);
+
+    m.minimize_gsl();
+    return 0;
 
     constexpr double nu = (numax - numin) / 2.0;
     auto res = m.SumX(numin, numax);
@@ -125,54 +112,6 @@ int main(int argc, char* argv[])
 //        const double P = m.PredictVeryLarge(n, X, nu);
         file << X << '\t' << P << endl;
     }
-#endif
-#if 0
-    m.PreparePrediction();
-    m.PredictMedium(n, n * mean, nu);
-
-    // set precision
-    m.SetPrecision(BCEngineMCMC::kLow);
-    // m.SetProposeMultivariate(false);
-    m.SetMinimumEfficiency(0.15);
-    m.SetMaximumEfficiency(0.40);
-    m.SetNChains(5);
-    m.SetRValueParametersCriterion(1.15);
-//    m.SetInitialPositionScheme(BCEngineMCMC::kInitRandomUniform);
-    m.SetNIterationsPreRunMax(20000);
-   m.SetProposalFunctionDof(-1);
-
-    m.SetNIterationsRun(3000);
-#if 1
-    // clumsy way to set only the parameters but not the observables at the mode
-    Tardis::Vec harr(m.GetBestFitParameters().begin(), m.GetBestFitParameters().begin() + m.GetNParameters());
-    // BCLog::OutDetail(Form("length %u", harr.size()));
-    // BCLog::OutDetail(Form("npar %u", m.GetNParameters()));
-//    m.SetInitialPositions(std::vector<double>(m.GetBestFitParameters().begin(), m.GetBestFitParameters().begin() + m.GetNParameters()));
-    m.SetInitialPositions(std::vector<double>(m.GetMinuit().X(), m.GetMinuit().X() + m.GetNParameters()));
-//    return 0;
-#endif
-//    // run MCMC, marginalizing posterior
-    m.MarginalizeAll(BCIntegrate::kMargMetropolis);
-//
-//    // run mode finding; by default using Minuit
-
-    // draw all marginalized distributions into a PDF file
-    m.PrintAllMarginalized(m.GetSafeName() + "_plots.pdf");
-
-    // print summary plots
-    // m.PrintParameterPlot(m.GetSafeName() + "_parameters.pdf");
-    // m.PrintCorrelationPlot(m.GetSafeName() + "_correlation.pdf");
-    // m.PrintCorrelationMatrix(m.GetSafeName() + "_correlationMatrix.pdf");
-    // m.PrintKnowledgeUpdatePlots(m.GetSafeName() + "_update.pdf");
-
-    // print results of the analysis into a text file
-    m.PrintSummary();
-
-    // close log file
-    BCLog::OutSummary("Exiting");
-    BCLog::CloseLog();
-
-    return 0;
 #endif
 }
 

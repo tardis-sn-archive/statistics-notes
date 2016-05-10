@@ -19,20 +19,12 @@ public:
     ~Tardis();
 
     // Overload LogLikelihood to implement model
-    virtual double LogLikelihood(const std::vector<double>& parameters);
+    virtual double LogLikelihood(const std::vector<double>& parameters)
+    { return 0.0; }
 
     // Overload LogAprioriProbability if not using built-in 1D priors
-    virtual double LogAPrioriProbability(const std::vector<double> & parameters);
-
-    virtual void CalculateObservables(const std::vector<double>& parameters);
-
-    /**
-     * Multiply the likelihood by this factor to avoid overflows.
-     *
-     * @param scale factor on the log(!) scale
-     */
-    void rescale(double scale)
-    { this->scale = scale; }
+    virtual double LogAPrioriProbability(const std::vector<double> & parameters)
+    { return 0.0; }
 
     /**
      * Set state to update the prior such that minuit gets the correct
@@ -56,15 +48,12 @@ public:
 
     double PredictVeryLarge(unsigned n, double X, double nu);
 
+    void minimize_gsl();
+
     /**
      * Compute sum of X in frequency bin
      */
     std::tuple<unsigned, double> SumX(double numin, double numax) const;
-
-    double * begin(double * const x)
-    {
-        return x;
-    }
 
     /**
      * Polynomial as a function of nu with coefficients given in range
@@ -167,7 +156,6 @@ public:
     // unsigned orderEnmax;
     const unsigned npoints;
     const double nuMax, alphaMin, betaMin;
-    double scale;
     double evidence;
 
     // parameter of prior on Poisson parameter

@@ -28,6 +28,8 @@ using std::cerr;
 using std::endl;
 using namespace H5;
 
+// #define USE_TEST_QUADRATIC 1
+
 namespace
 {
 
@@ -124,9 +126,13 @@ inline void update_alpha_gradient(const double alpha, const double beta,
         const double x, const double nu, const double N,
         gsl_vector* vec, const Tardis& m)
 {
-    double tmp = (log(beta) - gsl_sf_psi(N * alpha) + log(x)) * N;
-    for (auto i = 0; i < m.orderAlpha; ++i) {
-        gsl_vector_set(vec, i, tmp);
+//    double tmp = (log(beta) - gsl_sf_psi(N * alpha) + log(x)) * N;
+    double tmp = log(beta);
+    tmp -= gsl_sf_psi(N * alpha);
+    tmp += log(x);
+    tmp *= N;
+    for (auto i = 0u; i < m.orderAlpha; ++i) {
+        vec->data[i] += tmp;
         tmp *= nu;
     }
 }
@@ -136,8 +142,8 @@ inline void update_beta_gradient(const double alpha, const double beta,
         gsl_vector* vec, const Tardis& m)
 {
     double tmp = N * alpha / beta - x;
-    for (auto i = 0; i < m.orderBeta; ++i) {
-        gsl_vector_set(vec, m.orderAlpha + i, tmp);
+    for (auto i = 0u; i < m.orderBeta; ++i) {
+        vec->data[m.orderAlpha + i] += tmp;
         tmp *= nu;
     }
 }
@@ -145,40 +151,74 @@ inline void update_beta_gradient(const double alpha, const double beta,
 /*
  * free standing functions for gsl
  */
-void log_likelihood_and_gradient(const gsl_vector * x, void *params,
+#ifdef USE_TEST_QUADRATIC
+void test_quadratic_and_gradient(const gsl_vector * v, void *,
         double *f, gsl_vector *df)
 {
-    Tardis& m = tardis(params);
+    *f = 0;
+    for (auto i = 0u; i < v->size; ++i) {
+        const double&  x = v->data[i];
+        *f +=  x * x;
+        df->data[i] = 2.0 * x;
+    }
+    cout << "quadratic " << *f << " at ";
+    std::copy(v->data, v->data + v->size, std::ostream_iterator<double>(cout, " "));
+    cout << endl;
+}
+double test_quadratic(const gsl_vector *v, void *)
+{
+    cout << "quadratic called\n";
+    // gradient vector
+    auto df = gsl_vector_alloc(v->size);
+    double res;
+    test_quadratic_and_gradient(v, nullptr, &res, df);
+
+    gsl_vector_free(df);
+    return res;
+}
+
+void
+test_quadratic_gradient(const gsl_vector *v, void *, gsl_vector *df)
+{
+    cout << "quadratic gradient called\n";
+    double res;
+    test_quadratic_and_gradient(v, nullptr, &res, df);
+}
+#endif
+void log_likelihood_and_gradient(const gsl_vector * v, void *model,
+        double *f, gsl_vector *df)
+{
+    Tardis& m = tardis(model);
 
     *f = 0;
     gsl_vector_set_zero(df);
 
     const auto invalid = -std::numeric_limits<double>::infinity();
-
+    double res = 0;
 #pragma omp parallel for reduction(+:res) schedule(static)
     for (unsigned n = 0; n < m.samples.size(); ++n) {
         const auto& s = m.samples[n];
 
         // alpha(lambda_j)
-        const double alpha_n = m.alphaNu_p(x->data, s.nu);
-        const double beta_n = m.betaNu_p(x->data, s.nu);
+        const double alpha_n = m.alphaNu_p(v->data, s.nu);
+        const double beta_n = m.betaNu_p(v->data, s.nu);
 
         // use samples to check parameter space for a value inconsistent with prior
         if (alpha_n <= m.alphaMin || beta_n <= m.betaMin)
-            *f = invalid;
+            res = invalid;
 
         // cout << "alpha_n " << alpha_n << ", beta_n "<< beta_n << endl;
         const double extra = ::logGamma(s.en, alpha_n, beta_n);
         // const double extra = ::logGamma(1 - s.en / maxEn, alpha_n, beta_n);
         if (!std::isfinite(extra)) {
-            *f = invalid;
+            res = invalid;
         }
 
         // results are different from run to run with more than 2 threads
         // addition not commutative with floating point
         // change by 50% possible on linear scale if scale added only once
         // => apply part of scale each time to retain precision
-        *f += extra + m.scale / m.samples.size();
+        res += extra;
 
         /* gradient (no update of N component) */
         update_alpha_gradient(alpha_n, beta_n, s.en, s.nu, 1.0, df, m);
@@ -186,38 +226,83 @@ void log_likelihood_and_gradient(const gsl_vector * x, void *params,
     }
 
     if (m.target == Tardis::Target::Default)
-        return;
+        goto end;
 
-    const auto alpha = m.alphaNu_p(x->data, m.nuPrediction);
-    const auto beta = m.betaNu_p(x->data, m.nuPrediction);
-    const auto N = gsl_vector_get(x, m.orderN());
-    const auto& X = m.XPrediction;
-    const auto& nu = m.nuPrediction;
-    const auto& n = m.nPrediction;
-    const auto& a = m.a;
+    // need a scope to initialize variables with goto above
+    {
+        const auto alpha = m.alphaNu_p(v->data, m.nuPrediction);
+        const auto beta = m.betaNu_p(v->data, m.nuPrediction);
+        const auto N = gsl_vector_get(v, m.orderN());
+        const auto& X = m.XPrediction;
+        const auto& nu = m.nuPrediction;
+        const auto& n = m.nPrediction;
+        const auto& a = m.a;
 
-    /* function */
-    *f += logGamma(X, N * alpha, beta);
+        /* P(X | N alpha, beta) */
 
-    /* gradient */
+        /* function */
+        res += logGamma(X, N * alpha, beta);
 
-    update_alpha_gradient(alpha, beta, X, nu, N, df, m);
-    update_beta_gradient(alpha, beta, X, nu, N, df, m);
+        /* gradient */
 
-    // N almost the same as alpha_0
-    gsl_vector_set(df, m.orderN(), gsl_vector_get(df, 0) / N * alpha);
+        update_alpha_gradient(alpha, beta, X, nu, N, df, m);
+        update_beta_gradient(alpha, beta, X, nu, N, df, m);
 
-    if (m.target == Tardis::Target::Gamma)
-        return;
+        // N almost the same as alpha_0
+        gsl_vector_set(df, m.orderN(), gsl_vector_get(df, 0) / N * alpha);
 
-    /* function */
-    *f += logNegativeBinomial(N, n, a);
+        if (m.target == Tardis::Target::Gamma)
+            goto end;
 
-    /* gradient (only N) */
-    gsl_vector_set(df, m.orderN(), gsl_sf_psi(N + n -a + 1) - gsl_sf_psi(N + 1) - log(2));
 
-    if (m.target == Tardis::Target::NBGamma)
-        return;
+        /* P(N | n) */
+
+        /* function */
+        res += logNegativeBinomial(N, n, a);
+
+        /* gradient (only N) */
+        gsl_vector_set(df, m.orderN(), gsl_sf_psi(N + n -a + 1) - gsl_sf_psi(N + 1) - log(2));
+
+        if (m.target == Tardis::Target::NBGamma)
+            goto end;
+    }
+
+    end:
+    // to minimize, flip definition of function
+    *f = -res;
+    if (std::isfinite(*f))
+        gsl_vector_scale(df, -1);
+    else
+        gsl_vector_set_all(df, *f);
+#if 0
+    cout.precision(15);
+    cout << "-llh = " << *f;
+    cout << " at ( ";
+    for (auto i = 0; i < m.GetNParameters(); ++i)
+        cout << gsl_vector_get(v, i) << " ";
+    cout << ")" << endl;
+    cout << "gradient: ";
+    std::copy(df->data, df->data + df->size, std::ostream_iterator<double>(cout, " "));
+    cout << endl;
+#endif
+}
+
+double log_likelihood(const gsl_vector *v, void *model)
+{
+    // gradient vector
+    auto df = gsl_vector_alloc(v->size);
+    double res;
+    log_likelihood_and_gradient(v, model, &res, df);
+
+    gsl_vector_free(df);
+    return res;
+}
+
+void
+log_likelihood_gradient(const gsl_vector *v, void *model, gsl_vector *df)
+{
+    double res;
+    log_likelihood_and_gradient(v, model, &res, df);
 }
 
 }
@@ -236,7 +321,6 @@ Tardis::Tardis(const std::string& name, const std::string& fileName,
   nuMax(0.5),
   alphaMin(1.0),
   betaMin(0.0),
-  scale(0.0),
   evidence(0.0),
   a(0.5),
   target(Target::Default),
@@ -362,109 +446,6 @@ Tardis::~Tardis()
 {
 }
 
-// ---------------------------------------------------------
-double Tardis::LogLikelihood(const std::vector<double>& parameters)
-{
-    double res = 0;
-    const auto invalid = -std::numeric_limits<double>::infinity();
-    // const auto & maxEn = parameters.at(orderEnmax);
-#pragma omp parallel for reduction(+:res) schedule(static)
-    for (unsigned i = 0; i < samples.size(); ++i) {
-        const auto& s = samples[i];
-
-        // alpha(lambda_j)
-        const double alphaj = alphaNu(parameters, s.nu);
-        const double betaj = betaNu(parameters, s.nu);
-
-        // use samples to check parameter space for a value inconsistent with prior
-        if (alphaj <= alphaMin || betaj <= betaMin)
-            res = invalid;
-
-        // cout << "alphaj " << alphaj << ", betaj "<< betaj << endl;
-        const double extra = ::logGamma(s.en, alphaj, betaj);
-        // const double extra = ::logGamma(1 - s.en / maxEn, alphaj, betaj);
-        if (!std::isfinite(extra)) {
-            res = invalid;
-        }
-
-        // results are different from run to run with more than 2 threads
-        // addition not commutative with floating point
-        // change by 50% possible on linear scale if scale added only once
-        // => apply part of scale each time to retain precision
-        res += extra + this->scale / samples.size();
-    }
-
-    return res;
-}
-
-// ---------------------------------------------------------
-double Tardis::LogAPrioriProbability(const std::vector<double> & parameters) {
-#if 0
-    // This returns the log of the prior probability for the parameters
-    // If you use built-in 1D priors, don't uncomment this function.
-    cout << "alpha_j = " << std::accumulate(parameters.begin(), parameters.begin() + order, 0) << ", beta_j = " << std::accumulate(parameters.begin() + order, parameters.end(), 0) << endl;
-
-    std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<double>(std::cout, " "));
-    cout << endl;
-
-    cout << std::accumulate(parameters.begin(), parameters.begin() + 1, 0.0) << endl;
-    // TODO compute minimum of alpha(nu) for nu in [0,1] and test that it is > 1
-    // alpha > 1
-    if (std::accumulate(parameters.begin(), parameters.begin() + order, 0.0) <= 1.0)
-        return -std::numeric_limits<double>::infinity();
-    // beta > 0
-    if (std::accumulate(parameters.begin() + order, parameters.end(), 0.0) <= 0.0)
-        return -std::numeric_limits<double>::infinity();
-#endif
-    constexpr double invalid = -std::numeric_limits<double>::infinity();
-    double valid = 0;
-
-    // modify integrand for prediction
-    const double alpha = alphaNu(parameters, nuPrediction);
-    const double beta = betaNu(parameters, nuPrediction);
-    switch (target) {
-    case Target::NBGamma:
-        NPrediction = parameters.at(orderAlpha + orderBeta);
-        valid += logNegativeBinomial(NPrediction, nPrediction, a);
-    case Target::Gamma:
-        valid += logGamma(XPrediction, NPrediction * alpha, beta);
-        break;
-    default:
-        valid = 0;
-    }
-
-    const double alphaMin = MinPolyn(parameters.begin(), parameters.begin() + orderAlpha);
-    if (alphaMin <= this->alphaMin)
-        return invalid;
-
-    const double betaMin = MinPolyn(parameters.begin() + orderAlpha, parameters.begin() + orderAlpha + orderBeta);
-    if (betaMin <= this->betaMin)
-        return invalid;
-
-    // uniform prior
-    return valid;
-}
-
-void Tardis::CalculateObservables(const std::vector<double>& parameters)
-{
-//    auto alpha_begin = parameters.begin();
-//    auto split = parameters.begin() + order;
-//    auto beta_end = parameters.end();
-
-    // alpha and beta
-    for (unsigned i = 0; i <= npoints; ++i) {
-        double nu = double(i) * nuMax / npoints;
-        GetObservable(i).Value(alphaNu(parameters, nu));
-        GetObservable(i + npoints).Value(betaNu(parameters, nu));
-    }
-
-    double en = 0.01;
-    double nu = 0.2;
-    double alpha = alphaNu(parameters, nu);
-    double beta = betaNu(parameters, nu);
-    GetObservable(GetNObservables() - 1).Value(exp(alpha * log(beta) - lgamma(alpha) + (alpha - 1) * log(en) - beta * en));
-}
-
 double Tardis::MinPolyn(Vec::const_iterator begin, Vec::const_iterator end)
 {
     const int npar = std::distance(begin, end);
@@ -563,7 +544,7 @@ void Tardis::PreparePrediction()
     FindMode(v);
 
     // change normalization to avoid overflow
-    rescale(-LogEval(GetBestFitParameters()));
+//    rescale(-LogEval(GetBestFitParameters()));
     // running minuit again might after redefining the
     // target density
     FindMode(GetBestFitParameters());
@@ -722,4 +703,84 @@ std::tuple<unsigned, double> Tardis::SumX(double numin, double numax) const
     << "] with X = " << X << endl;
 
     return std::tuple<unsigned, double> {n, X};
+}
+
+void Tardis::minimize_gsl()
+{
+    int iter = 0;
+    int status;
+    unsigned ndim = GetNParameters();
+
+    const gsl_multimin_fdfminimizer_type *T;
+    gsl_multimin_fdfminimizer *s;
+
+    gsl_multimin_function_fdf my_func;
+
+    my_func.n = ndim;
+#ifdef USE_TEST_QUADRATIC
+    my_func.f = test_quadratic;
+    my_func.df = test_quadratic_gradient;
+    my_func.fdf = test_quadratic_and_gradient;
+#else
+    my_func.f = log_likelihood;
+    my_func.df = log_likelihood_gradient;
+    my_func.fdf = log_likelihood_and_gradient;
+#endif
+    my_func.params = this;
+
+    /* Starting point */
+    gsl_vector *v = gsl_vector_alloc(ndim);
+    gsl_vector_set_zero(v);
+
+    gsl_vector_set(v, 0,  1.60339e+00);
+    gsl_vector_set(v, 1, -1.73325e-01);
+    gsl_vector_set(v, 2, -4.89087e-02);
+    gsl_vector_set(v, 3,  4.73753e-02);
+    gsl_vector_set(v, 4,  7.597191e+01);
+    gsl_vector_set(v, 5, -1.151438e+01);
+
+    T = gsl_multimin_fdfminimizer_vector_bfgs2;
+//    T = gsl_multimin_fdfminimizer_conjugate_pr;
+    s = gsl_multimin_fdfminimizer_alloc (T, ndim);
+
+    gsl_multimin_fdfminimizer_set(s, &my_func, v, 0.1, 1e-4);
+    cout.precision(10);
+    double fprevious = std::numeric_limits<double>::infinity();
+    bool done = false;
+    do
+    {
+        ++iter;
+        status = gsl_multimin_fdfminimizer_iterate (s);
+
+        if (status) {
+            cout << "what(): " << gsl_strerror(status) << endl;
+            break;
+        }
+
+//        status = gsl_multimin_test_gradient (s->gradient, 1e-3);
+        if (std::isfinite(s->f)) {
+            if (std::abs((s->f - fprevious) / s->f) < 1e-7) {
+                cout << "Converged\n";
+                done = true;
+            }
+        }
+
+        cout << iter << " " << s->f << " ";
+        for (unsigned i = 0; i < ndim; ++i) {
+            cout << gsl_vector_get(s->x, i) << " ";
+        }
+        cout << endl;
+        cout << "Gradient: ";
+        for (unsigned i = 0; i < ndim; ++i) {
+                    cout << gsl_vector_get(s->gradient, i) << " ";
+                }
+        cout << endl;
+
+        // save result for comparison in next iteration
+        fprevious = s->f;
+    }
+    while (!done && iter < 3000);
+
+    gsl_multimin_fdfminimizer_free (s);
+    gsl_vector_free (v);
 }
