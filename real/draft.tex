@@ -1,0 +1,245 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Bayesian prediction of luminosity distribution based on one simulation run:
+% An example from TARDIS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage[a4paper, left=20mm, right=20mm, top=25mm, bottom=25mm]{geometry}
+\usepackage[numbers]{natbib}
+\usepackage{hyperref}
+\synctex=1
+
+\usepackage[colorinlistoftodos]{todonotes} % Use 'disable' to remove todos in final version
+\newcommand{\fred}[1]{\todo[color=orange!40,inline]{#1}} %
+\newcommand{\checked}{\todo[color=green,noline]{\checkmark}} %
+\newcommand{\checkedl}{\todo[color=brown]{\checkmark}} %
+\newcommand{\hans}[1]{\todo[color=yellow!30,inline]{#1}} %
+\newcommand{\hanslong}[2][]{\todo[%bordercolor=red,
+  color=white,inline,caption={2do}, #1]{
+    \begin{minipage}{\textwidth} #2\end{minipage}}} %
+
+%% CHANGE THIS DATE AS YOU MODIFY THE FILE
+\newcommand{\vdate}{160510}
+\pagestyle{myheadings}
+\markboth{Version \vdate} {Version \vdate}
+\parindent=0mm
+\def\pp{\hfill\par \vspace{\baselineskip}}
+%% \def\pp{}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{bm,amssymb,amsfonts,amsmath}  % bold math symbols, AMStex
+\usepackage{graphicx}    % standard graphics
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\lleq}[1]{\label{#1} }
+% TO REMOVE THE LABEL LETTERS FROM THE EQUATION DISPLAY, COMMENT OUT THIS LINE:
+\renewcommand{\lleq}[1]{\label{#1} {\scriptstyle {\rm (#1)}} \hspace*{2ex} }
+% \renewcommand{\labelenumi}{\arabic{section}.\arabic{subsection}.\arabic{enumi}}
+% \renewcommand{\thesubsubsection}{\arabic{subsubsection}}
+
+\newcounter{mnumi}
+\newenvironment{mnumerate}{
+  \begin{list}{\arabic{mnumi}.}
+    {\usecounter{mnumi} \setlength{\itemsep}{0pt}
+      \setlength{\leftmargin}{3ex}
+    }
+  }
+  {\end{list}}
+
+\newenvironment{mtemize}{
+  \begin{list}{$\bullet$}
+    {\setlength{\itemsep}{0pt}
+     \setlength{\leftmargin}{3ex}
+    }
+  }
+  {\end{list}}
+
+\newcommand{\hmod}  {{\mathcal{H}}}  % Model
+\newcommand{\ldef}{\;{:}{=}\;}
+\newcommand{\rdef}{\;{=}{:}\;}
+\newcommand{\realnumbers}{\mathbb{R}}
+\newcommand{\integers}{\mathbb{Z}}
+\newcommand{\cond}{\,|\,}
+\newcommand{\NBD}{\mathrm{NB}}
+\newcommand{\var}{\mathrm{var}}
+
+\newcommand{\smA}{{\scriptscriptstyle A}}
+\newcommand{\smB}{{\scriptscriptstyle B}}
+\newcommand{\smH}{{\scriptscriptstyle H}}
+\newcommand{\smK}{{\scriptscriptstyle K}}
+\newcommand{\smL}{{\scriptscriptstyle L}}
+\newcommand{\smM}{{\scriptscriptstyle M}}
+\newcommand{\smN}{{\scriptscriptstyle N}}
+\newcommand{\smR}{{\scriptscriptstyle R}}
+
+\newcommand{\smo}{{\scriptscriptstyle 1}}
+\newcommand{\smt}{{\scriptscriptstyle 2}}
+\newcommand{\smr}{{\scriptscriptstyle 3}}
+\newcommand{\smf}{{\scriptscriptstyle 4}}
+\newcommand{\smv}{{\scriptscriptstyle 5}}
+\newcommand{\smx}{{\scriptscriptstyle 6}}
+\newcommand{\sms}{{\scriptscriptstyle 7}}
+\newcommand{\sme}{{\scriptscriptstyle 8}}
+\newcommand{\smn}{{\scriptscriptstyle 9}}
+
+\newcommand{\bma}{{\bm{a}}}
+\newcommand{\bmb}{{\bm{b}}}
+\newcommand{\bmc}{{\bm{c}}}
+\newcommand{\bmd}{{\bm{d}}}
+\newcommand{\bme}{{\bm{e}}}
+\newcommand{\bmf}{{\bm{f}}}
+\newcommand{\bmg}{{\bm{g}}}
+\newcommand{\bmh}{{\bm{h}}}
+\newcommand{\bmi}{{\bm{i}}}
+\newcommand{\bmj}{{\bm{j}}}
+\newcommand{\bmk}{{\bm{k}}}
+\newcommand{\bml}{{\bm{\ell}}}
+\newcommand{\bmm}{{\bm{m}}}
+\newcommand{\bmn}{{\bm{n}}}
+\newcommand{\bmo}{{\bm{o}}}
+\newcommand{\bmp}{{\bm{p}}}
+\newcommand{\bmq}{{\bm{q}}}
+\newcommand{\bmr}{{\bm{r}}}
+\newcommand{\bms}{{\bm{s}}}
+\newcommand{\bmt}{{\bm{t}}}
+\newcommand{\bmu}{{\bm{u}}}
+\newcommand{\bmv}{{\bm{v}}}
+\newcommand{\bmw}{{\bm{w}}}
+\newcommand{\bmx}{{{\bm{x}}}}
+\newcommand{\bmy}{{\bm{y}}}
+\newcommand{\bmz}{{\bm{z}}}
+\newcommand{\bmA}{{\bm{A}}}
+\newcommand{\bmB}{{\bm{B}}}
+\newcommand{\bmC}{{\bm{C}}}
+\newcommand{\bmD}{{\bm{D}}}
+\newcommand{\bmE}{{\bm{E}}}
+\newcommand{\bmF}{{\bm{F}}}
+\newcommand{\bmG}{{\bm{G}}}
+\newcommand{\bmH}{{\bm{H}}}
+\newcommand{\bmI}{{\bm{I}}}
+\newcommand{\bmJ}{{\bm{J}}}
+\newcommand{\bmK}{{\bm{K}}}
+\newcommand{\bmL}{{\bm{L}}}
+\newcommand{\bmM}{{\bm{M}}}
+\newcommand{\bmN}{{\bm{N}}}
+\newcommand{\bmO}{{\bm{O}}}
+\newcommand{\bmP}{{\bm{P}}}
+\newcommand{\bmQ}{{\bm{Q}}}
+\newcommand{\bmR}{{\bm{R}}}
+\newcommand{\bmS}{{\bm{S}}}
+\newcommand{\bmT}{{\bm{T}}}
+\newcommand{\bmU}{{\bm{U}}}
+\newcommand{\bmV}{{\bm{V}}}
+\newcommand{\bmW}{{\bm{W}}}
+\newcommand{\bmX}{{\bm{X}}}
+\newcommand{\bmY}{{\bm{Y}}}
+\newcommand{\bmZ}{{\bm{Z}}}
+
+\newcommand{\bmalpha}{{\bm{\alpha}}}
+\newcommand{\bmbeta}{{\bm{\beta}}}
+\newcommand{\bmchi}{{\bm{\chi}}}
+\newcommand{\bmdelta}{{\bm{\delta}}}
+\newcommand{\bmepsilon}{{\bm{\varepsilon}}}
+\newcommand{\bmphi}{{\bm{\phi}}}
+\newcommand{\bmgamma}{{\bm{\gamma}}}
+\newcommand{\bmeta}{{\bm{\eta}}}
+\newcommand{\bmiota}{{\bm{\iota}}}
+\newcommand{\bmkappa}{{\bm{\kappa}}}
+\newcommand{\bmlambda}{{\bm{\lambda}}}
+\newcommand{\bmmu}{{\bm{\mu}}}
+\newcommand{\bmnu}{{\bm{\nu}}}
+\newcommand{\bmomega}{{\bm{\omega}}}
+\newcommand{\bmpi}{{\bm{\pi}}}
+\newcommand{\bmpsi}{{\bm{\psi}}}
+\newcommand{\bmrho}{{\bm{\rho}}}
+\newcommand{\bmsigma}{{\bm{\sigma}}}
+\newcommand{\bmtau}{{\bm{\tau}}}
+\newcommand{\bmtheta}{{\bm{\theta}}}
+\newcommand{\bmupsilon}{{\bm{\upsilon}}}
+\newcommand{\bmxi}{{\bm{\xi}}}
+\newcommand{\bmzeta}{{\bm{\zeta}}}
+
+\newcommand{\refeq}[1]{Eq.~(\ref{#1})}
+\newcommand{\reffig}[1]{Fig.~\ref{fig:#1}}
+
+\DeclareMathOperator{\GammaDist}{Gamma}
+\newcommand{\Kalpha}{{K_\alpha}}
+\newcommand{\Kbeta}{{K_\beta}}
+\newcommand{\npack}{n_p}
+\newcommand{\lmax}{\ell_{\rm max}}
+\newcommand{\Lmax}{L_{\rm max}}
+\newcommand{\rmdx}[1]{\mbox{d} #1 \,} % differential
+\newcommand{\secDeriv}[1]{\frac{\partial^2}{\partial #1^2}} % second partial derivative
+\newcommand{\secPartial}[2]{\frac{\partial^2}{\partial #1 \, \partial #2}} % second partial derivative
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{center}
+  \textbf{\Large Bayesian prediction of supernova luminosity  distributions}\\[8pt]
+  \textbf{\Large based on simulation output: An example from TARDIS}\\[12pt]
+\end{center}
+
+\textbf{Abstract} TODO\\
+
+\section{Introduction} \label{sec:intro}
+
+\section{Theory} \label{sec:theory}
+
+\section{Example} \label{sec:example}
+
+\subsection{Hessians} \label{sec:hessian}
+
+\begin{align}
+  \label{eq:hess-posterior}
+   &= - \left(
+    \begin{array}{ccc}
+      \secPartial{\alpha_i}{\alpha_j} & \secPartial{\alpha_i}{\beta_j}\\
+      \dots & \secPartial{\beta_i}{\beta_j}
+    \end{array}
+  \right) \log P(\bmx \cond \npack, \bmnu, \bmphi)
+  \\
+  &= \left(
+    \begin{array}{cc}
+      \sum_n \Psi'(\alpha_n) \nu_n^{i+j} & -\sum_n \frac{\nu_n^{i+j}}{\beta_n}\\
+      \dots & \sum_n \frac{\alpha_n}{\beta_n^2} \nu_n^{i+j}
+    \end{array}
+  \right)
+\end{align}
+with $\alpha_n \equiv \alpha(\nu_n \cond \bmphi), \beta_n \equiv \beta(\nu_n \cond \bmphi)$.
+
+\begin{align}
+  \label{eq:hess-prediction}
+  & - \left(
+    \begin{array}{ccc}
+      \secPartial{\alpha_i}{\alpha_j} & \secPartial{\alpha_i}{\beta_j} & \secPartial{\alpha_i}{N}\\
+      \dots & \secPartial{\beta_i}{\beta_j} & \secPartial{\beta_i}{N}\\
+      \dots & \dots & \secDeriv{N}
+    \end{array}
+  \right) \log P(X \cond N \alpha, \beta)
+  \\
+  &=
+  \left(
+    \begin{array}{ccc}
+      N^2 \Psi'(N \alpha) \nu^{i+j} & -\frac{N \nu^{i+j}}{\beta} & \left[ -\log \beta +\Psi(N \alpha) + N \alpha \Psi'(N \alpha) - \log X \right] \nu^{i}\\
+      \dots &  \frac{N\alpha}{\beta^2} \nu^{i+j} & -\frac{\alpha}{\beta} \nu^{i} \\
+      \dots & \dots & \alpha^2 \Psi'(N \alpha)
+    \end{array}
+  \right)
+\end{align}
+with $\alpha \equiv \alpha(\nu \cond \bmphi), \beta \equiv \beta(\nu \cond \bmphi)$.
+\begin{align}
+  \label{eq:hess-nb}
+   - \secDeriv{N} \log P(N \cond n) = \Psi'(N+1) - \Psi'(N+n-a+1)
+\end{align}
+
+\section{Conclusion} \label{sec:conclusion}
+
+
+
+\end{document}
+
+% Local Variables:
+% compile-command:"rubber --pdf -W refs -S draft"
+% End:
