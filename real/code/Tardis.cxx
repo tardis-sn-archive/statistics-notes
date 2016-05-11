@@ -1,4 +1,4 @@
-// ***************************************************************
+n// ***************************************************************
 // This file was created using the bat-project script.
 // bat-project is part of Bayesian Analysis Toolkit (BAT).
 // BAT can be downloaded from http://mpp.mpg.de/bat
@@ -190,6 +190,8 @@ void log_likelihood_and_gradient(const gsl_vector * v, void *model,
 {
     Tardis& m = tardis(model);
 
+    ++m.nCalls;
+
     *f = 0;
     gsl_vector_set_zero(df);
 
@@ -217,7 +219,9 @@ void log_likelihood_and_gradient(const gsl_vector * v, void *model,
         // addition not commutative with floating point
         // change by 50% possible on linear scale if scale added only once
         // => apply part of scale each time to retain precision
-        res += extra;
+        //
+        // use + because function sign flipped at the end
+        res += extra + m.scale / m.samples.size();
 
         /* gradient (no update of N component) */
         update_alpha_gradient(alpha_n, beta_n, s.en, s.nu, 1.0, df, m);
@@ -321,16 +325,18 @@ Tardis::Tardis(const std::string& name, const std::string& fileName,
   alphaMin(1.0),
   betaMin(0.0),
   evidence(0.0),
+  scale(0),
   a(0.5),
   target(Target::Default),
   nuPrediction(-1),
   XPrediction(-1),
-  NPrediction(0)
+  NPrediction(0),
+  nCalls(0)
 {
     AddParameter("alpha0",  1, 2, "#alpha_{0}");
-//    AddParameter("alpha1", -3, 3, "#alpha_{1}");    // GetParameter(1).Fix(0);
-#if 1
-//    AddParameter("alpha2", -10, 10, "#alpha_{2}");  // GetParameter(2).Fix(0);
+    AddParameter("alpha1", -3, 3, "#alpha_{1}");    // GetParameter(1).Fix(0);
+#if 0
+    AddParameter("alpha2", -10, 10, "#alpha_{2}");  // GetParameter(2).Fix(0);
 #else
     AddParameter("alpha2", -30, 30, "#alpha_{2}");  // GetParameter(2).Fix(0);
     AddParameter("alpha3", -50, 50, "#alpha_{3}");  // GetParameter(3).Fix(0);
@@ -340,7 +346,7 @@ Tardis::Tardis(const std::string& name, const std::string& fileName,
     orderAlpha = GetNParameters();
 
     AddParameter("beta0",  0, 100, "#beta_{0}");
-//    AddParameter("beta1", -200, 50, "#beta_{1}");  // GetParameter(order + 1).Fix(0);
+    AddParameter("beta1", -200, 50, "#beta_{1}");  // GetParameter(order + 1).Fix(0);
 //    AddParameter("beta2",  0, 250, "#beta_{2}"); // GetParameter(order + 2).Fix(0);
     // AddParameter("beta3",  -300, 300, "#beta_{3}"); // GetParameter(order + 3).Fix(0);
 
@@ -704,6 +710,15 @@ std::tuple<unsigned, double> Tardis::SumX(double numin, double numax) const
     return std::tuple<unsigned, double> {n, X};
 }
 
+#define GSL_USE_GRADIENT 1
+#ifdef GSL_USE_GRADIENT
+#define GSL_MINIMIZER(a) gsl_multimin_fdfminimizer_##a
+#define GSL_FVAL f
+#else
+#define GSL_MINIMIZER(a) gsl_multimin_fminimizer_##a
+#define GSL_FVAL fval
+#endif
+
 void Tardis::minimize_gsl()
 {
     int iter = 0;
@@ -711,71 +726,107 @@ void Tardis::minimize_gsl()
     const unsigned ndim = GetNParameters();
     cout << "npar " << GetNParameters() << endl;
 
-    const gsl_multimin_fdfminimizer_type *T;
-    gsl_multimin_fdfminimizer *s;
-
-    gsl_multimin_function_fdf my_func;
-
-    my_func.n = ndim;
-#ifdef USE_TEST_QUADRATIC
-    my_func.f = test_quadratic;
-    my_func.df = test_quadratic_gradient;
-    my_func.fdf = test_quadratic_and_gradient;
-#else
-    my_func.f = log_likelihood;
-    my_func.df = log_likelihood_gradient;
-    my_func.fdf = log_likelihood_and_gradient;
-#endif
-    my_func.params = this;
-
     /* Starting point */
     gsl_vector *v = gsl_vector_alloc(ndim);
     gsl_vector_set_zero(v);
 
     switch (GetNParameters()) {
     case 2:
-        gsl_vector_set(v, 0,  1.450339e+00);
-        gsl_vector_set(v, 1,  6.17191e+01);
+        gsl_vector_set(v, 0,  1.5);
+        gsl_vector_set(v, 1,  60);
+        break;
+    case 3:
+        gsl_vector_set(v, 0,  1.40339e+00);
+        gsl_vector_set(v, 1,  73.17191);
+        gsl_vector_set(v, 2, -12);
         break;
     case 5:
-        gsl_vector_set(v, 0,  1.30339e+00);
-        gsl_vector_set(v, 1, 0);
-        gsl_vector_set(v, 2, 0);
-        gsl_vector_set(v, 3,  6.597191e+01);
-        gsl_vector_set(v, 4, -1.151438e+01);
+        gsl_vector_set(v, 0,  1.60339e+00);
+        gsl_vector_set(v, 1, -0.2);
+        gsl_vector_set(v, 2, 0.06);
+        gsl_vector_set(v, 3,  7.697191e+01);
+        gsl_vector_set(v, 4, -1.51438e+01);
         break;
     case 6:
-        gsl_vector_set(v, 0,  1.60339e+00);
-        gsl_vector_set(v, 1, -1.73325e-01);
-        gsl_vector_set(v, 2, -4.89087e-02);
-        gsl_vector_set(v, 3,  4.73753e-02);
-        gsl_vector_set(v, 4,  7.597191e+01);
-        gsl_vector_set(v, 5, -1.151438e+01);
+//        gsl_vector_set(v, 0,  1.60339e+00);
+//        gsl_vector_set(v, 1, -1.73325e-01);
+//        gsl_vector_set(v, 2, -4.89087e-02);
+//        gsl_vector_set(v, 3,  4.73753e-02);
+//        gsl_vector_set(v, 4,  7.597191e+01);
+//        gsl_vector_set(v, 5, -1.151438e+01);
+
+        gsl_vector_set(v, 0,  1.594126373);
+        gsl_vector_set(v, 1, -0.07717623456);
+        gsl_vector_set(v, 2, -0.0530217244);
+        gsl_vector_set(v, 3,  0.04413941909);
+        gsl_vector_set(v, 4,  75.98334373);
+        gsl_vector_set(v, 5, -11.5331007);
+
+//        gsl_vector_set_zero(v);
+//        gsl_vector_set(v, 0,  1.60339e+00);
+//        gsl_vector_set(v, 4,  7.597191e+01);
         break;
     default:
         cout << " Don't know how to initialize GSL." << endl;
         return;
         break;
     }
+#ifdef GSL_USE_GRADIENT
+    gsl_multimin_function_fdf my_func;
+#else
+    gsl_multimin_function my_func;
+#endif
 
-    // T = gsl_multimin_fdfminimizer_vector_bfgs2;
-   T = gsl_multimin_fdfminimizer_conjugate_fr;
-    s = gsl_multimin_fdfminimizer_alloc (T, ndim);
-    cout << "npar " << GetNParameters()
-         << " ndim " << ndim
-         << " v->size " << v->size <<  endl;
+    my_func.n = ndim;
+    my_func.f = log_likelihood;
+    my_func.params = this;
+#ifdef GSL_USE_GRADIENT
+    my_func.df = log_likelihood_gradient;
+    my_func.fdf = log_likelihood_and_gradient;
+#endif
+
+#ifdef GSL_USE_GRADIENT
+    const GSL_MINIMIZER(type) *T = GSL_MINIMIZER(vector_bfgs2);
+    //        const GSL_MINIMIZER(type) *T = GSL_MINIMIZER(conjugate_fr);
+    gsl_multimin_fdfminimizer *s;
+#else
+    const GSL_MINIMIZER(type) *T = GSL_MINIMIZER(nmsimplex2);
+    gsl_multimin_fminimizer *s;
+#endif
+
+    // rescale to smaller numbers
+    {
+        double f = my_func.f(v, this);
+        if (std::isfinite(f)) {
+            scale = f;
+            cout << "scale " << scale << endl;
+            f = my_func.f(v, this);
+            cout << f << endl;
+        }
+    }
+
+    s = GSL_MINIMIZER(alloc) (T, ndim);
     cout << "Initializing minimizer with ";
     std::copy(v->data, v->data + ndim, std::ostream_iterator<double>(cout, " "));
     cout << endl;
+#ifdef GSL_USE_GRADIENT
+    GSL_MINIMIZER(set)(s, &my_func, v, 0.1, 1e-3);
+#else
+    gsl_vector *stepsizes = gsl_vector_alloc(ndim);
+    gsl_vector_set_all(stepsizes, 0.1);
+    GSL_MINIMIZER(set)(s, &my_func, v, stepsizes);
+#endif
 
-    gsl_multimin_fdfminimizer_set(s, &my_func, v, 0.1, 1e-3);
+    // prepare loop
     cout.precision(10);
     double fprevious = std::numeric_limits<double>::infinity();
+    nCalls = 0;
+    unsigned nCallsPrevious = 0;
     bool done = false;
     do
     {
         ++iter;
-        status = gsl_multimin_fdfminimizer_iterate (s);
+        status = GSL_MINIMIZER(iterate) (s);
 
         if (status) {
             cout << "what(): " << gsl_strerror(status) << endl;
@@ -783,29 +834,36 @@ void Tardis::minimize_gsl()
         }
 
 //        status = gsl_multimin_test_gradient (s->gradient, 1e-3);
-        if (std::isfinite(s->f)) {
-            if (std::abs((s->f - fprevious) / s->f) < 1e-7) {
-                cout << "Converged\n";
+#if GSL_USE_GRADIENT
+        if (std::isfinite(s->GSL_FVAL) &&  (std::abs((s->GSL_FVAL - fprevious) / s->GSL_FVAL) < 1e-5)) {
+#else
+            const double size = gsl_multimin_fminimizer_size (s);
+            status = gsl_multimin_test_size (size, 1e-2);
+            if (status == GSL_SUCCESS) {
+#endif
+                cout << "Converged with " << nCalls << " calls" << endl;
                 done = true;
             }
-        }
 
-        cout << iter << " " << s->f << " ";
+        cout << iter << " " << "nCalls " << nCalls - nCallsPrevious
+                << " " << s->GSL_FVAL << " ";
         for (unsigned i = 0; i < ndim; ++i) {
             cout << gsl_vector_get(s->x, i) << " ";
         }
         cout << endl;
+#if GSL_USE_GRADIENT
         cout << "Gradient: ";
         for (unsigned i = 0; i < ndim; ++i) {
                     cout << gsl_vector_get(s->gradient, i) << " ";
                 }
         cout << endl;
-
+#endif
         // save result for comparison in next iteration
-        fprevious = s->f;
+        fprevious = s->GSL_FVAL;
+        nCallsPrevious = nCalls;
     }
     while (!done && iter < 3000);
 
-    gsl_multimin_fdfminimizer_free (s);
+    GSL_MINIMIZER(free) (s);
     gsl_vector_free (v);
 }

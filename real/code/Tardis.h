@@ -158,6 +158,8 @@ public:
     const double nuMax, alphaMin, betaMin;
     double evidence;
 
+    double scale;
+
     // parameter of prior on Poisson parameter
     double a;
 
@@ -165,5 +167,8 @@ public:
     Target target;
     double nuPrediction, XPrediction;
     unsigned nPrediction, NPrediction;
+
+    ///> optimization stats
+    unsigned nCalls;
 };
 // ---------------------------------------------------------
