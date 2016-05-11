@@ -210,9 +210,8 @@ void log_likelihood_and_gradient(const gsl_vector * v, void *model,
         // cout << "alpha_n " << alpha_n << ", beta_n "<< beta_n << endl;
         const double extra = ::logGamma(s.en, alpha_n, beta_n);
         // const double extra = ::logGamma(1 - s.en / maxEn, alpha_n, beta_n);
-        if (!std::isfinite(extra)) {
+        if (!std::isfinite(extra))
             res = invalid;
-        }
 
         // results are different from run to run with more than 2 threads
         // addition not commutative with floating point
@@ -249,7 +248,7 @@ void log_likelihood_and_gradient(const gsl_vector * v, void *model,
         update_beta_gradient(alpha, beta, X, nu, N, df, m);
 
         // N almost the same as alpha_0
-        gsl_vector_set(df, m.orderN(), gsl_vector_get(df, 0) / N * alpha);
+        df->data[m.orderN()] += (log(beta) - gsl_sf_psi(N * alpha) + log(X)) * alpha;
 
         if (m.target == Tardis::Target::Gamma)
             goto end;
@@ -261,7 +260,7 @@ void log_likelihood_and_gradient(const gsl_vector * v, void *model,
         res += logNegativeBinomial(N, n, a);
 
         /* gradient (only N) */
-        gsl_vector_set(df, m.orderN(), gsl_sf_psi(N + n -a + 1) - gsl_sf_psi(N + 1) - log(2));
+        df->data[m.orderN()] += gsl_sf_psi(N + n -a + 1) - gsl_sf_psi(N + 1) - log(2);
 
         if (m.target == Tardis::Target::NBGamma)
             goto end;
@@ -709,7 +708,8 @@ void Tardis::minimize_gsl()
 {
     int iter = 0;
     int status;
-    unsigned ndim = GetNParameters();
+    const unsigned ndim = GetNParameters();
+    cout << "npar " << GetNParameters() << endl;
 
     const gsl_multimin_fdfminimizer_type *T;
     gsl_multimin_fdfminimizer *s;
@@ -734,8 +734,8 @@ void Tardis::minimize_gsl()
 
     switch (GetNParameters()) {
     case 2:
-        gsl_vector_set(v, 0,  1.30339e+00);
-        gsl_vector_set(v, 1,  4.597191e+01);
+        gsl_vector_set(v, 0,  1.450339e+00);
+        gsl_vector_set(v, 1,  6.17191e+01);
         break;
     case 5:
         gsl_vector_set(v, 0,  1.30339e+00);
@@ -758,11 +758,17 @@ void Tardis::minimize_gsl()
         break;
     }
 
-    T = gsl_multimin_fdfminimizer_vector_bfgs2;
-//    T = gsl_multimin_fdfminimizer_conjugate_fr;
+    // T = gsl_multimin_fdfminimizer_vector_bfgs2;
+   T = gsl_multimin_fdfminimizer_conjugate_fr;
     s = gsl_multimin_fdfminimizer_alloc (T, ndim);
+    cout << "npar " << GetNParameters()
+         << " ndim " << ndim
+         << " v->size " << v->size <<  endl;
+    cout << "Initializing minimizer with ";
+    std::copy(v->data, v->data + ndim, std::ostream_iterator<double>(cout, " "));
+    cout << endl;
 
-    gsl_multimin_fdfminimizer_set(s, &my_func, v, 0.1, 1e-4);
+    gsl_multimin_fdfminimizer_set(s, &my_func, v, 0.1, 1e-3);
     cout.precision(10);
     double fprevious = std::numeric_limits<double>::infinity();
     bool done = false;
