@@ -13,6 +13,7 @@
 
 #include <H5Cpp.h>
 
+#include <gsl/gsl_linalg.h>
 #include <gsl/gsl_poly.h>
 #include <gsl/gsl_sf_psi.h>
 
@@ -29,14 +30,25 @@ using namespace H5;
 
 // #define USE_TEST_QUADRATIC 1
 
-namespace
-{
-
 std::ostream& operator<<(std::ostream& out, gsl_vector* v)
 {
     std::copy(v->data, v->data + v->size, std::ostream_iterator<double>(out, " "));
     return out;
 }
+
+std::ostream& operator<<(std::ostream& out, gsl_matrix* m)
+{
+    for (unsigned i=0; i < m->size1; ++i) {
+        for (unsigned j=0; j < m->size2; ++j) {
+            out << std::scientific << std::showpos <<  gsl_matrix_get(m, i, j) << '\t';
+        }
+        out << '\n';
+    }
+    return out;
+}
+
+namespace
+{
 
 inline double logGamma(double X, double alpha, double beta)
 {
@@ -340,7 +352,7 @@ Tardis::Tardis(const std::string& name, const std::string& fileName,
 {
     AddParameter("alpha0",  1, 2, "#alpha_{0}");
     AddParameter("alpha1", -3, 3, "#alpha_{1}");    // GetParameter(1).Fix(0);
-#if 0
+#if 1
     AddParameter("alpha2", -10, 10, "#alpha_{2}");  // GetParameter(2).Fix(0);
 #else
     AddParameter("alpha2", -30, 30, "#alpha_{2}");  // GetParameter(2).Fix(0);
@@ -746,9 +758,9 @@ gsl_vector* Tardis::initialValue() const
         gsl_vector_set(v, 3,  7.697191e+01);
         gsl_vector_set(v, 4, -1.51438e+01);
 
-        gsl_vector_set_zero(v);
-        gsl_vector_set(v, 0,  1.5);
-        gsl_vector_set(v, 3,  60);
+//        gsl_vector_set_zero(v);
+//        gsl_vector_set(v, 0,  1.5);
+//        gsl_vector_set(v, 3,  60);
 break;
     case 6:
 //        gsl_vector_set(v, 0,  1.60339e+00);
@@ -760,7 +772,7 @@ break;
 
         gsl_vector_set(v, 0,  1.594126373);
         gsl_vector_set(v, 1, -0.07717623456);
-        gsl_vector_set(v, 2, -0.0530217244);
+        gsl_vector_set(v, 2, -0.0130217244);
         gsl_vector_set(v, 3,  0.04413941909);
         gsl_vector_set(v, 4,  75.98334373);
         gsl_vector_set(v, 5, -15.5331007);
@@ -840,7 +852,6 @@ gsl_multimin_fminimizer* Tardis::minimizeSimplex(const double eps, const unsigne
         const double size = gsl_multimin_fminimizer_size (s);
         status = gsl_multimin_test_size(size, eps);
         if (status == GSL_SUCCESS) {
-            cout << "Converged with " << nCalls << " calls" << endl;
             done = true;
         }
 
@@ -855,6 +866,9 @@ gsl_multimin_fminimizer* Tardis::minimizeSimplex(const double eps, const unsigne
         nCallsPrevious = nCalls;
     }
     while (!done && iter < niter);
+
+    cout << (done ? "Converged" : "Failed to converge")
+            << " with " << nCalls << " calls" << endl;
 
 //    gsl_multimin_fminimizer_free(s);
     gsl_vector_free(stepsizes);
@@ -907,7 +921,6 @@ gsl_multimin_fdfminimizer* Tardis::minimizeLBFGS(gsl_vector* v, const double eps
         //        if (std::isfinite(s->f) &&  (std::abs((s->f - fprevious) / s->f) < 1e-5)) {
         status = gsl_multimin_test_gradient (s->gradient, eps);
         if (status == GSL_SUCCESS) {
-            cout << "Converged with " << nCalls << " calls" << endl;
             done = true;
         }
 
@@ -920,8 +933,154 @@ gsl_multimin_fdfminimizer* Tardis::minimizeLBFGS(gsl_vector* v, const double eps
     }
     while (!done && iter < niter);
 
+    cout << (done ? "Converged" : "Failed to converge")
+            << " with " << nCalls << " calls" << endl;
+
     if (deletev)
         gsl_vector_free(v);
 
     return s;
+}
+
+template <typename T>
+void fill_powers(T first, T last, const double nu)
+{
+    std::fill(first, last, nu);
+    std::partial_sum(first, last, first, std::multiplies<double>());
+}
+
+void Tardis::updateBlocks(gsl_matrix* m, std::vector<double>& powers,
+        const double nu,
+        const double alpha, const double beta, const double N)
+{
+    fill_powers(powers.begin() + 1, powers.end(), nu);
+
+    // alpha block
+    double tmp = N * N * gsl_sf_psi_1(N * alpha);
+    for (unsigned i = 0; i < orderAlpha; ++i) {
+        for (unsigned j = i; j < orderAlpha; ++j) {
+            m->data[i * m->tda + j] += tmp * powers[i + j];
+        }
+    }
+
+    // beta block
+    tmp = N * alpha / (beta * beta);
+    for (unsigned i = 0; i < orderBeta; ++i) {
+        for (unsigned j = i; j < orderBeta; ++j) {
+            m->data[(i + orderAlpha) * m->tda + orderAlpha + j] += tmp * powers[i + j];
+        }
+    }
+
+    // cross terms: rectangular submatrix
+    tmp = - N / beta;
+    for (unsigned i = 0; i < orderAlpha; ++i) {
+        for (unsigned j = 0; j < orderBeta; ++j) {
+            m->data[i * m->tda + orderAlpha + j] += tmp * powers[i+j];
+        }
+    }
+}
+
+gsl_matrix* Tardis::hessian(gsl_vector* v)
+{
+    auto m = gsl_matrix_alloc(v->size, v->size);
+    gsl_matrix_set_zero(m);
+
+    // precompute powers of nu: first element always nu^0 = 1
+    std::vector<double> powers(2 * std::max(orderAlpha - 1, orderBeta - 1) + 1, 1.0);
+
+    for (unsigned n = 0; n < samples.size(); ++n) {
+        const auto& s = samples[n];
+        const double alpha_n = alphaNu_p(v->data, s.nu);
+        const double beta_n = betaNu_p(v->data, s.nu);
+
+        /* modify only upper triangle */
+        updateBlocks(m, powers, s.nu, alpha_n, beta_n, 1.0);
+    }
+    if (target == Tardis::Target::Default)
+        goto end;
+
+    // need a scope to initialize variables with goto above
+    {
+        const auto alpha = alphaNu_p(v->data, nuPrediction);
+        const auto beta = betaNu_p(v->data, nuPrediction);
+        const auto N = gsl_vector_get(v, orderN());
+        const auto& X = XPrediction;
+        const auto& nu = nuPrediction;
+        const auto& n = nPrediction;
+
+        /* P(X | N alpha, beta) */
+        updateBlocks(m, powers, nu, alpha, beta, N);
+
+        // set instead of +=
+        double tmp = -log(beta) + gsl_sf_psi(N * alpha) + N * alpha * gsl_sf_psi_1(N * alpha) - log(X);
+        for (unsigned i = 0; i < orderAlpha; ++i)
+            gsl_matrix_set(m, i, orderN(), tmp * powers[i]);
+
+        tmp = -alpha / beta;
+        for (unsigned i = 0; i < orderBeta; ++i)
+            gsl_matrix_set(m, orderAlpha + i, orderN(), tmp * powers[i]);
+
+        gsl_matrix_set(m, orderN(), orderN(), alpha * alpha * gsl_sf_psi_1(N * alpha));
+
+        if (target == Tardis::Target::Gamma)
+            goto end;
+
+
+        /* P(N | n) */
+
+        m->data[orderN() * m->tda + orderN()] += gsl_sf_psi_1(N + 1) - gsl_sf_psi_1(N + n - a + 1);
+
+        if (target == Tardis::Target::NBGamma)
+            goto end;
+    }
+
+
+    end:
+    // make matrix symmetric: copy upper triangular part to lower triangle
+    for (unsigned i=0; i < m->size1; ++i) {
+        for (unsigned j=0; j < i; ++j) {
+            m->data[i * m->tda + j] = m->data[j * m->tda + i];
+        }
+    }
+
+    return m;
+}
+
+double Tardis::logdet(gsl_matrix* hessian)
+{
+    const auto & ndim = hessian->size1;
+    assert(ndim == hessian->size2);
+    // cholesky decomp of hessian in place => copy before
+    gsl_matrix* chol = gsl_matrix_alloc(ndim, ndim);
+    gsl_matrix_memcpy(chol, hessian);
+    // todo check status
+    int status = gsl_linalg_cholesky_decomp(chol);
+
+    double log_det = 0.0;
+    for (unsigned i = 0; i < ndim; ++i)
+        log_det += log(gsl_matrix_get(chol, i, i));
+
+    gsl_matrix_free(chol);
+    // log det of Cholesky is only half the determinant of the hessian
+    return 2.0 * log_det;
+}
+
+double Tardis::Laplace(gsl_vector* v)
+{
+    // compute function, undo sign flip within log_likelihood
+    auto logf = -log_likelihood(v, this);
+
+    // hessian
+    auto H = hessian(v);
+
+    // get determinant
+    auto ldet = logdet(H);
+    gsl_matrix_free(H);
+
+    return logf + 0.5 * GetNParameters() * log(2. * M_PI) - 0.5 * ldet;
+}
+
+double Tardis::logtarget(gsl_vector* v)
+{
+    return log_likelihood(v, this);
 }

@@ -61,11 +61,13 @@ int main(int argc, char* argv[])
     // create new Tardis object
     Tardis m("tardis", "../../posterior/real_tardis_250.h5", run, maxElements);
 
-    m.setScale();
-    unique_ptr<gsl_multimin_fminimizer> v(m.minimizeSimplex(1e-3, 300));
-    std::copy(v->x->data, v->x->data + v->x->size, std::ostream_iterator<double>(cout, " "));
-    cout << endl;
-    unique_ptr<gsl_multimin_fdfminimizer> v2(m.minimizeLBFGS(v->x, 1e-1, 500));
+//    m.setScale();
+    unique_ptr<gsl_multimin_fminimizer> v(m.minimizeSimplex());
+    unique_ptr<gsl_multimin_fdfminimizer> v2(m.minimizeLBFGS(v->x));
+    auto mode = v2->x;
+    cout << "Mode " << mode << endl;
+    cout << "Laplace " << m.Laplace(mode) << endl;
+
     return 0;
 
     constexpr double nu = (numax - numin) / 2.0;
@@ -83,7 +85,7 @@ int main(int argc, char* argv[])
      * the likelihood increases from 36266 to 45117.  The reason may
      * be that jumping from left side to right side of mode in N
      * changes the parameters a lot so minuit has to search longer
-     * based on the previous point. When the search is only in on
+     * based on the previous point. When the search is only in one
      * direction, the modes don't change very much.
      *
      * Running minuit from the last mode in that search direction gives the best overall result with 33749 calls but more debug output.

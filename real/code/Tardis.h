@@ -54,9 +54,8 @@ public:
     void setScale(gsl_vector* v = nullptr);
     gsl_vector* initialValue() const;
     gsl_vector* stepSizes() const;
-    gsl_multimin_fminimizer* minimizeSimplex(const double eps = 1e-2, const unsigned niter=100);
-    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_vector* initial, const double eps = 1e-2, const unsigned niter=200);
-    void minimize_gsl();
+    gsl_multimin_fminimizer* minimizeSimplex(const double eps = 1e-3, const unsigned niter=150);
+    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_vector* initial, const double eps = 0.5, const unsigned niter=100);
 
     /**
      * Compute sum of X in frequency bin
@@ -116,6 +115,16 @@ public:
                 });
         return sum / Nsamples();
     }
+
+    void updateBlocks(gsl_matrix* m, std::vector<double>& powers,
+            const double nu,
+            const double alpha, const double beta, const double N);
+    double logtarget(gsl_vector* v);
+    gsl_matrix* hessian(gsl_vector* v);
+    double logdet(gsl_matrix*);
+
+    /// on log scale
+    double Laplace(gsl_vector* v);
 
     enum class Target { Default, Gamma, NBGamma };
 
@@ -180,3 +189,5 @@ public:
     unsigned nCalls;
 };
 // ---------------------------------------------------------
+std::ostream& operator<<(std::ostream&, gsl_vector*);
+std::ostream& operator<<(std::ostream&, gsl_matrix*);
