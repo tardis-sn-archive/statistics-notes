@@ -1,6 +1,7 @@
 #include "Tardis.h"
 
 #include <fstream>
+#include <memory>
 
 using namespace std;
 
@@ -60,7 +61,11 @@ int main(int argc, char* argv[])
     // create new Tardis object
     Tardis m("tardis", "../../posterior/real_tardis_250.h5", run, maxElements);
 
-    m.minimize_gsl();
+    m.setScale();
+    unique_ptr<gsl_multimin_fminimizer> v(m.minimizeSimplex(1e-3, 300));
+    std::copy(v->x->data, v->x->data + v->x->size, std::ostream_iterator<double>(cout, " "));
+    cout << endl;
+    unique_ptr<gsl_multimin_fdfminimizer> v2(m.minimizeLBFGS(v->x, 1e-1, 500));
     return 0;
 
     constexpr double nu = (numax - numin) / 2.0;

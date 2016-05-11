@@ -2,6 +2,9 @@
 
 #include <BAT/BCModel.h>
 
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_multimin.h>
+
 #include <string>
 
 // ---------------------------------------------------------
@@ -48,6 +51,11 @@ public:
 
     double PredictVeryLarge(unsigned n, double X, double nu);
 
+    void setScale(gsl_vector* v = nullptr);
+    gsl_vector* initialValue() const;
+    gsl_vector* stepSizes() const;
+    gsl_multimin_fminimizer* minimizeSimplex(const double eps = 1e-2, const unsigned niter=100);
+    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_vector* initial, const double eps = 1e-2, const unsigned niter=200);
     void minimize_gsl();
 
     /**
