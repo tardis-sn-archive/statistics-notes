@@ -33,7 +33,7 @@ public:
      * Set state to update the prior such that minuit gets the correct
      * target density for prediction and compute the evidence.
      */
-    void PreparePrediction();
+    gsl_vector* PreparePrediction();
 
     /**
      * Predict X for small n at a given nu (=bin center).
@@ -47,15 +47,15 @@ public:
      */
     double PredictSmall(unsigned n, double X, double nu, double Xmean = -1, double precision = 1e-2);
 
-    double PredictMedium(unsigned n, double X, double nu);
+    double PredictMedium(gsl_vector* oldMode, unsigned n, double X, double nu);
 
     double PredictVeryLarge(unsigned n, double X, double nu);
 
     void setScale(gsl_vector* v = nullptr);
     gsl_vector* initialValue() const;
     gsl_vector* stepSizes() const;
-    gsl_multimin_fminimizer* minimizeSimplex(const double eps = 1e-3, const unsigned niter=150);
-    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_vector* initial, const double eps = 0.5, const unsigned niter=100);
+    gsl_multimin_fminimizer* minimizeSimplex(gsl_vector* initial = nullptr, const double eps = 1e-3, const unsigned niter=150);
+    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_vector* initial = nullptr, const double eps = 0.5, const unsigned niter=100);
 
     /**
      * Compute sum of X in frequency bin
@@ -125,6 +125,7 @@ public:
 
     /// on log scale
     double Laplace(gsl_vector* v);
+    double Laplace(gsl_vector* v, const double logf);
 
     enum class Target { Default, Gamma, NBGamma };
 

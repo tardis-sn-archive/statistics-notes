@@ -556,21 +556,23 @@ Tardis::Vec Tardis::ReadData(const std::string& fileName, const std::string& dat
     return buffer;
 }
 
-void Tardis::PreparePrediction()
+template<typename T>
+using deleted_unique_ptr = std::unique_ptr<T, void(*)(T*)>;
+
+gsl_vector* Tardis::PreparePrediction()
 {
-    Tardis::Vec v(GetNParameters(), 0.0);
-    v[0] = 1.5;
-    v[orderAlpha] = 60;
-    // v.at(orderEnmax) = GetParameter(orderEnmax).GetLowerLimit();
+    // custom deleter for a unique pointer
+    deleted_unique_ptr<gsl_multimin_fminimizer> v(minimizeSimplex(), &gsl_multimin_fminimizer_free);
+    deleted_unique_ptr<gsl_multimin_fdfminimizer> v2(minimizeLBFGS(v->x), &gsl_multimin_fdfminimizer_free);
 
-    FindMode(v);
+    gsl_vector* mode = gsl_vector_alloc(v2->x->size);
+    gsl_vector_memcpy(mode, v2->x);
 
-    // change normalization to avoid overflow
-//    rescale(-LogEval(GetBestFitParameters()));
-    // running minuit again might after redefining the
-    // target density
-    FindMode(GetBestFitParameters());
-    evidence = Integrate(BCIntegrate::kIntLaplace);
+    cout << "Mode " << mode << endl;
+    evidence = Laplace(mode);
+    cout << "Laplace approx. of the log evidence " << evidence << endl;
+
+    return mode;
 }
 
 bool Tardis::SearchStep(unsigned N, unsigned n, double& res, double precision, std::vector<double>& init)
@@ -654,23 +656,42 @@ double Tardis::PredictSmall(unsigned n, double X, double nu, double Xmean, doubl
     return res / evidence;
 }
 
-double Tardis::PredictMedium(unsigned n, double X, double nu)
+double Tardis::PredictMedium(gsl_vector* oldMode, unsigned n, double X, double nu)
 {
     try {
         GetParameter("N");
     } catch (std::out_of_range& e) {
         // assume optimization over alpha and beta has been done
         // then add N as a new parameter, optimize again
-        Vec oldMode = GetBestFitParameters();
         cout << "Adding N with start value " << n << endl;
         AddParameter("N", 1, 3 * n);
-        oldMode.push_back(n);
+        auto mode = gsl_vector_alloc(GetNParameters());
+        for (unsigned i = 0; i < oldMode->size; ++i)
+            gsl_vector_set(mode, i , gsl_vector_get(oldMode, i));
+        gsl_vector_set(mode, mode->size - 1, n);
+
+        // old mode obsolete, reassign pointer
+        gsl_vector_free(oldMode);
+        oldMode = mode;
+#if 0
         FindMode(oldMode);
         evidence = Integrate(BCIntegrate::kIntLaplace);
+#endif
     }
 
     FixPredicted(Target::NBGamma, n, X, nu);
 
+    deleted_unique_ptr<gsl_multimin_fminimizer> res1(minimizeSimplex(oldMode, 300), &gsl_multimin_fminimizer_free);
+    deleted_unique_ptr<gsl_multimin_fdfminimizer> res(minimizeLBFGS(res1->x), &gsl_multimin_fdfminimizer_free);
+
+    // copy mode to return it
+    gsl_vector_memcpy(oldMode, res->x);
+
+    auto integral = Laplace(res->x, -res->f);
+//    auto integral = Laplace(res->x, -res->fval);
+
+    return integral - evidence;
+#if 0
     auto& min = GetMinuit();
     min.Minimize();
 
@@ -678,8 +699,8 @@ double Tardis::PredictMedium(unsigned n, double X, double nu)
     cout << "Medium res for X = " << X << " = " << res << endl;
 
 //    Unfix();
-
     return res;
+#endif
 }
 
 double Tardis::PredictVeryLarge(unsigned n, double X, double nu)
@@ -812,7 +833,7 @@ void Tardis::setScale(gsl_vector* v)
         gsl_vector_free(v);
 }
 
-gsl_multimin_fminimizer* Tardis::minimizeSimplex(const double eps, const unsigned niter)
+gsl_multimin_fminimizer* Tardis::minimizeSimplex(gsl_vector* v, const double eps, const unsigned niter)
 {
     unsigned iter = 0;
     int status;
@@ -826,7 +847,10 @@ gsl_multimin_fminimizer* Tardis::minimizeSimplex(const double eps, const unsigne
     gsl_multimin_fminimizer *s;
 
     // Starting point
-    auto v = initialValue();
+    bool deletev = !v;
+    if (deletev)
+        v = initialValue();
+    assert(v->size == ndim);
 
     s = gsl_multimin_fminimizer_alloc(T, ndim);
     cout << "Initializing simplex with " << v << endl;
@@ -872,7 +896,8 @@ gsl_multimin_fminimizer* Tardis::minimizeSimplex(const double eps, const unsigne
 
 //    gsl_multimin_fminimizer_free(s);
     gsl_vector_free(stepsizes);
-    gsl_vector_free(v);
+    if (deletev)
+        gsl_vector_free(v);
 
     return s;
 }
@@ -1069,7 +1094,11 @@ double Tardis::Laplace(gsl_vector* v)
 {
     // compute function, undo sign flip within log_likelihood
     auto logf = -log_likelihood(v, this);
+    return Laplace(v, logf);
+}
 
+double Tardis::Laplace(gsl_vector* v, const double logf)
+{
     // hessian
     auto H = hessian(v);
 

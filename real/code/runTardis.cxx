@@ -61,15 +61,6 @@ int main(int argc, char* argv[])
     // create new Tardis object
     Tardis m("tardis", "../../posterior/real_tardis_250.h5", run, maxElements);
 
-//    m.setScale();
-    unique_ptr<gsl_multimin_fminimizer> v(m.minimizeSimplex());
-    unique_ptr<gsl_multimin_fdfminimizer> v2(m.minimizeLBFGS(v->x));
-    auto mode = v2->x;
-    cout << "Mode " << mode << endl;
-    cout << "Laplace " << m.Laplace(mode) << endl;
-
-    return 0;
-
     constexpr double nu = (numax - numin) / 2.0;
     auto res = m.SumX(numin, numax);
     const unsigned n = std::get<0>(res);
@@ -93,7 +84,7 @@ int main(int argc, char* argv[])
      * Hyperthreading gives an improvement of ~15 - 20 % for the single likelihood
      */
 #if 1
-    m.PreparePrediction();
+    auto mode = m.PreparePrediction();
 
     std::ofstream file(outprefix + "_run" + to_string(run) + ".out");
 
@@ -114,8 +105,8 @@ int main(int argc, char* argv[])
     const auto dx = (Xmax - Xmin) / K;
     for (auto i = 1; i <= K; ++i) {
         const double X = Xmin + i * dx;
-        const double P = m.PredictSmall(n, X, nu, m.mean(), 0.01);
-//        const double P = m.PredictMedium(n, X, nu);
+//        const double P = m.PredictSmall(n, X, nu, m.mean(), 0.01);
+        const double P = m.PredictMedium(mode, n, X, nu);
 //        const double P = m.PredictVeryLarge(n, X, nu);
         file << X << '\t' << P << endl;
     }
