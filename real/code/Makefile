@@ -17,7 +17,7 @@ CXX       = h5c++
 OPTIM     = -g -O0
 #OPTIM     = -O3 -ffast-math -fopenmp
 
-CXXFLAGS  = $(OPTIM) -Wall -fPIC -Wno-deprecated -Wpedantic # -Werror
+CXXFLAGS  = $(OPTIM) -fPIC -Wall -Wextra -Wpedantic -Wno-deprecated # -Wconversion -Wno-sign-conversion  -Werror
 LD        = h5++
 LDFLAGS   = $(OPTIM)
 
@@ -27,7 +27,7 @@ LDFLAGS   = $(OPTIM)
 # directories, update $PATH accordingly.
 
 CXXFLAGS += $(shell bat-config --cflags)
-LIBS := $(shell bat-config --libs) -lgsl -lgslcblas #  -L/usr/lib/openblas-base/ -lopenblas
+LIBS := $(shell bat-config --libs) -lMinuit2 -lgsl -lgslcblas #  -L/usr/lib/openblas-base/ -lopenblas
 
 # ----------------------------------------------------------------------
 # don't change lines below unless you know what you're doing

@@ -22,11 +22,11 @@ public:
     ~Tardis();
 
     // Overload LogLikelihood to implement model
-    virtual double LogLikelihood(const std::vector<double>& parameters)
+    virtual double LogLikelihood(const std::vector<double>&)
     { return 0.0; }
 
     // Overload LogAprioriProbability if not using built-in 1D priors
-    virtual double LogAPrioriProbability(const std::vector<double> & parameters)
+    virtual double LogAPrioriProbability(const std::vector<double>&)
     { return 0.0; }
 
     /**
@@ -53,9 +53,33 @@ public:
 
     void setScale(gsl_vector* v = nullptr);
     gsl_vector* initialValue() const;
-    gsl_vector* stepSizes() const;
-    gsl_multimin_fminimizer* minimizeSimplex(gsl_vector* initial = nullptr, const double eps = 1e-3, const unsigned niter=150);
-    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_vector* initial = nullptr, const double eps = 0.5, const unsigned niter=100);
+    gsl_vector* stepSizes(const unsigned ndim) const;
+
+    class OptimOptions
+    {
+    public:
+        static OptimOptions DefaultSimplex();
+        static OptimOptions DefaultLBFGS();
+        double eps, step_size, tol;
+        unsigned iter_min, iter_max;
+    private:
+        OptimOptions(double eps,  double step_size, double tol,
+                unsigned iter_min, unsigned iter_max);
+    };
+
+    gsl_multimin_fminimizer* minimizeSimplex(gsl_multimin_function, gsl_vector* initial, OptimOptions o);
+    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_multimin_function_fdf, gsl_vector* initial, OptimOptions o);
+
+    gsl_multimin_fminimizer* minimizeSimplex(gsl_vector* initial, OptimOptions o);
+    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_vector* initial, OptimOptions o);
+
+    gsl_multimin_fminimizer* minimizeSimplex(gsl_vector* initial = nullptr);
+    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_vector* initial = nullptr);
+
+
+    void minimizeMinuit(const std::vector<double>&);
+
+    void fitnb();
 
     /**
      * Compute sum of X in frequency bin

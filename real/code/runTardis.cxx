@@ -65,6 +65,10 @@ int main(int argc, char* argv[])
     auto res = m.SumX(numin, numax);
     const unsigned n = std::get<0>(res);
 
+    m.fitnb();
+    m.minimizeMinuit(std::vector<double>{1.});
+    return 0;
+
     //    double X = std::get<1>(res);
 
 
@@ -84,7 +88,10 @@ int main(int argc, char* argv[])
      * Hyperthreading gives an improvement of ~15 - 20 % for the single likelihood
      */
 #if 1
-    auto mode = m.PreparePrediction();
+//    auto mode = m.PreparePrediction();
+    auto mode = gsl_vector_alloc(5);
+    std::vector<double> vecmode {1.69318195, -0.2316184245, 0.06850367375, 78.41164031, -14.9692865};
+    std::copy(vecmode.begin(), vecmode.end(), mode->data);
 
     std::ofstream file(outprefix + "_run" + to_string(run) + ".out");
 
@@ -97,7 +104,7 @@ int main(int argc, char* argv[])
      *  */
 
     // number of points
-    constexpr auto K = 20;
+    constexpr auto K = 1;
     const auto DX = (get<1>(minmaxX) - get<0>(minmaxX));
     const auto extra = 0.5;
     const auto Xmin = max(0.0, get<0>(minmaxX) - extra * DX);
