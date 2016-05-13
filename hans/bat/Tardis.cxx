@@ -34,7 +34,7 @@ inline double logGamma(double X, double alpha, double beta)
     return alpha * log(beta) - lgamma(alpha) + (alpha - 1) * log(X) - beta * X;
 }
 
-inline double logNegativeBinomial(const unsigned N, const unsigned n, const double a)
+inline double logNegativeBinomial(const double N, const unsigned n, const double a)
 {
     double tmp = N + n - a + 1;
     return lgamma(tmp) - lgamma(N + 1) - lgamma(n - a + 1) - tmp * std::log(2);

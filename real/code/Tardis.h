@@ -1,33 +1,25 @@
 #pragma once
 
-#include <BAT/BCModel.h>
+#include <Minuit2/MnUserParameters.h>
+#include <Minuit2/FunctionMinimum.h>
 
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multimin.h>
 
 #include <string>
+#include <vector>
 
-// ---------------------------------------------------------
-class Tardis : public BCModel
+class Tardis
 {
-
 public:
     /* using Vec = std::valarray<double>; */
     using Vec = std::vector<double>;
 
     // Constructor
-    Tardis(const std::string& name, const std::string& fileName, unsigned run = 9, unsigned maxElements = 0);
+    Tardis(const std::string& fileName, unsigned run = 9, unsigned maxElements = 0);
 
     // Destructor
     ~Tardis();
-
-    // Overload LogLikelihood to implement model
-    virtual double LogLikelihood(const std::vector<double>&)
-    { return 0.0; }
-
-    // Overload LogAprioriProbability if not using built-in 1D priors
-    virtual double LogAPrioriProbability(const std::vector<double>&)
-    { return 0.0; }
 
     /**
      * Set state to update the prior such that minuit gets the correct
@@ -60,6 +52,7 @@ public:
     public:
         static OptimOptions DefaultSimplex();
         static OptimOptions DefaultLBFGS();
+        static OptimOptions DefaultMinuit();
         double eps, step_size, tol;
         unsigned iter_min, iter_max;
     private:
@@ -70,14 +63,14 @@ public:
     gsl_multimin_fminimizer* minimizeSimplex(gsl_multimin_function, gsl_vector* initial, OptimOptions o);
     gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_multimin_function_fdf, gsl_vector* initial, OptimOptions o);
 
-    gsl_multimin_fminimizer* minimizeSimplex(gsl_vector* initial, OptimOptions o);
-    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_vector* initial, OptimOptions o);
+    gsl_multimin_fminimizer* minimizeSimplex(gsl_vector* initial, OptimOptions);
+    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_vector* initial, OptimOptions);
 
     gsl_multimin_fminimizer* minimizeSimplex(gsl_vector* initial = nullptr);
     gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_vector* initial = nullptr);
 
-
-    void minimizeMinuit(const std::vector<double>&);
+    ROOT::Minuit2::FunctionMinimum minimizeMinuit(std::vector<double> initial = {},
+            OptimOptions = OptimOptions::DefaultMinuit());
 
     void fitnb();
 
@@ -130,16 +123,7 @@ public:
         return samples.size();
     }
 
-    double mean() const
-    {
-        const double sum = std::accumulate(samples.begin(), samples.end(), 0.0,
-                [](double value, const Point& s1)
-                {
-                    return value + s1.en;
-                });
-        return sum / Nsamples();
-    }
-
+    double mean() const;
     void updateBlocks(gsl_matrix* m, std::vector<double>& powers,
             const double nu,
             const double alpha, const double beta, const double N);
@@ -151,9 +135,9 @@ public:
     double Laplace(gsl_vector* v);
     double Laplace(gsl_vector* v, const double logf);
 
-    enum class Target { Default, Gamma, NBGamma };
+    enum class Target { Default, Gamma, NBGamma, Undefined };
 
-    Vec ReadData(const std::string& fileName, const std::string& dataSet, unsigned run, unsigned maxElements = 0);
+    static Vec ReadData(const std::string& fileName, const std::string& dataSet, unsigned run, unsigned maxElements = 0);
 
     /**
      * @param init use as initial position, write back updated results from minimization
@@ -173,11 +157,13 @@ public:
 
     void FixPredicted(Target target, unsigned n, double X, double nu)
     {
-        this->target = target;
+        set_target(target);
         nPrediction = n;
         XPrediction = X;
         nuPrediction = nu;
     }
+
+    void set_target(Target target);
 
     void Unfix()
     {
@@ -212,6 +198,14 @@ public:
 
     ///> optimization stats
     unsigned nCalls;
+
+    /// parameters
+    ROOT::Minuit2::MnUserParameters pars;
+    unsigned GetNParameters() const
+    {
+        return pars.VariableParameters();
+    }
+
 };
 // ---------------------------------------------------------
 std::ostream& operator<<(std::ostream&, gsl_vector*);

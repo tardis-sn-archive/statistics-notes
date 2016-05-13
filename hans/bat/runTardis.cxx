@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
      *  */
 
     // number of points
-    constexpr auto K = 20;
+    constexpr auto K = 50;
     const auto DX = (get<1>(minmaxX) - get<0>(minmaxX));
     const auto extra = 0.5;
     const auto Xmin = max(0.0, get<0>(minmaxX) - extra * DX);
@@ -120,8 +120,8 @@ int main(int argc, char* argv[])
     const auto dx = (Xmax - Xmin) / K;
     for (auto i = 1; i <= K; ++i) {
         const double X = Xmin + i * dx;
-        const double P = m.PredictSmall(n, X, nu, m.mean(), 0.01);
-//        const double P = m.PredictMedium(n, X, nu);
+//        const double P = m.PredictSmall(n, X, nu, m.mean(), 0.01);
+        const double P = m.PredictMedium(n, X, nu);
 //        const double P = m.PredictVeryLarge(n, X, nu);
         file << X << '\t' << P << endl;
     }

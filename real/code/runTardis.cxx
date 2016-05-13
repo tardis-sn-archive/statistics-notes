@@ -1,9 +1,10 @@
 #include "Tardis.h"
 
 #include <fstream>
-#include <memory>
+#include <iostream>
 
 using namespace std;
+using namespace ROOT::Minuit2;
 
 bool file_exists(const std::string& filename)
 {
@@ -29,7 +30,7 @@ array<double, 2> extractBinX(double numin, double numax, const std::string& file
         /* compute numbers and write to file */
         std::ofstream file(filename);
         for (unsigned i = 0; i < 250; ++i) {
-            Tardis m("harr", "../../posterior/real_tardis_250.h5", i, maxElements);
+            Tardis m("../../posterior/real_tardis_250.h5", i, maxElements);
             auto res = m.SumX(numin, numax);
             const auto& X = std::get<1>(res);
             min = std::min(min, X);
@@ -59,15 +60,15 @@ int main(int argc, char* argv[])
     int run = stoi(argv[1]);
 
     // create new Tardis object
-    Tardis m("tardis", "../../posterior/real_tardis_250.h5", run, maxElements);
+    Tardis m("../../posterior/real_tardis_250.h5", run, maxElements);
 
     constexpr double nu = (numax - numin) / 2.0;
     auto res = m.SumX(numin, numax);
     const unsigned n = std::get<0>(res);
 
-    m.fitnb();
-    m.minimizeMinuit(std::vector<double>{1.});
-    return 0;
+//    m.fitnb();
+//    m.FixPredicted(Tardis::Target::NBGamma, n, get<1>(res), numin + 0.5 * (numax - numin));
+//    FunctionMinimum minimum = m.minimizeMinuit();
 
     //    double X = std::get<1>(res);
 
@@ -89,8 +90,10 @@ int main(int argc, char* argv[])
      */
 #if 1
 //    auto mode = m.PreparePrediction();
+
     auto mode = gsl_vector_alloc(5);
-    std::vector<double> vecmode {1.69318195, -0.2316184245, 0.06850367375, 78.41164031, -14.9692865};
+//    std::vector<double> vecmode {1.69318195, -0.2316184245, 0.06850367375, 78.41164031, -14.9692865};
+    std::array<double, 5> vecmode {{ 1.601271636, -0.2258877812, 0.07348750746, 75.14014599, -14.30604913}};
     std::copy(vecmode.begin(), vecmode.end(), mode->data);
 
     std::ofstream file(outprefix + "_run" + to_string(run) + ".out");

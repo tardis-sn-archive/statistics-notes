@@ -6,8 +6,6 @@
 
 #include "Tardis.h"
 
-#include <BAT/BCMath.h>
-
 #include <Minuit2/FCNGradientBase.h>
 #include <Minuit2/FunctionMinimum.h>
 #include <Minuit2/MnMigrad.h>
@@ -22,9 +20,11 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <numeric>
+#include <sstream>
 
 using std::cout;
 using std::cerr;
@@ -99,12 +99,13 @@ double solveGradient(double X, unsigned n, double r, double mean, double var)
     int nRealRoots = gsl_poly_solve_cubic(a, r, c, &roots[0], &roots[1], &roots[2]);
     int nPositiveRealRoots = 0;
 
-    std::string msg = Form(" for X=%g, r=%g, mean=%g, var=%g:\n"
-            "%g, %g, %g", X, r, mean, var, roots[0], roots[1], roots[2]);
+    std::ostringstream ss;
+    ss << " for X=" << X << ", r=" << r << ", mean=" << mean << ", var=" << var << ":\n";
+    ss << roots[0] << ", " << roots[1] << ", " << roots[2];
 
     if (nRealRoots == 1) {
         if (roots[0] <= 0)
-            throw std::runtime_error(std::string("Only found negative root") + msg);
+            throw std::runtime_error(std::string("Only found negative root") + ss.str());
         return roots[0];
     }
 
@@ -126,12 +127,12 @@ double solveGradient(double X, unsigned n, double r, double mean, double var)
         }
     }
     if (nPositiveRealRoots == 0)
-        throw std::runtime_error(std::string("Found no positive root with ") + msg);
+        throw std::runtime_error(std::string("Found no positive root with ") + ss.str());
     if (N < 0)
-        cerr << "Found no valid root, return -inf" << msg << endl;
+        cerr << "Found no valid root, return -inf" << ss.str() << endl;
 
     if (nPositiveRealRoots > 1)
-        cerr << "Found multiple positive roots for" << msg << endl;
+        cerr << "Found multiple positive roots for" << ss.str() << endl;
 
     return N;
 }
@@ -236,14 +237,21 @@ void log_likelihood_and_gradient(const gsl_vector * v, void *model,
         const double beta_n = m.betaNu_p(v->data, s.nu);
 
         // use samples to check parameter space for a value inconsistent with prior
-        if (alpha_n <= m.alphaMin || beta_n <= m.betaMin)
+        if (alpha_n <= m.alphaMin || beta_n <= m.betaMin) {
             res = invalid;
+//            cerr << "invalid " << n << ": alpha_n " << alpha_n
+//                    << ", beta_n " << beta_n << endl;
+            break; // todo remove with openmp
+        }
 
         // cout << "alpha_n " << alpha_n << ", beta_n "<< beta_n << endl;
         const double extra = ::logGamma(s.en, alpha_n, beta_n);
         // const double extra = ::logGamma(1 - s.en / maxEn, alpha_n, beta_n);
-        if (!std::isfinite(extra))
+        if (!std::isfinite(extra)) {
             res = invalid;
+//            cerr << "invalid " << n << ": extra " << extra << endl;
+            break;
+        }
 
         // results are different from run to run with more than 2 threads
         // addition not commutative with floating point
@@ -379,7 +387,7 @@ void log_nb_gradient(const gsl_vector *v, void *model, gsl_vector *df)
     log_nb_and_gradient(v, model, &res, df);
 }
 
-#define OPTIMIZE_NB 1
+//#define OPTIMIZE_NB 1
 class MinuitAdapter : public FCNGradientBase
 {
 public:
@@ -412,7 +420,7 @@ public:
         ::log_likelihood_gradient(v.get(), &m, df.get());
 #endif
         auto res = std::vector<double>(df->data, df->data + df->size);
-        cout << "returning gradient " << res.front() << endl;
+//        cout << "returning gradient " << res.front() << endl;
         return res;
     }
 
@@ -426,17 +434,44 @@ private:
     deleted_vector v, df;
 };
 }
-#if 0
-template <>
-double Tardis::alphaNu(const double*& x, const double& nu)
+
+void Tardis::set_target(Target target)
 {
-    return Polyn(&x, &x + orderAlpha, nu);
-}
+    // no op if same state
+    if (this->target == target)
+        return;
+
+    this->target = target;
+
+    // remove all parameters and add anew
+    pars = MnUserParameters();
+
+    pars.Add("alpha0", 1.5, 0.1, 1.0, 2);
+    pars.Add("alpha1", 0.0, 0.1, -3.0, 3);
+#if 1
+    pars.Add("alpha2", 0.0, 0.1, -10, 10);
+#else
+    pars.Add("alpha2", 0.0, 0.1, -30, 30);
+    pars.Add("alpha3", 0.0, 0.1, -50, 50);
 #endif
-// ---------------------------------------------------------
-Tardis::Tardis(const std::string& name, const std::string& fileName,
-               unsigned run, unsigned maxElements)
-: BCModel(name),
+    orderAlpha = pars.VariableParameters();
+
+    pars.Add("beta0", 75, 1, 0.0, 100);
+    pars.Add("beta1", 0.0, 0.5, -200, 50);
+    orderBeta = pars.VariableParameters() - orderAlpha;
+
+    switch (target) {
+    case Target::Gamma:
+    case Target::NBGamma:
+        // can't have more samples than observed in total
+        pars.Add("N", 10, 1, 0, 2 * samples.size());
+        break;
+    case Target::Default:
+    default:
+        break;
+    }
+}
+Tardis::Tardis(const std::string& fileName, unsigned run, unsigned maxElements) :
   npoints(10),
   nuMax(0.5),
   alphaMin(1.0),
@@ -444,43 +479,14 @@ Tardis::Tardis(const std::string& name, const std::string& fileName,
   evidence(0.0),
   scale(0),
   a(0.5),
-  target(Target::Default),
+  target(Target::Undefined),
   nuPrediction(-1),
   XPrediction(-1),
   NPrediction(0),
   nCalls(0)
 {
-    AddParameter("alpha0",  1, 2, "#alpha_{0}");
-    AddParameter("alpha1", -3, 3, "#alpha_{1}");    // GetParameter(1).Fix(0);
-#if 1
-    AddParameter("alpha2", -10, 10, "#alpha_{2}");  // GetParameter(2).Fix(0);
-#else
-    AddParameter("alpha2", -30, 30, "#alpha_{2}");  // GetParameter(2).Fix(0);
-    AddParameter("alpha3", -50, 50, "#alpha_{3}");  // GetParameter(3).Fix(0);
-#endif
-//    AddParameter("alpha4", -30, 30, "#alpha_{4}"); // GetParameter(3).Fix(0);
+    set_target(Target::Default);
 
-    orderAlpha = GetNParameters();
-
-    AddParameter("beta0",  0, 100, "#beta_{0}");
-    AddParameter("beta1", -200, 50, "#beta_{1}");  // GetParameter(order + 1).Fix(0);
-//    AddParameter("beta2",  0, 250, "#beta_{2}"); // GetParameter(order + 2).Fix(0);
-    // AddParameter("beta3",  -300, 300, "#beta_{3}"); // GetParameter(order + 3).Fix(0);
-
-    orderBeta = GetNParameters() - orderAlpha;
-
-#if 0
-    for (unsigned i = 0; i <= npoints; ++i) {
-        double nu =  double(i) * nuMax / npoints;
-        AddObservable(Form("alpha(%g)",nu), 1, 2,   Form("#alpha(%g)", nu));
-    }
-    for (unsigned i = 0; i <= npoints; ++i) {
-        double nu =  double(i) * nuMax / npoints;
-        AddObservable(Form("beta(%g)", nu), 0, 100, Form("#beta(%g)", nu));
-    }
-
-    AddObservable("Gamma(0.01|nu=0.2)", 25, 40);
-#endif
     Vec energies = ReadData(fileName, "energies", run, maxElements);
     Vec nus = ReadData(fileName, "nus", run, maxElements);
     assert(energies.size() == nus.size());
@@ -658,7 +664,10 @@ Tardis::Vec Tardis::ReadData(const std::string& fileName, const std::string& dat
 
 gsl_vector* Tardis::PreparePrediction()
 {
+    // todo replace simplex with minuit
     // custom deleter for a unique pointer
+    auto o = OptimOptions::DefaultSimplex();
+    o.iter_max = 50;
     deleted_unique_ptr<gsl_multimin_fminimizer> v(minimizeSimplex(nullptr), &gsl_multimin_fminimizer_free);
     deleted_unique_ptr<gsl_multimin_fdfminimizer> v2(minimizeLBFGS(v->x), &gsl_multimin_fdfminimizer_free);
 
@@ -678,7 +687,11 @@ bool Tardis::SearchStep(unsigned N, unsigned n, double& res, double precision, s
     if (N == 0)
         return false;
 
+    return true;
+#if 0
     NPrediction = N;
+    //todo fix with bat
+
 
     // run minuit manually assuming that current position and step
     // size are good gives a factor 2-3 in speed
@@ -705,10 +718,14 @@ bool Tardis::SearchStep(unsigned N, unsigned n, double& res, double precision, s
     << endl;
 
     return (latest / res) > precision;
+    #endif
 }
 
 double Tardis::PredictSmall(unsigned n, double X, double nu, double Xmean, double precision)
 {
+    // todo fix
+    return 0.0;
+#if 0
     FixPredicted(Target::Gamma, n, X, nu);
 
     // start N at mode of NegativeBinomial if invalid Xmean given
@@ -751,17 +768,22 @@ double Tardis::PredictSmall(unsigned n, double X, double nu, double Xmean, doubl
     Unfix();
 
     return res / evidence;
+#endif
 }
 
 double Tardis::PredictMedium(gsl_vector* oldMode, unsigned n, double X, double nu)
 {
-    try {
-        GetParameter("N");
-    } catch (std::out_of_range& e) {
+    if (target != Target::NBGamma) {
+//        cerr << oldMode << endl;
+//        cerr << GetNParameters() << endl;
+
+        set_target(Target::NBGamma);
+        assert(oldMode->size == GetNParameters() - 1);
+
         // assume optimization over alpha and beta has been done
         // then add N as a new parameter, optimize again
         cout << "Adding N with start value " << n << endl;
-        AddParameter("N", 1, 3 * n);
+
         auto mode = gsl_vector_alloc(GetNParameters());
         for (unsigned i = 0; i < oldMode->size; ++i)
             gsl_vector_set(mode, i , gsl_vector_get(oldMode, i));
@@ -770,29 +792,33 @@ double Tardis::PredictMedium(gsl_vector* oldMode, unsigned n, double X, double n
         // old mode obsolete, reassign pointer
         gsl_vector_free(oldMode);
         oldMode = mode;
-#if 0
-        FindMode(oldMode);
-        evidence = Integrate(BCIntegrate::kIntLaplace);
-#endif
     }
 
     FixPredicted(Target::NBGamma, n, X, nu);
     auto o = OptimOptions::DefaultSimplex();
-    o.iter_min = 10;
-    o.iter_max = 20;
+    o.iter_min = 0;
+    o.iter_max = 500;
     deleted_unique_ptr<gsl_multimin_fminimizer> res1(minimizeSimplex(oldMode, o), &gsl_multimin_fminimizer_free);
     cout << "Simplex returns " << res1->x << endl;
-
+#if 1
     o.iter_min = 0;
     o.step_size = 2;
     deleted_unique_ptr<gsl_multimin_fdfminimizer> res(minimizeLBFGS(res1->x), &gsl_multimin_fdfminimizer_free);
+    const double logf = - res->f;
 
     // copy mode to return it
     gsl_vector_memcpy(oldMode, res->x);
     cout << "from LBFGS2 " << oldMode << endl;
+#else
+    o.iter_max = 500;
+    auto min = minimizeMinuit(std::vector<double>(res1->x->data, res1->x->data + GetNParameters()), o);
 
-    auto integral = Laplace(res->x, -res->f);
-//    auto integral = Laplace(res->x, -res->fval);
+    // copy mode to return it
+    auto mode = min.UserParameters().Params();
+    std::copy(mode.begin(), mode.end(), oldMode->data);
+    const double logf = -min.Fval();
+#endif
+    auto integral = Laplace(oldMode, logf);
 
     return integral - evidence;
 #if 0
@@ -809,6 +835,9 @@ double Tardis::PredictMedium(gsl_vector* oldMode, unsigned n, double X, double n
 
 double Tardis::PredictVeryLarge(unsigned n, double X, double nu)
 {
+    return 0.0;
+    // todo fix
+#if 0
     const double r = n - a + 1;
 
     const auto & mode = GetBestFitParameters();
@@ -827,6 +856,17 @@ double Tardis::PredictVeryLarge(unsigned n, double X, double nu)
         return 0.0;
 
     return std::exp(res);
+#endif
+}
+
+double Tardis::mean() const
+{
+    const double sum = std::accumulate(samples.begin(), samples.end(), 0.0,
+            [](double value, const Point& s1)
+            {
+        return value + s1.en;
+            });
+    return sum / Nsamples();
 }
 
 std::tuple<unsigned, double> Tardis::SumX(double numin, double numax) const
@@ -866,49 +906,20 @@ gsl_vector* Tardis::initialValue() const
     gsl_vector *v = gsl_vector_alloc(GetNParameters());
     gsl_vector_set_zero(v);
 
-    switch (GetNParameters()) {
-    case 2:
-        gsl_vector_set(v, 0,  1.5);
-        gsl_vector_set(v, 1,  60);
-        break;
-    case 3:
-        gsl_vector_set(v, 0,  1.40339e+00);
-        gsl_vector_set(v, 1,  73.17191);
-        gsl_vector_set(v, 2, -12);
-        break;
-    case 5:
-        gsl_vector_set(v, 0,  1.60339e+00);
-        gsl_vector_set(v, 1, -0.2);
-        gsl_vector_set(v, 2, 0.06);
-        gsl_vector_set(v, 3,  7.697191e+01);
-        gsl_vector_set(v, 4, -1.51438e+01);
-
-//        gsl_vector_set_zero(v);
-//        gsl_vector_set(v, 0,  1.5);
-//        gsl_vector_set(v, 3,  60);
-break;
-    case 6:
-//        gsl_vector_set(v, 0,  1.60339e+00);
-//        gsl_vector_set(v, 1, -1.73325e-01);
-//        gsl_vector_set(v, 2, -4.89087e-02);
-//        gsl_vector_set(v, 3,  4.73753e-02);
-//        gsl_vector_set(v, 4,  7.597191e+01);
-//        gsl_vector_set(v, 5, -1.151438e+01);
-
-        gsl_vector_set(v, 0,  1.594126373);
-        gsl_vector_set(v, 1, -0.07717623456);
-        gsl_vector_set(v, 2, -0.0130217244);
-        gsl_vector_set(v, 3,  0.04413941909);
-        gsl_vector_set(v, 4,  75.98334373);
-        gsl_vector_set(v, 5, -15.5331007);
-
-//        gsl_vector_set_zero(v);
-//        gsl_vector_set(v, 0,  1.60339e+00);
-//        gsl_vector_set(v, 4,  7.597191e+01);
-        break;
-    default:
-        cout << " Don't know how to initialize GSL." << endl;
-        break;
+    switch (target) {
+        case Target::Gamma:
+        case Target::NBGamma:
+            gsl_vector_set(v, 5, nPrediction);
+        case Target::Default:
+            gsl_vector_set(v, 0,  1.60339e+00);
+            gsl_vector_set(v, 1, 0);
+            gsl_vector_set(v, 2, 0.0);
+            gsl_vector_set(v, 3,  7.697191e+01);
+            gsl_vector_set(v, 4, 0);
+            break;
+        default:
+            cerr << " Don't know how to initialize GSL." << endl;
+            break;
     }
     return v;
 }
@@ -1265,6 +1276,11 @@ Tardis::OptimOptions Tardis::OptimOptions::DefaultLBFGS()
     return OptimOptions(0.5, 0.1, 1e-3, 0, 100);
 }
 
+Tardis::OptimOptions Tardis::OptimOptions::DefaultMinuit()
+{
+    return OptimOptions(0.5, 0.1, 0.5, 0, 500);
+}
+
 void Tardis::fitnb()
 {
     FixPredicted(Target::NBGamma, 1785, 1.0, 0.1);
@@ -1292,24 +1308,27 @@ void Tardis::fitnb()
 #endif
 }
 
-void Tardis::minimizeMinuit(const std::vector<double>& x)
+FunctionMinimum Tardis::minimizeMinuit(std::vector<double> init, OptimOptions o)
 {
-    MnUserParameters upar;
-    // name, initial value, step size, min, max
-#if 0
-    upar.Add("alpha0", 1.5, 0.1, 1.0, 10);
-    upar.Add("alpha1", 0.0, 0.1, -3.0, 3);
-    upar.Add("alpha2", 0.0, 0.5, -10, 10);
-    upar.Add("beta0", 75, 1, 0.0, 100);
-    upar.Add("beta1", 0.0, 0.5, -200, 50);
-#endif
-    FixPredicted(Target::NBGamma, 1785, 1.0, 0.1);
-    upar.Add("N", x.front(), 0.4 * x.front(), 0, 10000); //std::numeric_limits<double>::infinity());
+    if (init.empty()) {
+        auto v = make_deleted_vector(initialValue());
+        init = std::vector<double>(v->data, v->data + GetNParameters());
+    }
+    assert(init.size() == GetNParameters());
 
-    MinuitAdapter adapter(*this, 1);
-    MnMigrad migrad(adapter, upar);
+    // copy initial value
+    for (unsigned i = 0; i < init.size(); ++i)
+        pars.SetValue(i, init[i]);
 
-    auto min = migrad(200, 0.5);
+    MinuitAdapter adapter(*this, GetNParameters());
+
+    nCalls = 0;
+    cout << "Initializing minuit with";
+    std::copy(init.begin(), init.end(), std::ostream_iterator<double>(cout, " "));
+    MnMigrad migrad(adapter, pars);
+
+    FunctionMinimum min = migrad(o.iter_max, o.tol);
     cout << min << endl;
     cout << "total number of calls " << nCalls << endl;
+    return min;
 }
