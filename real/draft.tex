@@ -173,25 +173,276 @@
 \newcommand{\firstDeriv}[1]{\frac{\partial}{\partial #1}}
 \newcommand{\secDeriv}[1]{\frac{\partial^2}{\partial #1^2}} % second partial derivative
 \newcommand{\secPartial}[2]{\frac{\partial^2}{\partial #1 \, \partial #2}} % second partial derivative
+\newcommand{\tardis}{TARDIS}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
 \begin{center}
   \textbf{\Large Bayesian prediction of supernova luminosity  distributions}\\[8pt]
-  \textbf{\Large based on simulation output: An example from TARDIS}\\[12pt]
+  \textbf{\Large based on simulation output: An example from \tardis}\\[12pt]
 \end{center}
 
 \textbf{Abstract} TODO\\
 
 \section{Introduction} \label{sec:intro}
 
-\section{Theory} \label{sec:theory}
+\section{Notation} \label{sec:notation}
 
-\section{Example} \label{sec:example}
+We consider a computer simulation that, given input parameters
+$\bmtheta$ and a random-number seed, produces a set of simulated data
+$ S = \{ (\nu_j, \ell_j): j=1\dots\npack \}$ consisting of $\npack$
+packets, each with a frequency and a luminosity. We distinguish
+between a random variable $L$ and its concrete realization $\ell$.  To
+learn about $\bmtheta$, we need to compare to data from a telescope
+available as luminosities in frequency bins, $D = \{ ( \nu_b, \ell_b):
+b=1 \dots B\}$. The natural estimate from a single simulation is to
+add up the luminosities of all packets in a bin.  With a different
+seed but identical $\bmtheta$, both the number of packets in the bin
+and their luminosities could be different. Our goal is to estimate the
+distribution based on a \emph{single} simulation without recourse to
+expensive repetitions or asymptotic approximations; i.e., we seek
+$P(L_b \cond \nu_b, \npack, \bmnu, \bml )$. In an actual physics
+analysis, one would proceed to plug in the observed value $\ell_b$ and
+perform an analysis to learn about $\bmtheta$. But here we focus on
+the specific problem of $P(L_b \cond \nu_b, \npack, \bmnu, \bml )$ and
+hence omit $\bmtheta$ throughout.
 
-We use the shorthand $\alpha_n \equiv \alpha(\nu_n \cond \bmphi),
-\beta_n \equiv \beta(\nu_n \cond \bmphi), \alpha \equiv
+Various features, for example absorption lines, usually make it
+difficult to explicitly model the spectrum---the luminosity as a
+function of frequency. In a binned analysis, we can avoid these
+difficulties associated to modeling $n_b$. Our approach, however,
+requires an explicit expression of how the distribution of the
+luminosity of a single packet in our simulation changes with $\nu$. It
+is this crucial piece of information that allows us to extend previous
+methods \fred{Refs: Zech, maybe others, too} in dealing with the
+extreme cases when the number of packets in a bin, $n_b$, is one or
+even zero.
+
+\section{Model} \label{sec:model}
+
+We consider the total number of packets $\npack$ fixed, for example
+chosen by a user. In contrast, the number of packets in a bin, $n_b$
+is a realization of a random variable $N_b$ which we assume to follow
+a Poisson distribution. With this assumption, we neglect bin-by-bin
+correlations and treat each bin independently which allows us to focus
+on a single bin and to drop the subscript $b$ in the remainder. Hence
+\begin{align}
+  \lleq{caa}
+  p(N\cond\lambda) &= \frac{e^{-\lambda}\lambda^N}{N!}
+  \qquad N = 0,1,\ldots,\infty ,
+\end{align}
+where the dependency of the Poisson mean $\lambda>0$ on $\nu$ is of no
+concern to us. Let $\bmL$ denote the collection of luminosities of
+packets in a certain bin. The total luminosity in that bin is then
+given by
+\begin{align}
+  \lleq{cab}
+  L = \sum_{j=1}^{N} L_j\,.
+\end{align}
+We assume that each $L_j$ has a distribution depending on $\nu$ and
+other parameters $\bmphi$ and that each packet is statistically
+independent. Since $N$ is random, $L$ is said to follow a compound
+Poisson process. The joint distribution then is
+\begin{align*}
+  \label{cac}
+  (N,\bmL) &\ \sim\ p(N,\bmL\cond \bmphi,\lambda, \nu)
+  = p(\bmL\cond N,\bmphi, \nu)\; P(N\cond \lambda) = \prod_{j=1}^N p(L_j\cond \bmphi, \nu) \; P(N\cond \lambda),
+\end{align*}
+where we used that the Poisson term does not depend on $\nu$
+explicitly. In general, the distribution of $L_j$ could be a of a
+different functional form in each bin. For simplicity, we assume it is
+identical but may depend on parameters that differ from bin to bin. In
+practice, the distribution of packets does not change abruptly with
+frequency. We therefore assume that any parameter needed to fully
+specify $p(L_j)$ is given explicitly as a continuous function of $\nu$
+and the unknown parameters $\bmphi$. This allows us to use a small
+number of parameters to describe $P(L)$ across the entire frequency
+range and in turn lets us determine $\bmphi$ from fitting all
+simulated packets simultaneously whereas $\lambda$ is given only by
+the packets in a bin.
+
+Our goal of predicting $L$ in bin $b$ given the simulation output
+$(\npack,\bml, \bmnu)$ is captured in the probability $p(L\cond \nu,
+\npack,\bml, \bmnu)$ with all relevant parameters integrated out using
+the law of total probability.  To simplify the treatment, we assume
+that the frequency bins are narrow or equivalently that $p(L \cond
+\nu, \npack, \bml, \bmnu)$ does not vary within a bin. This implies
+that all every sample $L_j$ in the bin follows the same distribution.
+As the reference frequency, we choose the bin center.
+
+We first note from \refeq{caa} that $N$ does not depend on $\bml$ at
+all and only indirectly depends on $\bmnu$ through $n$. Since $L$ is
+fully determined by $(N,\bmL)$, it does not depend on
+$(\npack,\bml,\bmnu)$, i.e.
+\begin{align}
+  \lleq{pmi}
+  p(L\cond N,\bmL,\nu,\npack,\bml, \bmnu)
+  = p(L\cond N, \bmL)
+  &= \delta(L - \textstyle\sum_{j=1}^N L_j),
+\end{align}
+\fred{Uniform order: $\nu$ first, then $\ell$, compare to $S$}
+where the $L_j$ are assumed to occur at $\nu$.  Using the law of total
+probability repeatedly, we can write the desired distribution
+\fred{Discuss $N=0$ case somewhere}
+\begin{align}
+  \lleq{pmj}
+  p(L\cond \nu, \npack,\bml, \bmnu)
+  &= \sum_N p(N\cond \nu, \npack,\bml, \bmnu) \, p(L\cond N,\nu, \npack,\bml, \bmnu) \\
+  \lleq{pmjb}
+  &= \sum_N p(N\cond n)\,\int \rmdx{\bmL} p(L\cond N,\bmL,\nu, \npack,\bml, \bmnu)\, p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
+  \\
+  \lleq{pmjc}
+  &= \sum_N p(N\cond n)\,\int \rmdx{\bmL} \delta(L - \textstyle\sum_{j=1}^N L_j)
+  \, p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
+\end{align}
+The dependence on the simulation output $(\npack,\bml, \bmnu)$ enters
+through $p(\bmL\cond N,\npack,\bml, \bmnu)$ in terms of the parameters
+$\bmphi$ of $p(\bmL\cond N,\bmphi)$,
+\begin{align}
+  p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
+  &= \int \rmdx{\bmphi} p(\bmL\cond \bmphi,N, \nu, \npack,\bml, \bmnu)\,p(\bmphi\cond N,\nu, \npack,\bml, \bmnu) \\
+  \lleq{pmk}
+  &= \int \rmdx{\bmphi} p(\bmL\cond \bmphi, N, \nu)\,p(\bmphi\cond N,\nu, \npack,\bml, \bmnu).
+\end{align}
+because $\bmL$ is fully determined by $N,\bmphi, \nu$ and hence
+independent of $\npack,\bml, \bmnu$.  With Bayes' theorem we learn about
+$\bmphi$ from the simulation output
+\begin{align}
+  \lleq{pmkb}
+  p(\bmphi\cond N,\nu, \npack,\bml, \bmnu) &=
+  \frac{p(\bml\cond \bmphi, N,\nu, \npack,\bmnu)\,p(\bmphi\cond N,\nu, \npack,\bmnu)} %
+  {\int \rmdx{\bmphi} p(\bml\cond \bmphi,N,\nu, \npack,\bmnu)\,p(\bmphi\cond N,\nu, \npack,\bmnu)}.
+\end{align}
+By using a multiplicity- and frequency-independent prior for $\bmphi$,
+\begin{align}
+  \lleq{pml}
+  p(\bmphi\cond N,\nu, \npack,\bmnu) &= p(\bmphi),
+\end{align}
+and by recognizing that $\bml$ is independent of $N$ and $\nu$
+\begin{align}
+  \lleq{pmla}
+  p(\bml\cond \bmphi,N,\nu, \npack,\bmnu) = p(\bml\cond \bmphi,\npack,\bmnu)
+\end{align}
+we can write \refeq{pmk} as
+\begin{align}
+  \lleq{pmn}
+  p(\bmL\cond N,\nu, \npack,\bml, \bmnu)
+  &= \int \rmdx{\bmphi} p(\bmL\cond N,\bmphi)\, %
+  \frac{p(\bml\cond \bmphi, \npack, \bmnu)\,p(\bmphi)} %
+  {\int \rmdx{\bmphi} p(\bml\cond \bmphi,\npack,\bmnu)\,p(\bmphi)} \\
+  \lleq{pmo}
+  &= \frac{1}  {p(\bml\cond \npack, \bmnu)} %
+  \int \rmdx{\bmphi} p(\bmL\cond \bmphi, N)\, %
+  p(\bml\cond \bmphi, \npack,\bmnu)\,p(\bmphi)
+\end{align}
+with $p(\bml\cond \npack, \bmnu) = \int \rmdx{\bmphi} p(\bml\cond
+\bmphi, \npack,\bmnu)\,p(\bmphi)$ is the evidence in the denominator.
+Inserting this into (\ref{pmjc}), we obtain the desired master equation:
+\begin{equation}
+  \lleq{pmp}
+  \boxed{
+  p(L\cond \nu, \npack,\bml, \bmnu)
+  = \frac{1}{p(\bml\cond \npack, \bmnu)}
+  \sum_N p(N\cond n)\,\int \rmdx{\bmL} \delta(L - \textstyle\sum_j L_j)
+  \displaystyle\int \rmdx{\bmphi} p(\bmL\cond \bmphi, N, \nu) \, p(\bml\cond \bmphi,\npack,\bmnu)
+  \, p(\bmphi)
+  }
+\end{equation}
+with
+\begin{align}
+  \lleq{pmq}
+  p(\bmL\cond \bmphi, N, \nu) &= \prod_{j=1}^N p(L_j\cond \bmphi, \nu), \\
+  \lleq{pmr}
+  p(\bml\cond \bmphi,\npack,\bmnu) &= \prod_{j=1}^{\npack} p(\ell_j\cond \bmphi, \nu_j)
+\end{align}
+and $p(\cdot \cond \bmphi, \cdot)$ is the same function in both
+equations.  In the next section, we compute the general result for
+$P(N \cond n)$. Equation \refeq{pmp} implies that once we specify the
+prior $p(\bmphi)$ and the likelihood $p(L_j\cond \bmphi)$, we have a
+prediction for $L$ which takes into account all possible $N$,
+$\lambda$ and $\bmphi$. Both choices depend on the simulation at hand
+but a general consideration to render our approach tractable is that
+the distribution of a single packet luminosity $P(L_j \cond \bmphi,
+\nu)$ should be such that the integral over $\bmL$ has a closed-form
+solution. In other words, the distribution of $L = \sum_N L_j$ should
+be known.
+%  An important special case is the class of \emph{stable}
+% distributions.
+
+\subsection{Predicting the number of packets in a bin}
+\fred{Show reference Poisson analysis here of before?}
+
+We use Bayes' theorem to find the posterior distribution for $\lambda$
+given data $n$ and the Poisson hypothesis
+\begin{align}
+  \lleq{pmd}
+  p(\lambda\cond n) %
+  &= \frac{p(n\cond\lambda)\,p(\lambda)} {p(n)}
+  \ =\ \frac{p(n\cond\lambda)\,p(\lambda)} %
+  {\int \rmdx{\lambda} p(n\cond\lambda)\,p(\lambda)}
+\end{align}
+to find the posterior predictive of $N$ given $n$ taking into account
+all possible values of $\lambda$,
+\begin{align}
+  \lleq{pme}
+  p(N\cond n)
+  &= \int \rmdx{\lambda}p(N,\lambda\cond n)
+  \ =\ \int \rmdx{\lambda} p(N\cond\lambda, n)\,p(\lambda\cond n)
+  \ =\ \frac{\int \rmdx{\lambda} p(N\cond\lambda)\,p(n\cond\lambda)\,p(\lambda)}
+  {\int \rmdx{\lambda} p(n\cond\lambda)\,p(\lambda)}
+\end{align}
+where $p(N\cond\lambda,n) = p(N\cond\lambda)$ is independent of $n$.
+A common choice is the prior
+\begin{align}
+  \lleq{pmf}
+  p(\lambda) = c\lambda^{-a},
+\end{align}
+where $a=0$ gives the uniform prior\footnote{For a uniform prior, the
+  case $a{=}0$, we require of course a maximum $\lambda_{\rm max}$. As
+  long as $\lambda_{\rm max}$ is large enough, the integral can
+  effectively be taken to infinity.} and $a=1/2$ gives the Jeffreys
+and reference prior. Both choices lead to an improper prior but the
+posterior predictive is proper provided that $n>0$ or $N>0$.  The
+standard results for the evidence and the posterior predictive are
+\begin{align}
+  \lleq{pmg}
+  p(n) &= %
+  \int_0^\infty d\lambda\, p(n\cond\lambda)\,p(\lambda)
+  \ =\
+  c \int_0^\infty d\lambda\, \frac{e^{-\lambda}\,\lambda^{n-a}}{n!}
+  \ =\ c\frac{(n-a)!}{n!}
+  \\
+  \lleq{pmh}
+  p(N\cond n) %
+  &= \frac{n!}{(n-a)!} \int_0^\infty d\lambda\,
+  \frac{e^{-2\lambda} \lambda^{N+n-a}}{N!\, n!}
+  \ =\ \frac{(N+n-a)!}{N!\,(n-a)!\,2^{N+n+1-a}}
+\end{align}
+which we recognise as a Negative Binomial distribution describing the
+probability to observe $N$ successes given $k=n+1-a$ failures in a
+sequence of Bernoulli trials with success probability $\rho=1/2$
+\begin{align}
+  \lleq{pmhb}
+  p(N\cond n) &= \NBD(N\cond k{=}n{+}1{-}a, \rho{=}\tfrac{1}{2})
+  \ =\ \binom{N{+}n{-}a}{N}
+  \left(\frac{1}{2}\right)^N \left(\frac{1}{2}\right)^{n+1-a}
+\end{align}
+For non-integer $a$, the Negative Binomial generalizes immediately to
+the Pólya distribution by replacing $x! \to \Gamma(x+1)$. Note that
+the distribution of $N$ given $n$ is independent of $\bmL$ and $\bml$
+by construction but depends on $\bmnu$ implicitly through $n$.
+
+\section{Example application: \tardis} \label{sec:example}
+
+The \tardis{} packages simulates supernovae with \fred{Wolfgang's
+  favorite description of his package}. Here we focus on the real
+packets as opposed to the virtual packets output by tardis.
+
+Based on staring at the distribution of luminosities,
+
+We use the shorthand $\alpha_n \equiv \alpha(\nu_n \cond
+\bmphi), \beta_n \equiv \beta(\nu_n \cond \bmphi), \alpha \equiv
 \alpha(\nu \cond \bmphi), \beta \equiv \beta(\nu \cond \bmphi)$.
 
 \subsection{Gradients} \label{sec:gradients}
@@ -239,7 +490,7 @@ We use the shorthand $\alpha_n \equiv \alpha(\nu_n \cond \bmphi),
 \end{align}
 with $\alpha_n \equiv \alpha(\nu_n \cond \bmphi), \beta_n \equiv \beta(\nu_n \cond \bmphi)$.
 
-\begin{align}
+ \begin{align}
   \label{eq:hess-prediction}
   & - \left(
     \begin{array}{ccc}
