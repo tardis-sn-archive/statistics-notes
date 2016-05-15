@@ -162,6 +162,7 @@
 
 \newcommand{\refeq}[1]{Eq.~(\ref{#1})}
 \newcommand{\reffig}[1]{Fig.~\ref{fig:#1}}
+\newcommand{\refsec}[1]{Sec.~\ref{sec:#1}}
 
 \DeclareMathOperator{\GammaDist}{Gamma}
 \newcommand{\Kalpha}{{K_\alpha}}
@@ -186,6 +187,12 @@
 \textbf{Abstract} TODO\\
 
 \section{Introduction} \label{sec:intro}
+
+\begin{itemize}
+  \item radiative transfer
+  \item get uncertainty from single run
+  \item cover case when few packets in a bin
+\end{itemize}
 
 \section{Notation} \label{sec:notation}
 
@@ -244,11 +251,11 @@ We assume that each $L_j$ has a distribution depending on $\nu$ and
 other parameters $\bmphi$ and that each packet is statistically
 independent. Since $N$ is random, $L$ is said to follow a compound
 Poisson process. The joint distribution then is
-\begin{align*}
-  \label{cac}
+\begin{align}
+  \lleq{cac}
   (N,\bmL) &\ \sim\ p(N,\bmL\cond \bmphi,\lambda, \nu)
   = p(\bmL\cond N,\bmphi, \nu)\; P(N\cond \lambda) = \prod_{j=1}^N p(L_j\cond \bmphi, \nu) \; P(N\cond \lambda),
-\end{align*}
+\end{align}
 where we used that the Poisson term does not depend on $\nu$
 explicitly. In general, the distribution of $L_j$ could be a of a
 different functional form in each bin. For simplicity, we assume it is
@@ -358,15 +365,15 @@ with
 \end{align}
 and $p(\cdot \cond \bmphi, \cdot)$ is the same function in both
 equations.  In the next section, we compute the general result for
-$P(N \cond n)$. Equation \refeq{pmp} implies that once we specify the
-prior $p(\bmphi)$ and the likelihood $p(L_j\cond \bmphi)$, we have a
-prediction for $L$ which takes into account all possible $N$,
+$P(N \cond n)$. Equation \refeq{pmp} then implies that once we specify
+the prior $p(\bmphi)$ and the likelihood $p(L_j\cond \bmphi, \nu)$, we
+have a prediction for $L$ which takes into account all possible $N$,
 $\lambda$ and $\bmphi$. Both choices depend on the simulation at hand
 but a general consideration to render our approach tractable is that
 the distribution of a single packet luminosity $P(L_j \cond \bmphi,
 \nu)$ should be such that the integral over $\bmL$ has a closed-form
-solution. In other words, the distribution of $L = \sum_N L_j$ should
-be known.
+solution. In other words, for a given distribution of $L_j$, the
+distribution of $L = \sum_N L_j$ should be known.
 %  An important special case is the class of \emph{stable}
 % distributions.
 
@@ -411,35 +418,195 @@ standard results for the evidence and the posterior predictive are
   \int_0^\infty d\lambda\, p(n\cond\lambda)\,p(\lambda)
   \ =\
   c \int_0^\infty d\lambda\, \frac{e^{-\lambda}\,\lambda^{n-a}}{n!}
-  \ =\ c\frac{(n-a)!}{n!}
+  \ =\ c\frac{(n-a)!}{n!} \, ,
   \\
   \lleq{pmh}
   p(N\cond n) %
   &= \frac{n!}{(n-a)!} \int_0^\infty d\lambda\,
   \frac{e^{-2\lambda} \lambda^{N+n-a}}{N!\, n!}
-  \ =\ \frac{(N+n-a)!}{N!\,(n-a)!\,2^{N+n+1-a}}
+  \ =\ \frac{(N+n-a)!}{N!\,(n-a)!\,2^{N+n+1-a}} \, .
 \end{align}
-which we recognise as a Negative Binomial distribution describing the
-probability to observe $N$ successes given $k=n+1-a$ failures in a
-sequence of Bernoulli trials with success probability $\rho=1/2$
-\begin{align}
-  \lleq{pmhb}
-  p(N\cond n) &= \NBD(N\cond k{=}n{+}1{-}a, \rho{=}\tfrac{1}{2})
-  \ =\ \binom{N{+}n{-}a}{N}
-  \left(\frac{1}{2}\right)^N \left(\frac{1}{2}\right)^{n+1-a}
-\end{align}
-For non-integer $a$, the Negative Binomial generalizes immediately to
-the Pólya distribution by replacing $x! \to \Gamma(x+1)$. Note that
-the distribution of $N$ given $n$ is independent of $\bmL$ and $\bml$
-by construction but depends on $\bmnu$ implicitly through $n$.
 
 \section{Example application: \tardis} \label{sec:example}
 
-The \tardis{} packages simulates supernovae with \fred{Wolfgang's
+ The \tardis{} packages simulates supernovae with \fred{Wolfgang's
   favorite description of his package}. Here we focus on the real
 packets as opposed to the virtual packets output by tardis.
 
-Based on staring at the distribution of luminosities,
+% Based on staring at the distribution of luminosities,
+To apply \refeq{pmp}, we first need to choose $P(L_j \cond \bmphi,
+\nu)$. A histogram of the luminosities from a \tardis{} run indicates
+a strongly skewed distribution with a single mode that is close to but
+not at the sharp end point $\lmax$. There is a long tail for small
+$\ell$. These features can be accomodated by a $\GammaDist$
+distribution with shape parameter $\alpha$ and rate
+parameter $\beta$
+\begin{align}
+  \lleq{gma}
+  \GammaDist(x | \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x}\, , \; x > 0 .
+\end{align}
+Since $\ell$ seems bounded from above, we have to transform the data.
+We first take the largest luminosity of all \tardis{} packets across the
+entire frequency range and increase it slightly to avoid numerical
+difficulties at the end point
+\begin{align}
+  \lleq{gme}
+  \lmax \equiv (1+\epsilon) \times \max_j \ell_j,
+\end{align}
+where $ \epsilon=10^{-6}$.  We assume the total number of samples
+across all bins is large, hence the effect of considering $\lmax$ a
+constant independent of the data is negligible. We checked that
+leaving $\lmax$ as a free parameter in a fit gave equivalent
+results. We define
+\begin{align}
+  \lleq{gmf}
+  x_j \equiv 1- \frac{\ell_j}{\lmax} > 0
+\end{align}
+and similarly for $L \to X$, then we infer $P(X \cond \nu, \npack,
+\bmx, \bmnu)$. If necessary, we transform back to a probability
+density in $L$ via
+\begin{align}
+  \lleq{gmg}
+  p(L  \cond \nu,  \npack, \bml, \bmnu) = p(X  \cond \nu,  \npack, \bmx, \bmnu) \frac{1}{\lmax} \,.
+\end{align}
+To simplify the numerics, we also rescale the frequencies by a fixed
+constant from $\mathcal{O}(10^{15})$ to $\mathcal{O}(1)$.  A major
+numerical simplification arises because of the $L \to X$
+transformation. Rewriting the master equation~(\ref{pmp}) formally as
+\begin{align}
+  \lleq{gmh}
+  p(L  \cond \nu,  \npack, \bml, \bmnu) = \sum_{N} p(N \cond \nu,  n) p(L \cond N,
+\nu, \npack, \bml, \bmnu)
+\end{align}
+we see that the right-hand side is a mixture density. In our
+application, the distribution of a single packet luminosity is narrow
+in the sense that the standard deviation relative to the mean is at
+the percent level. This implies that $p(L \cond \nu, \npack, \bml,
+\bmnu)$ has one mode from each $N$ and all modes are clearly
+separated. The transformation $L \to x$ effects a strong overlap
+between the distributions $p(X \cond N, \nu, \npack, \bmx, \bmnu)$
+with similar $N$, so $p(X \cond \nu, \npack, \bmx, \bmnu)$ can be well
+approximated by a unimodal distribution; see \reffig{hedgehog}.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.48\textwidth]{hedgehog}
+  \caption{Left: Prediction $p(L \cond  \nu,  \npack, \bml, \bmnu)$, right: $p(x \cond  \nu,  \npack, \bmx, \bmnu)$. I sum over $N$ in both cases. }
+  \fred{I still need to pretty this up. I used the old binned approach
+    with 50 samples in a bin from which I computed the mean and
+    variance to plug into \refeq{gmr} but I computed the sum over $N$
+    instead of the integral.}
+\label{fig:hedgehog}
+\end{figure}
+
+We prefer the Gamma distribution because it is \emph{stable}; i.e.,
+the sum of $N$ Gamma variates is again a Gamma variate
+\begin{align}
+  \lleq{gmb}
+    X_j \sim \GammaDist(\alpha, \beta) \Rightarrow X \equiv \sum_{j=1}^N X_j \sim \GammaDist(N \alpha, \beta).
+\end{align}
+Assuming $\alpha = \alpha(\nu \cond \bmphi)$ and $\beta = \beta(\nu
+\cond \bmphi)$ are functions of $\nu$ that depend on parameters
+$\bmphi$, we set
+\begin{align}
+  \lleq{gmi}
+  p(\bmX \cond \bmphi, N, \nu) &= \prod_{j=1}^N \GammaDist(X_j \cond \alpha, \beta ).
+\end{align}
+and equivalently $P(\bmx \cond \bmphi, \npack, \bmnu)$.  Combining
+\refeq{gmb} and \refeq{gmi}, we can solve the integral
+\begin{align}
+  \lleq{gmc}
+  \int \rmdx{\bmX} \delta(X - \textstyle\sum_j X_j)
+  \,p(\bmX\cond N,\bmphi, \nu) = \GammaDist(X \cond N \alpha, \beta)
+\end{align}
+implying that the master equation~(\ref{pmp}) considerably simplifies
+as
+\begin{align}
+  \lleq{gmd}
+    \boxed{
+    p(X\cond \nu, \npack,\bmx,\bmnu)
+  = \frac{1}{p(\bmx\cond \npack, \bmnu)}
+  \sum_N p(N\cond n)\, \int \rmdx{\bmphi} \GammaDist(X \cond N \alpha, \beta) % p(X \cond N, \bmphi, \nu)
+  \, p(\bmx\cond \bmphi, \npack, \bmnu)
+  \, p(\bmphi).
+  }
+\end{align}
+
+\subsection{Linear model}
+
+In the absence of a physical model to determine $\alpha(\nu \cond
+\bmphi)$ and $\beta(\nu \cond \bmphi)$, we propose to start with a simple polynomial ansatz   $\alpha(\nu \cond \bmphi) = \sum_{k=0}^\Kalpha \alpha_k \nu^k, \beta(\nu \cond \bmphi) = \sum_{k=0}^\Kbeta \beta_k \nu^k$ such that
+\begin{align}
+  \lleq{gmp}
+  \bmphi = (\alpha_0, \dots \alpha_\Kalpha , \beta_0, \dots \beta_\Kbeta)
+\end{align}
+The usual trade off between parsimony and the ability to accurately
+model the frequency dependence determines the orders of the
+polynomials, $\Kalpha$ and $\Kbeta$. This is outside the scope of this
+paper. Here we choose $\Kalpha = 3$ and $\Kbeta = 1$.
+
+\subsection{Prior} \label{sec:priors}
+
+The only missing piece to explicitly evaluate \refeq{gmd} is the prior
+$p(\bmphi)$. To gain some insight, consider the standard $\GammaDist$
+model with $\Kalpha = \Kbeta = 0$.
+% There is a conjugate prior but
+% unfortunately the normalization constant cannot be evaluated in closed
+% form, so it is thus of no use for us.
+How about a noninformative prior? The authors of
+\cite{moala2013bayesian} present an overview of possible choices and
+conclude that the point estimate given by the mode of the posterior is
+nearly insensitive to the prior choice starting from around 30
+independent identically distributed samples. We posit that there are
+this many samples available near any $\nu$ under consideration, so the
+form of the prior is not crucial for our application. But there is
+some explicit prior information that we want to build into our
+analysis. The distribution $p(x \cond \alpha, \beta)$ should always
+vanish at the origin. This is equivalent to requiring a maximum away
+from the boundary leading to $\alpha > 1$. We choose a uniform prior
+on $\bmphi$ on a finite box $V$ through indicator functions
+\begin{align}
+  p(\bmphi) = \mathbf{1}_{\alpha(\bmphi) > 1}(\bmphi) \mathbf{1}_V(\bmphi).
+\end{align}
+
+\subsection{Numerical implementation} \label{sec:numerical}
+
+The box $V$ is chosen by trial and error to be large enough to contain
+the relevant region of $p(\bmx\cond \bmphi, \npack, \bmnu)$. For
+simple functions $\alpha(\nu \cond \bmphi)$, one can find the minimum
+value of $\alpha$ over the entire range of $\nu$ analytically. If this
+is too complicated, we propose to require $\alpha(\nu_j \cond \bmphi)
+> 1$ only at each packet frequency $\nu_j$. In the evaluation of
+$p(\bmx \cond \bmphi, \npack, \bmnu)$, one has to loop over all
+packets and compute $\alpha$ and $\beta$ anyways, so the constraint
+imposes essentially no computational overhead.  To explicitly evaluate
+\refeq{gmd}, we have to overcome the remaining two difficulties: the
+integral over $\bmphi$ and the sum over $N$.
+
+As for the former, the posterior $p(\bmphi \cond \npack, \bmx, \bmnu)$
+is approximately Gaussian in $\phi$ for $\npack$ large, so we can
+apply Laplace's method to perform the $\bmphi$ integrals for both the
+evidence $p(\bmx \cond \npack, \bmnu)$ and the posterior mean $p(X
+\cond N, \npack, \bmx, \bmnu)$. This requires the Hessian at the mode
+and the gradient helps in locating the mode; the analytic expressions
+are summarized in \refsec{appendix}.
+
+Regarding the sum over $N$, we start at $N = \lfloor n-a+1 \rfloor =
+\arg \max_N p(N|n)$ \fred{Actually we should say $p(N \cond n, a)$}
+and continue to larger and smaller values of $N$ until the
+contribution to $P(X \cond \nu, \npack, \bmx, \bmnu)$ becomes
+negligible. In case the relevant contribution is from large $N$ and
+$n$, we interpret $N$ as a continuous variable, replace factorials by
+$\Gamma$ function in \refeq{pmh}, and apply Laplace's method to
+integrate over $N$ and $\bmphi$.
+
+\fred{Our implementation is available online on \href{https://github.com/tardis-sn/XXX}{github}}
+
+\subsection{Graphical output}
+
+\section{Conclusion} \label{sec:conclusion}
+
+\section{Appendix} \label{sec:appendix}
 
 We use the shorthand $\alpha_n \equiv \alpha(\nu_n \cond
 \bmphi), \beta_n \equiv \beta(\nu_n \cond \bmphi), \alpha \equiv
@@ -449,7 +616,7 @@ We use the shorthand $\alpha_n \equiv \alpha(\nu_n \cond
 
 \begin{align}
   \label{eq:grad-posterior}
-  \left( \firstDeriv{\alpha_i}, \firstDeriv{\beta_i} \right) \log P(\bmx \cond \alpha, \beta) &=
+  \left( \firstDeriv{\alpha_i}, \firstDeriv{\beta_i} \right) \log p(\bmx \cond \alpha, \beta) &=
   \left(
     \sum_n \left[ \log \beta_n - \Psi(\alpha_n) + \log x_n \right] \nu_n^i \;,
     \sum_n \left[ \frac{\alpha_n}{\beta_n} - x_n \right]\nu_n^i
@@ -458,7 +625,7 @@ We use the shorthand $\alpha_n \equiv \alpha(\nu_n \cond
 
 \begin{align}
   \label{eq:grad-prediction}
-  \left( \firstDeriv{\alpha_i}, \firstDeriv{\beta_i}, \firstDeriv{N} \right) \log P(X \cond N \alpha, \beta)  &=
+  \left( \firstDeriv{\alpha_i}, \firstDeriv{\beta_i}, \firstDeriv{N} \right) \log p(X \cond N \alpha, \beta)  &=
   \left(
     \left[ \log \beta - \Psi(N \alpha) + \log X \right] N \nu^i,
     \left[ \frac{N\alpha}{\beta} - X \right]\nu^i,
@@ -468,7 +635,7 @@ We use the shorthand $\alpha_n \equiv \alpha(\nu_n \cond
 
 \begin{align}
   \label{eq:grad-nb}
-  \firstDeriv{N} \log P(N \cond n) = \Psi(N+n-a+1) - \Psi(N+1) - \log 2
+  \firstDeriv{N} \log p(N \cond n) = \Psi(N+n-a+1) - \Psi(N+1) - \log 2
 \end{align}
 
 \subsection{Hessians} \label{sec:hessians}
@@ -480,7 +647,7 @@ We use the shorthand $\alpha_n \equiv \alpha(\nu_n \cond
       \secPartial{\alpha_i}{\alpha_j} & \secPartial{\alpha_i}{\beta_j}\\
       \dots & \secPartial{\beta_i}{\beta_j}
     \end{array}
-  \right) \log P(\bmx \cond \alpha, \beta)
+  \right) \log p(\bmx \cond \alpha, \beta)
     &= \left(
     \begin{array}{cc}
       \sum_n \Psi'(\alpha_n) \nu_n^{i+j} & -\sum_n \frac{\nu_n^{i+j}}{\beta_n}\\
@@ -498,7 +665,7 @@ with $\alpha_n \equiv \alpha(\nu_n \cond \bmphi), \beta_n \equiv \beta(\nu_n \co
       \dots & \secPartial{\beta_i}{\beta_j} & \secPartial{\beta_i}{N}\\
       \dots & \dots & \secDeriv{N}
     \end{array}
-  \right) \log P(X \cond N \alpha, \beta)
+  \right) \log p(X \cond N \alpha, \beta)
   \\
   &=
   \left(
@@ -512,10 +679,12 @@ with $\alpha_n \equiv \alpha(\nu_n \cond \bmphi), \beta_n \equiv \beta(\nu_n \co
 with $\alpha \equiv \alpha(\nu \cond \bmphi), \beta \equiv \beta(\nu \cond \bmphi)$.
 \begin{align}
   \label{eq:hess-nb}
-   - \secDeriv{N} \log P(N \cond n) = \Psi'(N+1) - \Psi'(N+n-a+1)
+   - \secDeriv{N} \log p(N \cond n) = \Psi'(N+1) - \Psi'(N+n-a+1)
 \end{align}
 
-\section{Conclusion} \label{sec:conclusion}
+\bibliographystyle{plain}
+\bibliography{references}
+
 
 \end{document}
 
