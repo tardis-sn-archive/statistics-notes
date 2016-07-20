@@ -15,9 +15,9 @@ CXX       = h5c++
 #export HDF5_CXXLINKER = clang++
 
 OPTIM     = -g -O0
-#OPTIM     = -O3 -ffast-math -fopenmp
+#OPTIM     = -O3 -ffast-math # -fopenmp
 
-CXXFLAGS  = $(OPTIM) -fPIC -Wall -Wextra -Wpedantic -Wno-deprecated # -Wconversion -Wno-sign-conversion  -Werror
+CXXFLAGS  = $(OPTIM) -fPIC -Wall -Wextra -Wpedantic -Wno-deprecated -Wfloat-conversion # -Wconversion -Wno-sign-conversion  -Werror
 LD        = h5++
 LDFLAGS   = $(OPTIM)
 
@@ -27,7 +27,8 @@ LDFLAGS   = $(OPTIM)
 # directories, update $PATH accordingly.
 
 CXXFLAGS += $(shell bat-config --cflags)
-LIBS := $(shell bat-config --libs) -lMinuit2 -lgsl -lgslcblas #  -L/usr/lib/openblas-base/ -lopenblas
+# prepend libs to avoid root being linked in
+LIBS :=  -lMinuit2 -lgsl -lgslcblas $(shell bat-config --libs) # -L/usr/lib/openblas-base/ -lopenblas
 
 # ----------------------------------------------------------------------
 # don't change lines below unless you know what you're doing

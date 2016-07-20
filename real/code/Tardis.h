@@ -25,7 +25,7 @@ public:
      * Set state to update the prior such that minuit gets the correct
      * target density for prediction and compute the evidence.
      */
-    gsl_vector* PreparePrediction();
+    std::vector<double> PreparePrediction();
 
     /**
      * Predict X for small n at a given nu (=bin center).
@@ -39,12 +39,12 @@ public:
      */
     double PredictSmall(unsigned n, double X, double nu, double Xmean = -1, double precision = 1e-2);
 
-    double PredictMedium(gsl_vector* oldMode, unsigned n, double X, double nu);
+    double PredictMedium(std::vector<double>& oldMode, unsigned n, double X, double nu);
 
     double PredictVeryLarge(unsigned n, double X, double nu);
 
-    void setScale(gsl_vector* v = nullptr);
-    gsl_vector* initialValue() const;
+    void setScale(const std::vector<double>& initial = {});
+    std::vector<double> initialValue() const;
     gsl_vector* stepSizes(const unsigned ndim) const;
 
     class OptimOptions
@@ -60,16 +60,15 @@ public:
                 unsigned iter_min, unsigned iter_max);
     };
 
-    gsl_multimin_fminimizer* minimizeSimplex(gsl_multimin_function, gsl_vector* initial, OptimOptions o);
-    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_multimin_function_fdf, gsl_vector* initial, OptimOptions o);
+    gsl_multimin_fminimizer* minimizeSimplex(gsl_multimin_function, const std::vector<double>& initial, OptimOptions o);
+    gsl_multimin_fminimizer* minimizeSimplex(const std::vector<double>& initial, OptimOptions = OptimOptions::DefaultSimplex());
+//    gsl_multimin_fminimizer* minimizeSimplex(const std::vector<double>& initial = {});
 
-    gsl_multimin_fminimizer* minimizeSimplex(gsl_vector* initial, OptimOptions);
-    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_vector* initial, OptimOptions);
+    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_multimin_function_fdf, const std::vector<double>& initial, OptimOptions o);
+    gsl_multimin_fdfminimizer* minimizeLBFGS(const std::vector<double>& initial = {}, OptimOptions = OptimOptions::DefaultLBFGS());
+//    gsl_multimin_fdfminimizer* minimizeLBFGS(const std::vector<double>& initial = {});
 
-    gsl_multimin_fminimizer* minimizeSimplex(gsl_vector* initial = nullptr);
-    gsl_multimin_fdfminimizer* minimizeLBFGS(gsl_vector* initial = nullptr);
-
-    ROOT::Minuit2::FunctionMinimum minimizeMinuit(std::vector<double> initial = {},
+    ROOT::Minuit2::FunctionMinimum minimizeMinuit(const std::vector<double>& initial = {},
             OptimOptions = OptimOptions::DefaultMinuit());
 
     void fitnb();
@@ -128,12 +127,13 @@ public:
             const double nu,
             const double alpha, const double beta, const double N);
     double logtarget(gsl_vector* v);
-    gsl_matrix* hessian(gsl_vector* v);
+    gsl_matrix* hessian(const std::vector<double>& v);
     double logdet(gsl_matrix*);
+    double log_likelihood(const std::vector<double>& v);
 
     /// on log scale
-    double Laplace(gsl_vector* v);
-    double Laplace(gsl_vector* v, const double logf);
+    double Laplace(const std::vector<double>& v);
+    double Laplace(const std::vector<double>& v, const double logf);
 
     enum class Target { Default, Gamma, NBGamma, Undefined };
 
@@ -155,14 +155,7 @@ public:
          double en, nu;
     };
 
-    void FixPredicted(Target target, unsigned n, double X, double nu)
-    {
-        set_target(target);
-        nPrediction = n;
-        XPrediction = X;
-        nuPrediction = nu;
-    }
-
+    void FixPredicted(Target target, unsigned n, double X, double nu);
     void set_target(Target target);
 
     void Unfix()

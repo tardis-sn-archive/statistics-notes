@@ -1,10 +1,12 @@
 #include "Tardis.h"
 
+#include <gsl/gsl_vector.h>
+
 #include <fstream>
 #include <iostream>
 
-using namespace std;
 using namespace ROOT::Minuit2;
+using namespace std;
 
 bool file_exists(const std::string& filename)
 {
@@ -89,13 +91,14 @@ int main(int argc, char* argv[])
      * Hyperthreading gives an improvement of ~15 - 20 % for the single likelihood
      */
 #if 1
-//    auto mode = m.PreparePrediction();
-
+    // todo memory leak
+    auto mode = m.PreparePrediction();
+#else
     auto mode = gsl_vector_alloc(5);
 //    std::vector<double> vecmode {1.69318195, -0.2316184245, 0.06850367375, 78.41164031, -14.9692865};
     std::array<double, 5> vecmode {{ 1.601271636, -0.2258877812, 0.07348750746, 75.14014599, -14.30604913}};
     std::copy(vecmode.begin(), vecmode.end(), mode->data);
-
+#endif
     std::ofstream file(outprefix + "_run" + to_string(run) + ".out");
 
     // P(0) = 0 but leads to numerical break down
@@ -107,22 +110,23 @@ int main(int argc, char* argv[])
      *  */
 
     // number of points
-    constexpr auto K = 1;
+    constexpr auto K = 2;
     const auto DX = (get<1>(minmaxX) - get<0>(minmaxX));
     const auto extra = 0.5;
     const auto Xmin = max(0.0, get<0>(minmaxX) - extra * DX);
     const auto Xmax = get<1>(minmaxX) + extra * DX;
     const auto dx = (Xmax - Xmin) / K;
     for (auto i = 1; i <= K; ++i) {
-        const double X = Xmin + i * dx;
+        const double X = 38.7; //Xmin + i * dx;
 //        const double P = m.PredictSmall(n, X, nu, m.mean(), 0.01);
+// todo update mode as initial value
         const double P = m.PredictMedium(mode, n, X, nu);
 //        const double P = m.PredictVeryLarge(n, X, nu);
         file << X << '\t' << P << endl;
     }
-#endif
+    return 0;
 }
 
 // Local Variables:
-// compile-command: "make && ./runTardis"
+// compile-command: "make && ./runTardis 9"
 // End:

@@ -33,6 +33,38 @@ using namespace H5;
 using namespace ROOT::Minuit2;
 
 // #define USE_TEST_QUADRATIC 1
+template<typename T>
+using deleted_unique_ptr = std::unique_ptr<T, void(*)(T*)>;
+using deleted_vector = deleted_unique_ptr<gsl_vector>;
+
+deleted_vector make_deleted_vector(gsl_vector* v)
+{
+    return deleted_vector(v, &gsl_vector_free);
+}
+
+void stl_to_gsl(const std::vector<double>& x, gsl_vector* v)
+{
+  assert(x.size() == v->size);
+  std::copy(x.begin(), x.end(), v->data);
+}
+
+deleted_vector stl_to_gsl(const std::vector<double>& x)
+{
+  auto v = make_deleted_vector(gsl_vector_alloc(x.size()));
+  std::copy(x.begin(), x.end(), v->data);
+  return  v;
+}
+
+std::vector<double> gsl_to_stl(const gsl_vector* v)
+{
+  return std::vector<double>(v->data, v->data + v->size);
+}
+
+void gsl_to_stl(gsl_vector* v, std::vector<double>& x)
+{
+  x.resize(v->size);
+  std::copy(v->data, v->data + v->size, x.begin());
+}
 
 std::ostream& operator<<(std::ostream& out, gsl_vector* v)
 {
@@ -51,17 +83,14 @@ std::ostream& operator<<(std::ostream& out, gsl_matrix* m)
     return out;
 }
 
+std::ostream& operator<<(std::ostream& out, const std::vector<double>& v)
+{
+    std::copy(v.begin(), v.end(), std::ostream_iterator<double>(out, " "));
+    return out;
+}
+
 namespace
 {
-
-template<typename T>
-using deleted_unique_ptr = std::unique_ptr<T, void(*)(T*)>;
-using deleted_vector = deleted_unique_ptr<gsl_vector>;
-
-deleted_vector make_deleted_vector(gsl_vector* v)
-{
-    return deleted_vector(v, &gsl_vector_free);
-}
 
 inline double logGamma(double X, double alpha, double beta)
 {
@@ -228,7 +257,7 @@ void log_likelihood_and_gradient(const gsl_vector * v, void *model,
 
     const auto invalid = -std::numeric_limits<double>::infinity();
     double res = 0;
-#pragma omp parallel for reduction(+:res) schedule(static)
+    // #pragma omp parallel for reduction(+:res) schedule(static)
     for (unsigned n = 0; n < m.samples.size(); ++n) {
         const auto& s = m.samples[n];
 
@@ -241,7 +270,6 @@ void log_likelihood_and_gradient(const gsl_vector * v, void *model,
             res = invalid;
 //            cerr << "invalid " << n << ": alpha_n " << alpha_n
 //                    << ", beta_n " << beta_n << endl;
-            break; // todo remove with openmp
         }
 
         // cout << "alpha_n " << alpha_n << ", beta_n "<< beta_n << endl;
@@ -250,7 +278,6 @@ void log_likelihood_and_gradient(const gsl_vector * v, void *model,
         if (!std::isfinite(extra)) {
             res = invalid;
 //            cerr << "invalid " << n << ": extra " << extra << endl;
-            break;
         }
 
         // results are different from run to run with more than 2 threads
@@ -662,20 +689,30 @@ Tardis::Vec Tardis::ReadData(const std::string& fileName, const std::string& dat
     return buffer;
 }
 
-gsl_vector* Tardis::PreparePrediction()
+std::vector<double> Tardis::PreparePrediction()
 {
-    // todo replace simplex with minuit
-    // custom deleter for a unique pointer
+    // for (auto i = 0; i < 10; i++) {
+    //     cout << samples[i].nu << " " << samples[i].en << endl;
+    // }
+
+    set_target(Target::Default);
+
+    std::vector<double> mode;
     auto o = OptimOptions::DefaultSimplex();
-    o.iter_max = 50;
-    deleted_unique_ptr<gsl_multimin_fminimizer> v(minimizeSimplex(nullptr), &gsl_multimin_fminimizer_free);
+    o.iter_max = 100;
+    deleted_unique_ptr<gsl_multimin_fminimizer> v(minimizeSimplex(std::vector<double>{}, o), &gsl_multimin_fminimizer_free);
+#if 0
     deleted_unique_ptr<gsl_multimin_fdfminimizer> v2(minimizeLBFGS(v->x), &gsl_multimin_fdfminimizer_free);
 
-    gsl_vector* mode = gsl_vector_alloc(v2->x->size);
     gsl_vector_memcpy(mode, v2->x);
-
+    const double logf = v2->f;
+#else
+    auto min = minimizeMinuit(std::vector<double>(v->x->data, v->x->data + v->x->size), OptimOptions::DefaultMinuit());
+    mode = min.UserParameters().Params();
+    const double logf = -min.Fval();
+#endif
     cout << "Mode " << mode << endl;
-    evidence = Laplace(mode);
+    evidence = Laplace(mode, logf);
     cout << "Laplace approx. of the log evidence " << evidence << endl;
 
     return mode;
@@ -771,36 +808,29 @@ double Tardis::PredictSmall(unsigned n, double X, double nu, double Xmean, doubl
 #endif
 }
 
-double Tardis::PredictMedium(gsl_vector* oldMode, unsigned n, double X, double nu)
+double Tardis::PredictMedium(std::vector<double>& oldMode, unsigned n, double X, double nu)
 {
     if (target != Target::NBGamma) {
 //        cerr << oldMode << endl;
 //        cerr << GetNParameters() << endl;
 
         set_target(Target::NBGamma);
-        assert(oldMode->size == GetNParameters() - 1);
+        assert(oldMode.size() == GetNParameters() - 1);
 
         // assume optimization over alpha and beta has been done
         // then add N as a new parameter, optimize again
         cout << "Adding N with start value " << n << endl;
-
-        auto mode = gsl_vector_alloc(GetNParameters());
-        for (unsigned i = 0; i < oldMode->size; ++i)
-            gsl_vector_set(mode, i , gsl_vector_get(oldMode, i));
-        gsl_vector_set(mode, mode->size - 1, n);
-
-        // old mode obsolete, reassign pointer
-        gsl_vector_free(oldMode);
-        oldMode = mode;
+        oldMode.push_back(n);
     }
+    assert(oldMode.size() == GetNParameters());
 
     FixPredicted(Target::NBGamma, n, X, nu);
     auto o = OptimOptions::DefaultSimplex();
     o.iter_min = 0;
-    o.iter_max = 500;
+    o.iter_max = 50;
     deleted_unique_ptr<gsl_multimin_fminimizer> res1(minimizeSimplex(oldMode, o), &gsl_multimin_fminimizer_free);
     cout << "Simplex returns " << res1->x << endl;
-#if 1
+#if 0
     o.iter_min = 0;
     o.step_size = 2;
     deleted_unique_ptr<gsl_multimin_fdfminimizer> res(minimizeLBFGS(res1->x), &gsl_multimin_fdfminimizer_free);
@@ -814,8 +844,7 @@ double Tardis::PredictMedium(gsl_vector* oldMode, unsigned n, double X, double n
     auto min = minimizeMinuit(std::vector<double>(res1->x->data, res1->x->data + GetNParameters()), o);
 
     // copy mode to return it
-    auto mode = min.UserParameters().Params();
-    std::copy(mode.begin(), mode.end(), oldMode->data);
+    oldMode = min.UserParameters().Params();
     const double logf = -min.Fval();
 #endif
     auto integral = Laplace(oldMode, logf);
@@ -901,21 +930,20 @@ std::tuple<unsigned, double> Tardis::SumX(double numin, double numax) const
 #define GSL_FVAL fval
 #endif
 
-gsl_vector* Tardis::initialValue() const
+std::vector<double> Tardis::initialValue() const
 {
-    gsl_vector *v = gsl_vector_alloc(GetNParameters());
-    gsl_vector_set_zero(v);
+    std::vector<double> v(GetNParameters(), 0.0);
 
     switch (target) {
         case Target::Gamma:
         case Target::NBGamma:
-            gsl_vector_set(v, 5, nPrediction);
+            v.at(5) = nPrediction;
         case Target::Default:
-            gsl_vector_set(v, 0,  1.60339e+00);
-            gsl_vector_set(v, 1, 0);
-            gsl_vector_set(v, 2, 0.0);
-            gsl_vector_set(v, 3,  7.697191e+01);
-            gsl_vector_set(v, 4, 0);
+            v.at(0) = 1.60339e+00;
+            v.at(1) = 0;
+            v.at(2) = 0.0;
+            v.at(3) = 7.697191e+01;
+            v.at(4) = 0;
             break;
         default:
             cerr << " Don't know how to initialize GSL." << endl;
@@ -931,24 +959,19 @@ gsl_vector* Tardis::stepSizes(const unsigned ndim) const
     return v;
 }
 
-void Tardis::setScale(gsl_vector* v)
+void Tardis::setScale(const std::vector<double>& initial)
 {
-    const bool freev = !v;
-    if (freev)
-        v = initialValue();
-
-    const double f = log_likelihood(v, this);
+    const double f = log_likelihood(initial);
     if (std::isfinite(f)) {
         scale = f;
     } else {
-        cerr << "Cannot set scale: f = " << f << " at " << v << endl;
+        cerr << "Cannot set scale: f = " << f << " at " << initial << endl;
     }
     cout << "scale " << scale << endl;
-    if (freev)
-        gsl_vector_free(v);
 }
-
-gsl_multimin_fminimizer* Tardis::minimizeSimplex(gsl_vector* v)
+#if 0
+//gsl_multimin_fminimizer* Tardis::minimizeSimplex(gsl_vector* v)
+gsl_multimin_fminimizer* Tardis::minimizeSimplex(const std::vector<double>& v)
 {
     auto delv = make_deleted_vector(nullptr);
     if (!v) {
@@ -957,20 +980,22 @@ gsl_multimin_fminimizer* Tardis::minimizeSimplex(gsl_vector* v)
     }
     return minimizeSimplex(v, OptimOptions::DefaultSimplex());
 }
-
-gsl_multimin_fminimizer* Tardis::minimizeSimplex(gsl_vector* v, OptimOptions o)
+#endif
+gsl_multimin_fminimizer* Tardis::minimizeSimplex(const std::vector<double>& v, OptimOptions o)
 {
     gsl_multimin_function my_func;
     my_func.n = GetNParameters();
-    my_func.f = log_likelihood;
+    my_func.f = ::log_likelihood;
     my_func.params = this;
 
     return minimizeSimplex(my_func, v, o);
 }
 
-gsl_multimin_fminimizer* Tardis::minimizeSimplex(gsl_multimin_function my_func, gsl_vector* v, OptimOptions o)
+gsl_multimin_fminimizer*
+Tardis::minimizeSimplex(gsl_multimin_function my_func, const std::vector<double>& init,
+    OptimOptions o)
 {
-    assert(v->size == my_func.n);
+  assert(init.size() == my_func.n);
 
     unsigned iter = 0;
     int status;
@@ -980,10 +1005,12 @@ gsl_multimin_fminimizer* Tardis::minimizeSimplex(gsl_multimin_function my_func, 
 
     // Starting point
     auto delv = make_deleted_vector(nullptr);
-    if (!v) {
+    if (init.empty()) {
         delv.reset(initialValue());
-        v = delv.get();
+    } else {
+      delv = stl_to_gsl(init);
     }
+    auto v = delv.get();
 
     s = gsl_multimin_fminimizer_alloc(T, my_func.n);
     cout << "Initializing simplex with " << v << endl;
@@ -1026,17 +1053,8 @@ gsl_multimin_fminimizer* Tardis::minimizeSimplex(gsl_multimin_function my_func, 
     return s;
 }
 
-gsl_multimin_fdfminimizer* Tardis::minimizeLBFGS(gsl_vector* v)
-{
-    auto delv = make_deleted_vector(nullptr);
-    if (!v) {
-        delv.reset(initialValue());
-        v = delv.get();
-    }
-    return minimizeLBFGS(v, OptimOptions::DefaultLBFGS());
-}
-
-gsl_multimin_fdfminimizer* Tardis::minimizeLBFGS(gsl_vector* v, Tardis::OptimOptions o)
+gsl_multimin_fdfminimizer*
+Tardis::minimizeLBFGS(const std::vector<double>& initial, Tardis::OptimOptions o)
 {
     gsl_multimin_function_fdf my_func;
     my_func.n = GetNParameters();
@@ -1045,10 +1063,11 @@ gsl_multimin_fdfminimizer* Tardis::minimizeLBFGS(gsl_vector* v, Tardis::OptimOpt
     my_func.fdf = log_likelihood_and_gradient;
     my_func.params = this;
 
-    return minimizeLBFGS(my_func, v, o);
+    return minimizeLBFGS(my_func, initial, o);
 }
 
-gsl_multimin_fdfminimizer* Tardis::minimizeLBFGS(gsl_multimin_function_fdf my_func, gsl_vector* v, Tardis::OptimOptions o)
+gsl_multimin_fdfminimizer*
+Tardis::minimizeLBFGS(gsl_multimin_function_fdf my_func, const std::vector<double>& initial, Tardis::OptimOptions o)
 {
     unsigned iter = 0;
     int status;
@@ -1057,11 +1076,11 @@ gsl_multimin_fdfminimizer* Tardis::minimizeLBFGS(gsl_multimin_function_fdf my_fu
     gsl_multimin_fdfminimizer *s;
 
     // Starting point
-    auto delv = make_deleted_vector(nullptr);
-    if (!v) {
-        delv.reset(initialValue());
-        v = delv.get();
-    }
+    auto delv = stl_to_gsl(initial);
+    if (initial.empty())
+      delv.reset(initialValue());
+    auto v = delv.get();
+
     if (v->size != my_func.n) {
         cerr << "Warning: dimension mismatch in LBFGS2. Got " << v->size
                 << ", expected " << GetNParameters() << endl;
@@ -1147,8 +1166,10 @@ void Tardis::updateBlocks(gsl_matrix* m, std::vector<double>& powers,
     }
 }
 
-gsl_matrix* Tardis::hessian(gsl_vector* v)
+gsl_matrix* Tardis::hessian(const std::vector<double>& init)
 {
+  auto delv = stl_to_gsl(init);
+  auto v = delv.get();
     auto m = gsl_matrix_alloc(v->size, v->size);
     gsl_matrix_set_zero(m);
 
@@ -1232,14 +1253,22 @@ double Tardis::logdet(gsl_matrix* hessian)
     return 2.0 * log_det;
 }
 
-double Tardis::Laplace(gsl_vector* v)
+double Tardis::log_likelihood(const std::vector<double>& v)
+{
+  assert(v.size() == GetNParameters());
+  auto gslv = stl_to_gsl(v);
+  return ::log_likelihood(gslv.get(), this);
+}
+
+double Tardis::Laplace(const std::vector<double>& v)
 {
     // compute function, undo sign flip within log_likelihood
-    auto logf = -log_likelihood(v, this);
+  auto delv = stl_to_gsl(v);
+    auto logf = -log_likelihood(delv.get(), this);
     return Laplace(v, logf);
 }
 
-double Tardis::Laplace(gsl_vector* v, const double logf)
+double Tardis::Laplace(const std::vector<double>& v, const double logf)
 {
     // hessian
     auto H = hessian(v);
@@ -1290,15 +1319,15 @@ void Tardis::fitnb()
     my_func.df = &log_nb_gradient;
     my_func.fdf = &log_nb_and_gradient;
     my_func.params = this;
-    auto v = make_deleted_vector(gsl_vector_alloc(1));
-    gsl_vector_set(v.get(), 0, 1);
+    std::vector<double> v{1};
+
     auto o = OptimOptions::DefaultLBFGS();
     // if step size too small, never moves away from initial point
     // critical value around 0.93
     o.step_size = 10; //1.223;
     o.eps = 1e-3;
     o.tol = 0.1;
-    minimizeLBFGS(my_func, v.get(), o);
+    minimizeLBFGS(my_func, v, o);
 #if 0
     gsl_multimin_function my_func2;
     my_func2.n = 1;
@@ -1308,27 +1337,32 @@ void Tardis::fitnb()
 #endif
 }
 
-FunctionMinimum Tardis::minimizeMinuit(std::vector<double> init, OptimOptions o)
+FunctionMinimum Tardis::minimizeMinuit(const std::vector<double>& init, OptimOptions o)
 {
-    if (init.empty()) {
-        auto v = make_deleted_vector(initialValue());
-        init = std::vector<double>(v->data, v->data + GetNParameters());
-    }
+  auto newinit = init.empty() ? initialValue() : init;
     assert(init.size() == GetNParameters());
 
     // copy initial value
-    for (unsigned i = 0; i < init.size(); ++i)
-        pars.SetValue(i, init[i]);
+    for (unsigned i = 0; i < newinit.size(); ++i)
+        pars.SetValue(i, newinit[i]);
 
     MinuitAdapter adapter(*this, GetNParameters());
 
     nCalls = 0;
-    cout << "Initializing minuit with";
-    std::copy(init.begin(), init.end(), std::ostream_iterator<double>(cout, " "));
+    cout << "Initializing minuit with " << newinit << endl;
     MnMigrad migrad(adapter, pars);
 
     FunctionMinimum min = migrad(o.iter_max, o.tol);
     cout << min << endl;
     cout << "total number of calls " << nCalls << endl;
     return min;
+}
+
+void Tardis::FixPredicted(Target target, unsigned n, double X, double nu)
+{
+    cout << "Fix predicted " << n << " " << X << " "<< nu << endl;
+    set_target(target);
+    nPrediction = n;
+    XPrediction = X;
+    nuPrediction = nu;
 }
