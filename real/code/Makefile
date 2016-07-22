@@ -17,7 +17,7 @@ CXX       = h5c++
 OPTIM     = -g -O0
 #OPTIM     = -O3 -ffast-math # -fopenmp
 
-CXXFLAGS  = $(OPTIM) -fPIC -Wall -Wextra -Wpedantic -Wno-deprecated -Wfloat-conversion # -Wconversion -Wno-sign-conversion  -Werror
+CXXFLAGS  = $(OPTIM) -fPIC -Wall -Wextra -Wpedantic -Wno-deprecated -std=c++11 #-Wfloat-conversion # -Wconversion -Wno-sign-conversion  -Werror
 LD        = h5++
 LDFLAGS   = $(OPTIM)
 
@@ -26,9 +26,10 @@ LDFLAGS   = $(OPTIM)
 # available in $PATH. If BAT is not installed in the standard system
 # directories, update $PATH accordingly.
 
-CXXFLAGS += $(shell bat-config --cflags)
+# CXXFLAGS += $(shell bat-config --cflags)
 # prepend libs to avoid root being linked in
-LIBS :=  -lMinuit2 -lgsl -lgslcblas $(shell bat-config --libs) # -L/usr/lib/openblas-base/ -lopenblas
+LIBS :=  -lMinuit2 -lgsl -lgslcblas
+# LIBS += $(shell bat-config --libs) # -L/usr/lib/openblas-base/ -lopenblas
 
 # ----------------------------------------------------------------------
 # don't change lines below unless you know what you're doing
