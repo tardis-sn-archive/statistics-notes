@@ -1,4 +1,4 @@
-/posterior/auto/
+ /posterior/auto/
 /posterior/model.aux
 /posterior/model.bbl
 /posterior/model.blg
@@ -28,6 +28,7 @@
 /hans/bat/*.pdf
 /hans/auto/_region_.el
 /hans/bat/out.txt
+/hans/bat/*.out
 /real/auto/
 /real/code/link.d
 /real/code/runTardis
@@ -36,3 +37,5 @@
 /real/draft.pdf
 /real/draft.synctex.gz
 /real/draft.toc
+/real/draft.bbl
+/real/draft.blg
