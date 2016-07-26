@@ -138,26 +138,26 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
         res::Float64 = 0
         α::Float64 = 0
         β::Float64 = 0
-        invalid = 1e100 # oftype(1.0, -Inf)
+        invalid = 0
 
         for i in eachindex(ν)
             @inbounds α = polyval(αPoly, ν[i])
             @inbounds β = polyval(βPoly, ν[i])
 
             # prior: reject point if α or β too small
-            if α < 1.0
-                return invalid
-            end
+            ## if α < 1.0
+            ##     return invalid
+            ## end
 
-            if β < 0.0
-                return invalid
-            end
+            ## if β < 0.0
+            ##     return invalid
+            ## end
 
             res += loggamma(x[i], α, β)
 
-            if !isfinite(res)
-                return invalid
-            end
+            ## if !isfinite(res)
+            ##     return invalid
+            ## end
         end
         # suitable for minimization
         return -res
