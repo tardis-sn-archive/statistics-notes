@@ -79,8 +79,8 @@ facts("factory") do
     data = mockdata()
     frame = filter_positive(data[:nus], data[:energies])
     transform_data!(frame, 2.0)
-    println(frame)
-    f, ∇, H = targetfactory(frame, 2, 1)
+
+    f, ∇f!, Hf! = targetfactory(frame, 2, 1)
     θ = [1.1, 2.2, 3.3]
 
     # evaluate log likelihood manually. We know prior is positive
@@ -93,16 +93,17 @@ facts("factory") do
 llh = -sum([loggamma(x[i], α[i], β[i]) for i in 1:3])
     @fact f(θ) --> llh
 
+    ∇res, Hres = allocations(3)
+
     # evaluate gradient manually
 ∇_α = -[sum([(log(β[i])-digamma(α[i])+log(x[i])) * ν[i]^(m-1) for i in 1:3]) for m in 1:2]
 ∇_β = -sum([α[i] / β[i] - x[i] for i in 1:3])
-    ∇res = ∇(θ)
+    ∇f!(θ, ∇res)
     @fact ∇res[1:2] --> ∇_α
     @fact ∇res[3] --> ∇_β
 
     # evaluate Hessian manually: no extra minus sign here compared to paper
-    Hres = H(θ)
-    println(Hres)
+    Hf!(θ, Hres)
     # alpha block
     @fact Hres[1,1] --> sum(trigamma, α)
 @fact Hres[1,2] --> sum([trigamma(α[i])*ν[i] for i in 1:3])

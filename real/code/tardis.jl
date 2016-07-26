@@ -126,12 +126,6 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
     # allocations
     αPoly = Poly(ones(αOrder))
     βPoly = Poly(ones(βOrder))
-    local ∇, H
-    if state == kLikelihood || state == kMean
-        ∇, H = allocations(αOrder + βOrder)
-    else
-        error("Undefined state: $state")
-    end
 
     # closures need frame::Dataframe in scope!
 
@@ -144,7 +138,7 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
         res::Float64 = 0
         α::Float64 = 0
         β::Float64 = 0
-        invalid = -1e100 # oftype(1.0, -Inf)
+        invalid = 1e100 # oftype(1.0, -Inf)
 
         for i in eachindex(ν)
             @inbounds α = polyval(αPoly, ν[i])
@@ -169,7 +163,7 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
         return -res
     end # log_likelihood
 
-    ∇log_likelihood = function(θ::Vector)
+    ∇log_likelihood! = function(θ::Vector, ∇::Vector)
         update_polynomials!(θ, αPoly, βPoly)
         ∇[:] = 0.0
 
@@ -190,10 +184,10 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
             end
         end
         # minus for minimization
-        return -∇
+        ∇[:] *= -1.0
     end
 
-    log_likelihood_hessian = function(θ::Vector)
+    log_likelihood_hessian! = function(θ::Vector, H::Matrix)
         update_polynomials!(θ, αPoly, βPoly)
         H[:] = 0.0
 
@@ -248,7 +242,7 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
         @inbounds β = polyval(βPoly, νbin)
 
         # mutates ∇
-        ∇log_likelihood(θ)
+        ∇log_likelihood!(θ)
 
         # α
         tmp = N * (log(β) - Ψ(N * α) + log(X))
@@ -304,7 +298,7 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
 
     # what function triple to return
     if state == kLikelihood
-        return log_likelihood, ∇log_likelihood, log_likelihood_hessian
+        return log_likelihood, ∇log_likelihood!, log_likelihood_hessian!
     elseif state == kMean
         return posterior_mean, ∇posterior_mean, posterior_mean_hessian
     else
