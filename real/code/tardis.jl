@@ -185,11 +185,12 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
 
             tmp = α / β - x[i]
             for n in 1:length(βPoly)
-                ∇[n] += tmp
+                ∇[length(αPoly) + n] += tmp
                 tmp *= ν[i]
             end
         end
-        return ∇
+        # minus for minimization
+        return -∇
     end
 
     log_likelihood_hessian = function(θ::Vector)
@@ -207,7 +208,6 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
             for m in 1:length(αPoly)
                 for n in m:length(αPoly)
                     H[m, n] += tmp * νpower(ν[i], m, n)
-                    #                    H[n, m] = H[m, n]
                 end
             end
             # α vs β block
@@ -216,18 +216,19 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
             for m in 1:length(αPoly)
                 for n in 1:length(βPoly)
                     H[m, offset + n] -= tmp * νpower(ν[i], m, n)
-                    #                   H[offset + n, m] = H[m, offset + n]
                 end
             end
             # β vs β block
             tmp = α / β^2
             for m in 1:length(βPoly)
                 for n in m:length(βPoly)
-                    H[offset + m, offset + n] = tmp * νpower(ν[i], m, n)
+                    H[offset + m, offset + n] += tmp * νpower(ν[i], m, n)
                 end
             end
         end
         symmetrize!(H)
+
+        # no minus sign, expressions in paper already have the minus
         return H
     end
 

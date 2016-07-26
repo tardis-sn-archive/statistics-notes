@@ -7,6 +7,7 @@ using Polynomials
 
 FactCheck.setstyle(:compact)
 
+# to be sorted as DataFrame(nus=[0.1, 0.38, 0.5], energies=[1.1, 2.7, 1.2])
 mockdata() = DataFrame(nus=[0.1, 0.5, 0.14, 0.38], energies=[1.1, 1.2, -2.3, 2.7])
 
 facts("readdata") do
@@ -77,7 +78,41 @@ end
 facts("factory") do
     data = mockdata()
     frame = filter_positive(data[:nus], data[:energies])
-    transform_data!(frame)
+    transform_data!(frame, 2.0)
+    println(frame)
     f, ∇, H = targetfactory(frame, 2, 1)
-    println(∇([1.1, 2.2, 3.3]))
+    θ = [1.1, 2.2, 3.3]
+
+    # evaluate log likelihood manually. We know prior is positive
+    p = Poly(θ[1:2])
+    α = [polyval(p, νᵢ) for νᵢ in frame[:nus]]
+β = [θ[3] for i in 1:3]
+    x = frame[:energies]
+    ν = frame[:nus]
+    # minus for minimization
+llh = -sum([loggamma(x[i], α[i], β[i]) for i in 1:3])
+    @fact f(θ) --> llh
+
+    # evaluate gradient manually
+∇_α = -[sum([(log(β[i])-digamma(α[i])+log(x[i])) * ν[i]^(m-1) for i in 1:3]) for m in 1:2]
+∇_β = -sum([α[i] / β[i] - x[i] for i in 1:3])
+    ∇res = ∇(θ)
+    @fact ∇res[1:2] --> ∇_α
+    @fact ∇res[3] --> ∇_β
+
+    # evaluate Hessian manually: no extra minus sign here compared to paper
+    Hres = H(θ)
+    println(Hres)
+    # alpha block
+    @fact Hres[1,1] --> sum(trigamma, α)
+@fact Hres[1,2] --> sum([trigamma(α[i])*ν[i] for i in 1:3])
+    @fact Hres[2,1] --> Hres[1,2]
+@fact Hres[2,2] --> sum([trigamma(α[i])*ν[i]^2 for i in 1:3])
+
+    # α β block
+@fact Hres[1,3] --> -sum([1.0 / β[i] for i in 1:3])
+@fact Hres[2,3] --> -sum([ν[i] / β[i] for i in 1:3])
+
+    # β β component
+@fact Hres[3,3] --> sum([α[i] / β[i]^2 for i in 1:3])
 end
