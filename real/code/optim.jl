@@ -3,10 +3,11 @@ using tardis
 using DataFrames
 using Optim
 using NLopt
+using Plots;
 using Polynomials
 
-function problem(;run=11, αOrder = 2, βOrder = 1)
-    raw_data = readdata(run)
+function problem(;run=11, npackets=typemax(Int64), αOrder=2, βOrder=1)
+    raw_data = readdata(run, npackets=npackets)
     frame = filter_positive(raw_data...)
     transform_data!(frame)
     return frame, targetfactory(frame, αOrder, βOrder)
@@ -33,7 +34,13 @@ function trynlopt()
     αOrder = 2
     βOrder = 1
     dim = αOrder + βOrder
-    frame, (f, ∇f!, Hf!) = problem(αOrder=αOrder, βOrder=βOrder)
+    frame, (f, ∇f!, Hf!) = problem(αOrder=αOrder, βOrder=βOrder, run=99)
+
+    ## histogram(frame[:energies], normalized=true)
+    ## α = 1.331; β=58.3
+    ## plot!(x -> exp(loggamma(x, α, β)), linspace(0, 0.2, 500))
+    ## Plots.pdf("optim.pdf")
+    ## return
 
     function myfunc(x::Vector, grad::Vector)
         if length(grad) > 0
@@ -69,13 +76,28 @@ function trynlopt()
         return 1.0 - zmin
     end
 
-    opt = Opt(:LD_MMA, dim)
-    xtol_rel!(opt, 1e-4)
+    # GN_DIRECT_L, GN_ORIG_DIRECT_L
+    # LN_BOBYQA, LN_COBYLA
+    # LD_LBFGS, LD_MMA
+    opt = Opt(:LN_COBYLA, dim)
+    lowerbounds = zeros(dim)
+    upperbounds = zeros(dim)
+    lowerbounds[1] = 1.0 # α₀
+    lowerbounds[2:end] = -50.0
+    lowerbounds[αOrder + 1] = 0.0 # β₀
+    upperbounds = -1 * lowerbounds
+    upperbounds[1] = 4
+    upperbounds[αOrder + 1] = 200
+    ## lower_bounds!(opt, [1.0, 0.0])
+    ## upper_bounds!(opt, [4.0, 100.0])
+    ## xtol_rel!(opt, 1e-10)
+    ftol_rel!(opt, 1e-7)
+    ## maxeval!(opt, 2500)
     min_objective!(opt, myfunc)
 
     θ = zeros(dim)
-    θ[1] = 1.5 # α₀
-    θ[αOrder + 1] = 50 # β₀
+    θ[1] = 1.43 # α₀
+    θ[αOrder + 1] = 43.2 # β₀
 
     αPoly = Poly(Vector{typeof(θ[1])}(αOrder))
     inequality_constraint!(opt, (x, g) -> myconstraint(x, g, frame, αPoly, 1.0, 0))
@@ -83,8 +105,12 @@ function trynlopt()
     βPoly = Poly(Vector{typeof(θ[1])}(βOrder))
     inequality_constraint!(opt, (x, g) -> myconstraint(x, g, frame, βPoly, 0.0, αOrder))
 
-    minf, minx, ret = NLopt.optimize(opt, θ)
+    @time minf, minx, ret = NLopt.optimize(opt, θ)
     println("got $minf at $minx (returned $ret)")
 end
 
 trynlopt()
+
+# Local Variables:
+# compile-command:"julia optim.jl"
+# End:
