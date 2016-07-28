@@ -2,6 +2,7 @@ include("tardis.jl")
 using tardis
 
 using DataFrames
+using Distributions
 using FactCheck
 using Polynomials
 
@@ -14,6 +15,9 @@ facts("readdata") do
     nus, energies = readdata(132)
     @fact length(nus) --> length(energies)
     @fact length(nus) --> 100000
+
+    nus, energies = readdata(132; npackets=100)
+    @fact length(nus) --> 100
 end
 
 facts("filter positive") do
@@ -117,3 +121,14 @@ llh = -sum([loggamma(x[i], α[i], β[i]) for i in 1:3])
     # β β component
 @fact Hres[3,3] --> sum([α[i] / β[i]^2 for i in 1:3])
 end
+
+facts("laplace") do
+    μ=[1.1, 2.2]
+    Σ=[1.1 0.5; 0.5 1.1]
+    d=MvNormal(μ, Σ)
+    @fact laplace(μ, x -> logpdf(d, x), x -> invcov(d)) --> roughly(0; atol=1e-15)
+end
+
+# Local Variables:
+# compile-command:"julia test.jl"
+# End:

@@ -5,16 +5,17 @@ using HDF5
 using Optim
 using Polynomials
 
-export allocations, filter_positive, loggamma, νpower, readdata, symmetrize!, targetfactory, transform_data!, update_polynomials!
+export allocations, filter_positive, laplace, loggamma, νpower, readdata, symmetrize!, targetfactory, transform_data!, update_polynomials!
 
 """
-read energies and frequencies from a particular run
+read energies and frequencies from a particular run. Limit to read in at most npackets
 """
 
-function readdata(runid=10, filename="../../posterior/real_tardis_250.h5")
+function readdata(runid=10; filename="../../posterior/real_tardis_250.h5", npackets=typemax(Int64))
     h5open(filename, "r") do file
+        npackets = min(size(file["nus"])[1], npackets)
         # read only a single run
-        file["nus"][:,runid], file["energies"][:,runid]
+        file["nus"][1:npackets,runid], file["energies"][1:npackets,runid]
     end
 end
 
@@ -61,7 +62,7 @@ function transform_data!(frame::DataFrame, nuscale::Float64=1e15)
 end
 
 function loggamma(x::Float64, α::Float64, β::Float64)
-    -α * log(β) - lgamma(α) + (α-1)*log(x) - x / β
+    α * log(β) - lgamma(α) + (α-1)*log(x) - β * x
 end
 
 """
@@ -143,6 +144,8 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
         for i in eachindex(ν)
             @inbounds α = polyval(αPoly, ν[i])
             @inbounds β = polyval(βPoly, ν[i])
+
+            ## if i == 1 println("α₁=$α, β₁=$β") end
 
             # prior: reject point if α or β too small
             ## if α < 1.0
@@ -304,6 +307,16 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
     else
         error("invalid state")
     end
+end
+
+"""
+
+Laplace approximation to the log(integral) over f using the Hessian at
+the mode, -Hf(θ). Both f and Hf are on the log scale.
+
+"""
+function laplace(θ, f, Hf)
+    f(θ) + length(θ)/2 * log(2pi) - 1/2*log(det(Hf(θ)))
 end
 
 end # module
