@@ -81,6 +81,7 @@ end
 
 """
 Copy upper triangular part of matrix into lower triangle. Do not touch the diagonal.
+Overwrite the lower triangle.
 
 """
 function symmetrize!(H::Array)
@@ -104,7 +105,7 @@ Raise ν to the power of m + n, where m and n are 1-based indices.
 
 """
 Create all target functions, return triples of log(f), grad(f),
-Hessian(f).
+Hessian(f). Hessian is -∂²log(f), note the minus sign.
 """
 function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
                        X=Nullable{Float64}, N=Nullable{Int64}, νbin=Nullable{Float64})
@@ -162,8 +163,7 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
             ##     return invalid
             ## end
         end
-        # suitable for minimization
-        return -res
+        return res
     end # log_likelihood
 
     ∇log_likelihood! = function(θ::Vector, ∇::Vector)
@@ -186,8 +186,6 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
                 tmp *= ν[i]
             end
         end
-        # minus for minimization
-        ∇[:] *= -1.0
     end
 
     log_likelihood_hessian! = function(θ::Vector, H::Matrix)
@@ -224,9 +222,6 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
             end
         end
         symmetrize!(H)
-
-        # no minus sign, expressions in paper already have the minus
-        return H
     end
 
     #
@@ -239,16 +234,16 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
         return log_likelihood(θ) + loggamma(X, N * α, β)
     end
 
-    ∇posterior_mean = function(θ::Vector)
+    ∇posterior_mean = function(θ::Vector, ∇::Vector)
+        # only update log_likelihood
+        ∇log_likelihood!(θ, ∇)
+
         update_polynomials!(θ, αPoly, βPoly)
         @inbounds α = polyval(αPoly, νbin)
         @inbounds β = polyval(βPoly, νbin)
 
-        # mutates ∇
-        ∇log_likelihood!(θ)
-
         # α
-        tmp = N * (log(β) - Ψ(N * α) + log(X))
+        tmp = (log(β) - Ψ(N * α) + log(X)) * N
         for i in 1:length(αPoly)
             ∇[i] += tmp
             tmp *= νbin
@@ -261,11 +256,11 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
             ∇[offset + i] += tmp
             tmp *= νbin
         end
-
-        return ∇
     end
 
-    posterior_mean_hessian = function(θ::Vector)
+    posterior_mean_hessian = function(θ::Vector, H::Matrix)
+        log_likelihood_hessian!(θ, H)
+
         update_polynomials!(θ, αPoly, βPoly)
         @inbounds α = polyval(αPoly, νbin)
         @inbounds β = polyval(βPoly, νbin)
@@ -291,12 +286,11 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
         tmp = N * α / β^2
         for m in 1:length(βPoly)
             for n in m:length(βPoly)
-                H[offset + m, offset + n] = tmp * νpower(νbin, m, n)
+                H[offset + m, offset + n] += tmp * νpower(νbin, m, n)
             end
         end
 
         symmetrize!(H)
-        return H
     end
 
     # what function triple to return
@@ -315,8 +309,6 @@ Laplace approximation to the log(integral) over f using the Hessian at
 the mode, -Hf(θ). Both f and Hf are on the log scale.
 
 """
-function laplace(θ, f, Hf)
-    f(θ) + length(θ)/2 * log(2pi) - 1/2*log(det(Hf(θ)))
-end
-
+laplace(logf::Real, log_det_H::Real, dim::Integer) = logf + dim/2 * log(2pi) - 1/2*log_det_H
+laplace(logf::Real, H::Matrix) = laplace(logf, log(det(H)), size(H)[1])
 end # module

@@ -31,7 +31,7 @@ function tryoptim()
 end
 
 function trynlopt()
-    αOrder = 2
+    αOrder = 1
     βOrder = 1
     dim = αOrder + βOrder
     frame, (f, ∇f!, Hf!) = problem(αOrder=αOrder, βOrder=βOrder, run=99)
@@ -93,7 +93,7 @@ function trynlopt()
     ## xtol_rel!(opt, 1e-10)
     ftol_rel!(opt, 1e-7)
     ## maxeval!(opt, 2500)
-    min_objective!(opt, myfunc)
+    max_objective!(opt, myfunc)
 
     θ = zeros(dim)
     θ[1] = 1.43 # α₀
@@ -107,6 +107,11 @@ function trynlopt()
 
     @time minf, minx, ret = NLopt.optimize(opt, θ)
     println("got $minf at $minx (returned $ret)")
+
+    ∇res, Hres = allocations(dim)
+    Hf!(minx, Hres)
+    evidence = laplace(minf, Hres)
+    println("evidence = $evidence")
 end
 
 trynlopt()

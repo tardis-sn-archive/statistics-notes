@@ -93,15 +93,14 @@ facts("factory") do
 β = [θ[3] for i in 1:3]
     x = frame[:energies]
     ν = frame[:nus]
-    # minus for minimization
-llh = -sum([loggamma(x[i], α[i], β[i]) for i in 1:3])
+llh = sum([loggamma(x[i], α[i], β[i]) for i in 1:3])
     @fact f(θ) --> llh
 
     ∇res, Hres = allocations(3)
 
     # evaluate gradient manually
-∇_α = -[sum([(log(β[i])-digamma(α[i])+log(x[i])) * ν[i]^(m-1) for i in 1:3]) for m in 1:2]
-∇_β = -sum([α[i] / β[i] - x[i] for i in 1:3])
+∇_α = [sum([(log(β[i])-digamma(α[i])+log(x[i])) * ν[i]^(m-1) for i in 1:3]) for m in 1:2]
+∇_β = sum([α[i] / β[i] - x[i] for i in 1:3])
     ∇f!(θ, ∇res)
     @fact ∇res[1:2] --> ∇_α
     @fact ∇res[3] --> ∇_β
@@ -120,13 +119,51 @@ llh = -sum([loggamma(x[i], α[i], β[i]) for i in 1:3])
 
     # β β component
 @fact Hres[3,3] --> sum([α[i] / β[i]^2 for i in 1:3])
+
+    # now posterior mean
+    X = 0.1
+    N = 5
+    νbin = 0.05
+    αPoly = Poly(θ[1:2])
+    βPoly = Poly([θ[end]])
+    α = αPoly(νbin)
+    β = βPoly(νbin)
+    mf, ∇mf!, Hmf! = targetfactory(frame, 2, 1; X=X, N=N, νbin=νbin)
+    @fact mf(θ) --> f(θ) + loggamma(X, N * α, β)
+
+    ∇mfres, Hmfres = allocations(3)
+
+    # gradient
+    ∇mf!(θ, ∇mfres)
+
+    # subtract log_likelihood result to get pure posterior mean contribution
+    ∇mfres -= ∇res
+    @fact ∇mfres[1] --> (log(β) - digamma(N * α) + log(X))*N
+    @fact ∇mfres[2] --> ∇mfres[1] * νbin
+    @fact ∇mfres[3] --> N * α / β - X
+
+    # subtract log_likelihood result to get pure posterior mean contribution
+    Hmf!(θ, Hmfres)
+    Hmfres -= Hres
+    println("Hessian = $(Hmfres - Hres)")
+    tmp = N^2 * trigamma(N*α)
+    @fact Hmfres[1,1] --> tmp
+    @fact Hmfres[1,2] --> roughly(tmp*νbin)
+    @fact Hmfres[2,1] --> roughly(Hmfres[1,2])
+    @fact Hmfres[2,2] --> roughly(tmp*νbin^2)
+
+    @fact Hmfres[1,3] --> roughly(-N / β)
+    @fact Hmfres[2,3] --> roughly(-N / β * νbin)
+    @fact Hmfres[3,3] --> roughly(N*α / β^2)
+
+    ## println("$(∇mf!(θ, ∇mfres))")
 end
 
 facts("laplace") do
     μ=[1.1, 2.2]
     Σ=[1.1 0.5; 0.5 1.1]
     d=MvNormal(μ, Σ)
-    @fact laplace(μ, x -> logpdf(d, x), x -> invcov(d)) --> roughly(0; atol=1e-15)
+    @fact laplace(logpdf(d, μ), log(det(invcov(d))), length(μ)) --> roughly(0; atol=1e-15)
 end
 
 # Local Variables:
