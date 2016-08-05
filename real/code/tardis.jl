@@ -5,7 +5,7 @@ using HDF5
 using Optim
 using Polynomials
 
-export allocations, filter_positive, laplace, loggamma, νpower, readdata, symmetrize!, targetfactory, transform_data!, update_polynomials!
+export allocations, filter_positive, laplace, loggamma, lognegativebinomial, νpower, PosteriorMean, readdata, symmetrize!, targetfactory, transform_data!, update_polynomials!
 
 """
 read energies and frequencies from a particular run. Limit to read in at most npackets
@@ -65,6 +65,11 @@ function loggamma(x::Float64, α::Float64, β::Float64)
     α * log(β) - lgamma(α) + (α-1)*log(x) - β * x
 end
 
+function lognegativebinomial(N::Real, n::Unsigned, a::Real)
+    tmp = N + n -a + 1
+    lgamma(tmp) - lgamma(N+1) - lgamma(n-a+1) - tmp * log(2)
+end
+
 """
 Reset the coefficients of the polynomials to θ
 """
@@ -103,12 +108,18 @@ Raise ν to the power of m + n, where m and n are 1-based indices.
 
 @enum STATE kLikelihood kMean
 
+type PosteriorMean
+    ν::Real
+    X::Real
+    N::Real
+end
+
 """
 Create all target functions, return triples of log(f), grad(f),
 Hessian(f). Hessian is -∂²log(f), note the minus sign.
 """
 function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
-                       X=Nullable{Float64}, N=Nullable{Int64}, νbin=Nullable{Float64})
+                       pm=nothing, evidence=nothing)
     # references
     ν::Vector{Float64} = frame[:nus]
     x::Vector{Float64} = frame[:energies]
@@ -117,17 +128,24 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
 
     # possible input states
     local state::STATE
-    if X == Nullable{Float64} && N == Nullable{Int64} && νbin == Nullable{Float64}
+    if pm === nothing
         state = kLikelihood
-    elseif X > 0 && N >= 0 && νbin >= 0
+    elseif pm.X > 0 && pm.N >= 0 && pm.ν >= 0
         state = kMean
     else
-        error("Invalid input values: X = $X, N = $N, ν = $νbin")
+        error("Invalid input values: X = $(pm.X), N = $(pm.N), ν = $(pm.ν)")
     end
+
 
     # allocations
     αPoly = Poly(ones(αOrder))
     βPoly = Poly(ones(βOrder))
+
+    # rescale with evidence
+    rescale = 0.0
+    if evidence !== nothing
+        rescale = evidence # / length(ν)
+    end
 
     # closures need frame::Dataframe in scope!
 
@@ -140,35 +158,21 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
         res::Float64 = 0
         α::Float64 = 0
         β::Float64 = 0
-        invalid = 0
 
         for i in eachindex(ν)
             @inbounds α = polyval(αPoly, ν[i])
             @inbounds β = polyval(βPoly, ν[i])
 
-            ## if i == 1 println("α₁=$α, β₁=$β") end
-
-            # prior: reject point if α or β too small
-            ## if α < 1.0
-            ##     return invalid
-            ## end
-
-            ## if β < 0.0
-            ##     return invalid
-            ## end
-
             res += loggamma(x[i], α, β)
-
-            ## if !isfinite(res)
-            ##     return invalid
-            ## end
         end
-        return res
+        return res - rescale
     end # log_likelihood
 
     ∇log_likelihood! = function(θ::Vector, ∇::Vector)
         update_polynomials!(θ, αPoly, βPoly)
         ∇[:] = 0.0
+        α::Float64 = 0
+        β::Float64 = 0
 
         for i in eachindex(ν)
             @inbounds α = polyval(αPoly, ν[i])
@@ -191,6 +195,8 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
     log_likelihood_hessian! = function(θ::Vector, H::Matrix)
         update_polynomials!(θ, αPoly, βPoly)
         H[:] = 0.0
+        α::Float64 = 0
+        β::Float64 = 0
 
         for i in eachindex(ν)
             @inbounds α = polyval(αPoly, ν[i])
@@ -229,9 +235,9 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
     #
     posterior_mean = function(θ::Vector)
         update_polynomials!(θ, αPoly, βPoly)
-        @inbounds α = polyval(αPoly, νbin)
-        @inbounds β = polyval(βPoly, νbin)
-        return log_likelihood(θ) + loggamma(X, N * α, β)
+        @inbounds α = polyval(αPoly, pm.ν)
+        @inbounds β = polyval(βPoly, pm.ν)
+        return log_likelihood(θ) + loggamma(pm.X, pm.N * α, β)
     end
 
     ∇posterior_mean = function(θ::Vector, ∇::Vector)
@@ -239,22 +245,22 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
         ∇log_likelihood!(θ, ∇)
 
         update_polynomials!(θ, αPoly, βPoly)
-        @inbounds α = polyval(αPoly, νbin)
-        @inbounds β = polyval(βPoly, νbin)
+        @inbounds α = polyval(αPoly, pm.ν)
+        @inbounds β = polyval(βPoly, pm.ν)
 
         # α
-        tmp = (log(β) - Ψ(N * α) + log(X)) * N
+        tmp = (log(β) - Ψ(pm.N * α) + log(pm.X)) * pm.N
         for i in 1:length(αPoly)
             ∇[i] += tmp
-            tmp *= νbin
+            tmp *= pm.ν
         end
 
         # β
-        tmp = N * α / β - X
+        tmp = pm.N * α / β - pm.X
         offset = length(αPoly)
         for i in 1:length(βPoly)
             ∇[offset + i] += tmp
-            tmp *= νbin
+            tmp *= pm.ν
         end
     end
 
@@ -262,53 +268,111 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
         log_likelihood_hessian!(θ, H)
 
         update_polynomials!(θ, αPoly, βPoly)
-        @inbounds α = polyval(αPoly, νbin)
-        @inbounds β = polyval(βPoly, νbin)
+        @inbounds α = polyval(αPoly, pm.ν)
+        @inbounds β = polyval(βPoly, pm.ν)
 
         # directly modify only upper triangular part and diagonal
 
         # α vs α block
-        tmp = N^2 * Ψ′(N * α)
+        tmp = pm.N^2 * Ψ′(pm.N * α)
         for m in 1:length(αPoly)
             for n in m:length(αPoly)
-                H[m, n] += tmp * νpower(νbin, m, n)
+                H[m, n] += tmp * νpower(pm.ν, m, n)
             end
         end
         # α vs β block
-        tmp = N / β
+        tmp = pm.N / β
         offset = length(αPoly)
         for m in 1:length(αPoly)
             for n in 1:length(βPoly)
-                H[m, offset + n] -= tmp * νpower(νbin, m, n)
+                H[m, offset + n] -= tmp * νpower(pm.ν, m, n)
             end
         end
         # β vs β block
-        tmp = N * α / β^2
+        tmp = pm.N * α / β^2
         for m in 1:length(βPoly)
             for n in m:length(βPoly)
-                H[offset + m, offset + n] += tmp * νpower(νbin, m, n)
+                H[offset + m, offset + n] += tmp * νpower(pm.ν, m, n)
             end
         end
 
         symmetrize!(H)
     end
 
-    # what function triple to return
-    if state == kLikelihood
-        return log_likelihood, ∇log_likelihood!, log_likelihood_hessian!
-    elseif state == kMean
-        return posterior_mean, ∇posterior_mean, posterior_mean_hessian
-    else
-        error("invalid state")
+        # what function triple to return
+        if state == kLikelihood
+            return log_likelihood, ∇log_likelihood!, log_likelihood_hessian!
+        elseif state == kMean
+            return posterior_mean, ∇posterior_mean, posterior_mean_hessian
+        else
+            error("invalid state")
+        end
     end
-end
 
-"""
+        """
 
 Laplace approximation to the log(integral) over f using the Hessian at
 the mode, -Hf(θ). Both f and Hf are on the log scale.
 
 """
-laplace(logf::Real, log_det_H::Real, dim::Integer) = logf + dim/2 * log(2pi) - 1/2*log_det_H
-laplace(logf::Real, H::Matrix) = laplace(logf, log(det(H)), size(H)[1])
-end # module
+        laplace(logf::Real, log_det_H::Real, dim::Integer) = logf + dim/2 * log(2pi) - 1/2*log_det_H
+        laplace(logf::Real, H::Matrix) = laplace(logf, log(det(H)), size(H)[1])
+
+
+"""
+opt: NLopt
+f: function(x::Vector, grad::Vector, N::Integer)
+"""
+        function search_step!(opt, f, N::Integer, res::Real, θ::Vector, ε::Real)
+            # N>0 required to search
+            if N == 0
+                return res, false
+            end
+
+            # optimize and Laplace integrate
+            # max_objective!(opt, (x, grad) -> f(x, grad, N))
+            # maxf, mode, ret = NLopt.optimize(opt, θ)
+            # integral = laplace(maxf, hessian(mode))
+            maxf, mode, integral = opt_laplace(N, θ)
+
+            # copy back mode
+            θ[:] = mode
+
+            latest = nb(N) + integral
+            res += latest
+
+            return res, (latest / res) > ε
+        end
+
+        function predict_small(frame::DataFrame, αOrder::Int64, βOrder::Int64,
+                               evidence::Real, θ::Vector, X::Real, n::Integer, a::Real; ε=1e-5)
+            # initialization
+            res = 0.0
+            N = Ninit
+            Nup = Ninit
+            Ndown = Ninit
+            θup, θdown = copy(θ),copy(θ)
+            nb(N) = lognegativebinomial(N, n, a)
+
+            # optimize the posterior
+            # compute the evidence
+            opt_laplace(N, θ) =
+
+
+            res, _ = search_step(f, N, res, θup, ε)
+
+            goup, godown = true, true
+
+            while goup || godown
+                if goup
+                    Nup += 1
+                    res, goup = search_step(f, Nup, res, θup, ε)
+                end
+                if godown
+                    Ndown += 1
+                    res, godown = search_step(f, Ndown, res, θdown, ε)
+                end
+            end
+        end
+
+    end # module
