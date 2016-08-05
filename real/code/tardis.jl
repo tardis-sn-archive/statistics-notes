@@ -28,8 +28,7 @@ return a data frame with columns (nu, energies)
 """
 
 function filter_positive(nus, energies)
-    assert(length(energies) == length(nus))
-
+    @assert length(energies) == length(nus)
     mask = (energies .> 0.0)
     DataFrame(nus=nus[mask], energies=energies[mask])
 end
@@ -65,7 +64,7 @@ function loggamma(x::Float64, α::Float64, β::Float64)
     α * log(β) - lgamma(α) + (α-1)*log(x) - β * x
 end
 
-function lognegativebinomial(N::Real, n::Unsigned, a::Real)
+function lognegativebinomial(N::Real, n::Integer, a::Real)
     tmp = N + n -a + 1
     lgamma(tmp) - lgamma(N+1) - lgamma(n-a+1) - tmp * log(2)
 end
@@ -97,7 +96,7 @@ function symmetrize!(H::Array)
     end
 end
 
-function allocations(dim::Int64)
+function allocations(dim::Integer)
     return zeros(dim), zeros((dim, dim))
 end
 
@@ -317,62 +316,5 @@ the mode, -Hf(θ). Both f and Hf are on the log scale.
 """
         laplace(logf::Real, log_det_H::Real, dim::Integer) = logf + dim/2 * log(2pi) - 1/2*log_det_H
         laplace(logf::Real, H::Matrix) = laplace(logf, log(det(H)), size(H)[1])
-
-
-"""
-opt: NLopt
-f: function(x::Vector, grad::Vector, N::Integer)
-"""
-        function search_step!(opt, f, N::Integer, res::Real, θ::Vector, ε::Real)
-            # N>0 required to search
-            if N == 0
-                return res, false
-            end
-
-            # optimize and Laplace integrate
-            # max_objective!(opt, (x, grad) -> f(x, grad, N))
-            # maxf, mode, ret = NLopt.optimize(opt, θ)
-            # integral = laplace(maxf, hessian(mode))
-            maxf, mode, integral = opt_laplace(N, θ)
-
-            # copy back mode
-            θ[:] = mode
-
-            latest = nb(N) + integral
-            res += latest
-
-            return res, (latest / res) > ε
-        end
-
-        function predict_small(frame::DataFrame, αOrder::Int64, βOrder::Int64,
-                               evidence::Real, θ::Vector, X::Real, n::Integer, a::Real; ε=1e-5)
-            # initialization
-            res = 0.0
-            N = Ninit
-            Nup = Ninit
-            Ndown = Ninit
-            θup, θdown = copy(θ),copy(θ)
-            nb(N) = lognegativebinomial(N, n, a)
-
-            # optimize the posterior
-            # compute the evidence
-            opt_laplace(N, θ) =
-
-
-            res, _ = search_step(f, N, res, θup, ε)
-
-            goup, godown = true, true
-
-            while goup || godown
-                if goup
-                    Nup += 1
-                    res, goup = search_step(f, Nup, res, θup, ε)
-                end
-                if godown
-                    Ndown += 1
-                    res, godown = search_step(f, Ndown, res, θdown, ε)
-                end
-            end
-        end
 
     end # module
