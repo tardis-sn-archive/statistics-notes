@@ -1,5 +1,3 @@
-include("tardis.jl")
-
 """
 Find the mode of NegativeBinomial(N|n-a+1, 1/2)*Gamma(X|Nα, β) using Brent's method.
 
@@ -18,10 +16,10 @@ type OptData
     α::Real
     β::Real
     a::Real
-    n::Unsigned
-    count::Unsigned
+    n::Integer
+    count::Integer
 
-    function OptData(X::Real, α::Real, β::Real, a::Real, n::Unsigned)
+    function OptData(X::Real, α::Real, β::Real, a::Real, n::Integer)
         if X < 0 Error("Invalid X < 0: $X") end
         if α < 1 Error("Invalid α < 1: $α") end
         if β < 0 Error("Invalid β < 0: $β") end
@@ -33,17 +31,17 @@ end
 """
 Create the target with data embedded via a closure
 """
-function factory(X::Real, α::Real, β::Real, a::Real, n::Unsigned)
+function factory(X::Real, α::Real, β::Real, a::Real, n::Integer)
     popt = OptData(X, α, β, a, n)
     f(N::Real) = (popt.count += 1; -tardis.lognegativebinomial(N, popt.n, popt.a) - loggamma(popt.X, N * popt.α, popt.β))
     return popt, f
 end
 
-function solve(X::Real, α::Real, β::Real, a::Real, n::Unsigned;
-               ε=1e-2, min=0.0, max=Nullable{Float64})
+function solve(X::Real, α::Real, β::Real, a::Real, n::Integer;
+               ε=1e-2, min=0.0, max=0.0, trace=false)
     popt, f = factory(X, α, β, a, n)
-    if max == Nullable{Float64} max = 10n end
-    optimize(f, min, max, rel_tol=ε)
+    if (max <= 0.0) max = 10n end
+    optimize(f, min, max, rel_tol=ε, show_trace=trace, extended_trace=trace)
 end
 
 function test()
@@ -57,8 +55,7 @@ end
 
 end # module MaxPlugin
 
-
-MaxPlugin.test()
+# MaxPlugin.test()
 
 # Local Variables:
 # compile-command:"julia maxplugin.jl"
