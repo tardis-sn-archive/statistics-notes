@@ -314,9 +314,10 @@ function main()
     points = collect(linspace(0.0, 0.6, 25))
     results = zeros(points)
     # skip X = 0
+    optimize = true
     for i in 2:length(points)
         pm.X = points[i]
-        results[i] = predict_small(frame, Pmean, ∇Pmean!, HPmean!, pm, αOrder, βOrder, mode, n, a, optimize=false)
+        results[i] = predict_small(frame, Pmean, ∇Pmean!, HPmean!, pm, αOrder, βOrder, mode, n, a, optimize=optimize)
     end
 
     # self-normalize estimates through Simpson's rule
@@ -327,7 +328,8 @@ function main()
     println(results)
 
     Plots.plot(points, results)
-    Plots.pdf("/tmp/test.pdf")
+fname =
+    Plots.pdf("test_$(optimize? "opt" : "noopt").pdf")
 
     # # update X
     # pm.N = 7
