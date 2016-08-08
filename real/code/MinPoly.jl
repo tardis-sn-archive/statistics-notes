@@ -15,16 +15,16 @@ type OptData
     end
 end
 
-function update_poly!(popt::OptData, θ::Vector)
-    # first the actual polynomial
-    # then its derivative
-    for i in eachindex(popt.p)
-        popt.p[i] = θ[i]
-        if i > 1
-            popt.dp[i]
-        end
-    end
-end
+# function update_poly!(popt::OptData, θ::Vector)
+#     # first the actual polynomial
+#     # then its derivative
+#     for i in eachindex(popt.p)
+#         popt.p[i] = θ[i]
+#         if i > 1
+#             popt.dp[i]
+#         end
+#     end
+# end
 
 function factory(θ)
     popt = OptData(θ)
@@ -49,9 +49,9 @@ function create_optimizer(θ::Vector, xmin::Real, xmax::Real)
 end
 
 function test()
-    θ = [1, 0.0, -2, 0]
+    θ = [1, -1.1, -2, 3.3]
     opt, popt = create_optimizer(θ, 0.0, 1.0)
-    @time minf, minx, ret = optimize(opt, [0.5])
+    @time minf, minx, ret = optimize(opt, [0.9])
     println("got $minf at $minx after $(popt.count) iterations (return $ret)")
 end
 
