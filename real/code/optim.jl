@@ -186,7 +186,7 @@ function nlopt_factory(f, ∇f!)
 
 # """
 function search_step!(frame::DataFrame, Pmean, ∇Pmean!, HPmean!, Hres::Matrix, pm::PosteriorMean,
-                      αOrder::Integer, βOrder::Integer, n::Integer, a::Real, res::Real, θ::Vector, ε::Real;
+                      αOrder::Integer, βOrder::Integer, nb::NegBinom, res::Real, θ::Vector, ε::Real;
                       xtol_rel=1e-5, optimize=true)
     # N>0 required to search
     if pm.N <= 0
@@ -208,7 +208,7 @@ function search_step!(frame::DataFrame, Pmean, ∇Pmean!, HPmean!, Hres::Matrix,
     θ[:] = mode
 
     # have to leave the log scale now
-    latest = exp(lognegativebinomial(pm.N, n, a) + log_integral)
+    latest = exp(lognegativebinomial(pm.N, nb.n, nb.a) + log_integral)
     res += latest
 
     # println("$(pm): latest=$latest, res=$res")
@@ -230,7 +230,7 @@ end
 """
 function predict_small(frame::DataFrame, Pmean, ∇Pmean!, HPmean!, pm::PosteriorMean,
                        αOrder::Integer, βOrder::Integer,
-                       θ::Vector, n::Integer, a::Real;
+                       θ::Vector, nb::NegBinom;
                        ε::Real=5e-3, Ninit::Integer=0, xtol_rel=1e-5, optimize=true)
     @assert length(θ) == αOrder + βOrder
 
@@ -248,7 +248,7 @@ function predict_small(frame::DataFrame, Pmean, ∇Pmean!, HPmean!, pm::Posterio
         p = Poly(θ[αOrder+1:αOrder+βOrder])
         β = p(pm.ν)
 
-        res = MaxPlugin.solve(pm.X, α, β, a, n)
+        res = MaxPlugin.solve(pm.X, α, β, nb.a, nb.n)
         Ninit = convert(Integer, ceil(Optim.minimizer(res)))
     end
     @assert(Ninit >= 1)
@@ -264,7 +264,7 @@ function predict_small(frame::DataFrame, Pmean, ∇Pmean!, HPmean!, pm::Posterio
     search(N) = begin
         pm.N = N
         search_step!(frame, Pmean, ∇Pmean!, HPmean!, Hres, pm, αOrder, βOrder,
-                    n, a, res, θ, ε, xtol_rel=xtol_rel, optimize=optimize)
+                    nb, res, θ, ε, xtol_rel=xtol_rel, optimize=optimize)
         end
 
     res, _ = search(Ninit)
@@ -310,14 +310,14 @@ function main()
                                           init=mode, xtol_rel=1e-8)
     println("max of normalized posterior = $maxPmean at $mode")
 
-    n = 5; a = 0.5;
+    nb = NegBinom(5, 0.5)
     points = collect(linspace(0.0, 0.6, 25))
     results = zeros(points)
     # skip X = 0
-    optimize = true
+    optimize = false
     for i in 2:length(points)
         pm.X = points[i]
-        results[i] = predict_small(frame, Pmean, ∇Pmean!, HPmean!, pm, αOrder, βOrder, mode, n, a, optimize=optimize)
+        results[i] = predict_small(frame, Pmean, ∇Pmean!, HPmean!, pm, αOrder, βOrder, mode, nb, optimize=optimize)
     end
 
     # self-normalize estimates through Simpson's rule

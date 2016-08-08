@@ -5,7 +5,7 @@ using HDF5
 using Optim
 using Polynomials
 
-export allocations, filter_positive, laplace, loggamma, lognegativebinomial, νpower, PosteriorMean, readdata, symmetrize!, targetfactory, transform_data!, update_polynomials!
+export allocations, filter_positive, laplace, loggamma, lognegativebinomial, NegBinom, νpower, PosteriorMean, readdata, symmetrize!, targetfactory, transform_data!, update_polynomials!
 
 """
 read energies and frequencies from a particular run. Limit to read in at most npackets
@@ -105,7 +105,7 @@ Raise ν to the power of m + n, where m and n are 1-based indices.
 """
 νpower(ν, m, n) = ν^(m + n - 2)
 
-@enum STATE kLikelihood kMean
+@enum STATE kLikelihood kMean kAll
 
 type PosteriorMean
     ν::Real
@@ -113,12 +113,17 @@ type PosteriorMean
     N::Real
 end
 
+type NegBinom
+    n::Integer
+    a::Real
+end
+
 """
 Create all target functions, return triples of log(f), grad(f),
 Hessian(f). Hessian is -∂²log(f), note the minus sign.
 """
 function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
-                       pm=nothing, evidence=nothing)
+                       pm=nothing, evidence=nothing, nb=nothing)
     # references
     ν::Vector{Float64} = frame[:nus]
     x::Vector{Float64} = frame[:energies]
@@ -129,12 +134,20 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
     local state::STATE
     if pm === nothing
         state = kLikelihood
-    elseif pm.X > 0 && pm.N >= 0 && pm.ν >= 0
-        state = kMean
     else
-        error("Invalid input values: X = $(pm.X), N = $(pm.N), ν = $(pm.ν)")
-    end
+        if pm.X > 0 && pm.N >= 0 && pm.ν >= 0
+            state = kMean
+        else
+            error("Invalid input values: X = $(pm.X), N = $(pm.N), ν = $(pm.ν)")
+        end
 
+        if nb !== nothing
+            if (nb.n < 0) error("invalid n < 0: $(nb.n)") end
+            if (nb.a < 0) error("invalid a < 0: $(nb.a)") end
+            # no error, we are fine
+            state = kAll
+        end
+    end
 
     # allocations
     αPoly = Poly(ones(αOrder))
@@ -232,14 +245,17 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
     #
     # mean
     #
-    posterior_mean = function(θ::Vector)
+        posterior_mean = function(θ::Vector)
         update_polynomials!(θ, αPoly, βPoly)
         @inbounds α = polyval(αPoly, pm.ν)
         @inbounds β = polyval(βPoly, pm.ν)
-        return log_likelihood(θ) + loggamma(pm.X, pm.N * α, β)
+        # N could be a constant or a fit parameter
+        const N = (state === kAll) ? θ[end] : pm.N
+
+        return log_likelihood(θ) + loggamma(pm.X, N * α, β)
     end
 
-    ∇posterior_mean = function(θ::Vector, ∇::Vector)
+    ∇posterior_mean! = function(θ::Vector, ∇::Vector)
         # only update log_likelihood
         ∇log_likelihood!(θ, ∇)
 
@@ -247,40 +263,52 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
         @inbounds α = polyval(αPoly, pm.ν)
         @inbounds β = polyval(βPoly, pm.ν)
 
+        # N could be a constant or a fit parameter
+        const N = (state === kAll) ? θ[end] : pm.N
+
         # α
-        tmp = (log(β) - Ψ(pm.N * α) + log(pm.X)) * pm.N
+        tmp = (log(β * pm.X) - Ψ(N * α)) * N
+
         for i in 1:length(αPoly)
             ∇[i] += tmp
             tmp *= pm.ν
         end
 
         # β
-        tmp = pm.N * α / β - pm.X
+        tmp = N * α / β - pm.X
+
         offset = length(αPoly)
         for i in 1:length(βPoly)
             ∇[offset + i] += tmp
             tmp *= pm.ν
         end
+
+        if state === kAll
+            ∇[end] += (log(β * pm.X) - Ψ(N * α)) * α
+            println(∇[end])
+        end
     end
 
-    posterior_mean_hessian = function(θ::Vector, H::Matrix)
+    posterior_mean_hessian! = function(θ::Vector, H::Matrix)
         log_likelihood_hessian!(θ, H)
 
         update_polynomials!(θ, αPoly, βPoly)
         @inbounds α = polyval(αPoly, pm.ν)
         @inbounds β = polyval(βPoly, pm.ν)
 
-        # directly modify only upper triangular part and diagonal
+        # N could be a constant or a fit parameter
+        N = (state === kAll) ? θ[end] : pm.N
 
+        # directly modify only upper triangular part and diagonal
         # α vs α block
-        tmp = pm.N^2 * Ψ′(pm.N * α)
+        tmp = N^2 * Ψ′(N * α)
         for m in 1:length(αPoly)
             for n in m:length(αPoly)
                 H[m, n] += tmp * νpower(pm.ν, m, n)
             end
         end
         # α vs β block
-        tmp = pm.N / β
+        tmp = N / β
         offset = length(αPoly)
         for m in 1:length(αPoly)
             for n in 1:length(βPoly)
@@ -288,23 +316,63 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
             end
         end
         # β vs β block
-        tmp = pm.N * α / β^2
+        tmp = N * α / β^2
         for m in 1:length(βPoly)
             for n in m:length(βPoly)
                 H[offset + m, offset + n] += tmp * νpower(pm.ν, m, n)
             end
         end
 
+        if state === kAll
+            # α vs N
+            tmp = -log(β) + Ψ(N * α) + N * α * Ψ'(N * α) - log(pm.X)
+            for m in 1:length(αPoly)
+                # β power = 1 => no effect
+                H[m, end] += tmp * νpower(pm.ν, m, 1)
+            end
+
+            # β vs N
+            tmp = -α / β
+            for m in 1:length(βPoly)
+                # α power = 1 => no effect
+                H[offset + m, end] += tmp * νpower(pm.ν, 1, m)
+            end
+
+            # N vs N
+            H[end, end] += α^2 * Ψ'(N * α)
+        end
+
         symmetrize!(H)
     end
 
+        all_mean = function(θ::Vector)
+            return posterior_mean(θ) + lognegativebinomial(θ[end], nb.n, nb.a)
+        end
+
+        ∇all_mean! = function(θ::Vector, ∇::Vector)
+            ∇posterior_mean!(θ, ∇)
+            N = θ[end]
+            println("N $N, n $(nb.n), a $(nb.a)")
+            ∇[end] += Ψ(N + nb.n - nb.a + 1) - Ψ(N+1) - log(2)
+        end
+
+            all_mean_hessian! = function(θ::Vector, H::Matrix)
+                posterior_mean_hessian!(θ, H)
+                @inbounds α = polyval(αPoly, pm.ν)
+                N = θ[end]
+                H[end, end] += Ψ'(N+1) - Ψ'(N+nb.n-nb.a+1)
+            end
+
+
         # what function triple to return
-        if state == kLikelihood
+        if state === kLikelihood
             return log_likelihood, ∇log_likelihood!, log_likelihood_hessian!
-        elseif state == kMean
-            return posterior_mean, ∇posterior_mean, posterior_mean_hessian
+        elseif state === kMean
+            return posterior_mean, ∇posterior_mean!, posterior_mean_hessian!
+        elseif state === kAll
+            return all_mean, ∇all_mean!, all_mean_hessian!
         else
-            error("invalid state")
+            error("invalid state: $state")
         end
     end
 

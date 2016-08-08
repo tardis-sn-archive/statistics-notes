@@ -120,7 +120,9 @@ llh = sum([loggamma(x[i], α[i], β[i]) for i in 1:3])
     # β β component
 @fact Hres[3,3] --> sum([α[i] / β[i]^2 for i in 1:3])
 
-    # now posterior mean
+    #
+    # posterior mean
+    #
     X = 0.1
     N = 5
     νbin = 0.05
@@ -128,7 +130,8 @@ llh = sum([loggamma(x[i], α[i], β[i]) for i in 1:3])
     βPoly = Poly([θ[end]])
     α = αPoly(νbin)
     β = βPoly(νbin)
-    mf, ∇mf!, Hmf! = targetfactory(frame, 2, 1; X=X, N=N, νbin=νbin)
+    pm = PosteriorMean(νbin, X, N)
+    mf, ∇mf!, Hmf! = targetfactory(frame, 2, 1; pm=pm)
     @fact mf(θ) --> f(θ) + loggamma(X, N * α, β)
 
     ∇mfres, Hmfres = allocations(3)
@@ -145,7 +148,7 @@ llh = sum([loggamma(x[i], α[i], β[i]) for i in 1:3])
     # subtract log_likelihood result to get pure posterior mean contribution
     Hmf!(θ, Hmfres)
     Hmfres -= Hres
-    println("Hessian = $(Hmfres - Hres)")
+
     tmp = N^2 * trigamma(N*α)
     @fact Hmfres[1,1] --> tmp
     @fact Hmfres[1,2] --> roughly(tmp*νbin)
@@ -157,6 +160,37 @@ llh = sum([loggamma(x[i], α[i], β[i]) for i in 1:3])
     @fact Hmfres[3,3] --> roughly(N*α / β^2)
 
     ## println("$(∇mf!(θ, ∇mfres))")
+
+    #
+    # integrate over N
+    #
+
+    # now θ needs another element
+    θ = vcat(θ, 1.0*N)
+
+    nb = NegBinom(7, 0.5)
+
+    af, ∇af!, Haf! = targetfactory(frame, 2, 1; pm=pm, nb=nb)
+    @fact af(θ) --> f(θ) + loggamma(X, N * α, β) + lognegativebinomial(N, nb.n, nb.a)
+
+    ∇afres, Hafres = allocations(length(θ))
+    ∇af!(θ, ∇afres)
+
+    # nothing should change in α or β components
+    @fact ∇afres[1:end-1] --> ∇mfres + ∇res
+    println((log(β * X) - digamma(N*α))*α )
+    @fact ∇afres[end] --> roughly((log(β * X) - digamma(N*α))*α + digamma(N + nb.n - nb.a + 1) - digamma(N+1)-log(2))
+
+    Haf!(θ, Hafres)
+    println(Hafres)
+
+    # nothing should change in α or β components
+    @fact Hafres[1:3,1:3] --> Hres + Hmfres
+    tmp = -log(β*X) + digamma(N*α) + N*α*trigamma(N*α)
+
+    # compare x vs N column
+    expect = [tmp, tmp * νbin, -α / β, α^2 * trigamma(N*α) + trigamma(N+1) - trigamma(N+nb.n-nb.a+1)]
+    @fact Hafres[:,4] --> roughly(expect)
 end
 
 facts("laplace") do
