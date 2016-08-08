@@ -114,9 +114,12 @@ function nlopt_factory(f, ∇f!)
         println("evidence = $evidence")
     end
 
-    function run_nlopt(frame, f,  ∇f!, Hf!, αOrder, βOrder; init=false, xtol_rel=1e-5)
+    function run_nlopt(frame, f,  ∇f!, Hf!, αOrder, βOrder; init=nothing, xtol_rel=1e-5, nb=nothing)
         T = Float64
         dim = αOrder + βOrder
+        if nb !== nothing
+            dim += 1
+        end
 
         myfunc = nlopt_factory(f, ∇f!)
 
@@ -156,16 +159,24 @@ function nlopt_factory(f, ∇f!)
         upperbounds = -1 * lowerbounds
         upperbounds[1] = 4
         upperbounds[αOrder + 1] = 200
+        if nb !== nothing
+            lowerbounds[end] = 0.0
+            upperbounds[end] = 10 * nb.n
+        end
+
         lower_bounds!(opt, lowerbounds)
         upper_bounds!(opt, upperbounds)
         xtol_rel!(opt, xtol_rel)
         max_objective!(opt, myfunc)
 
         # initial value
-        if init === false
+        if init === nothing
             init = zeros(dim)
             init[1] = 1.43 # α₀
             init[αOrder + 1] = 43.2 # β₀
+            if nb !== nothing
+                init[end] = nb.n
+            end
         else
             @assert(length(init) == dim)
         end
@@ -311,6 +322,12 @@ function main()
     println("max of normalized posterior = $maxPmean at $mode")
 
     nb = NegBinom(5, 0.5)
+    Pall, ∇Pall!, HPall! = targetfactory(frame, αOrder, βOrder, evidence=evidence, pm=pm, nb=nb)
+    @time maxPall, mode, ret = run_nlopt(frame, Pall, ∇Pall!, HPall!, αOrder, βOrder,
+                                          init=vcat(mode, 10), xtol_rel=1e-8, nb=nb)
+    println("max of normalized all posterior = $maxPall at $mode")
+
+    return
     points = collect(linspace(0.0, 0.6, 25))
     results = zeros(points)
     # skip X = 0
