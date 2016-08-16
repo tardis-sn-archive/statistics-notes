@@ -57,7 +57,7 @@ end
 
 end # module MinPoly
 
-MinPoly.test()
+# MinPoly.test()
 
 # Local Variables:
 # compile-command:"julia minpoly2.jl"

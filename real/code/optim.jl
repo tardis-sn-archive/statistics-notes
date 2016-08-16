@@ -3,11 +3,11 @@ module optim
 using tardis
 using DataFrames
 using MaxPlugin
+using MinPoly
 using NLopt
 using Optim
 using Plots; gr() #pyplot()
 using Polynomials
-using PyCall
 
 function problem(;run=11, npackets=typemax(Int64), αOrder=2, βOrder=1)
     raw_data = readdata(run, npackets=npackets)
@@ -150,6 +150,8 @@ function nlopt_factory(f, ∇f!)
             return minvalue - zmin
         end
 
+        # opt = Opt(:LD_MMA, dim)
+        # opt = Opt(:LD_SLSQP, dim)
         opt = Opt(:LN_COBYLA, dim)
         lowerbounds = zeros(dim)
         upperbounds = zeros(dim)
@@ -172,8 +174,8 @@ function nlopt_factory(f, ∇f!)
         # initial value
         if init === nothing
             init = zeros(dim)
-            init[1] = 1.43 # α₀
-            init[αOrder + 1] = 43.2 # β₀
+            init[1] = 1.6 # α₀
+            init[αOrder + 1] = 53.19 # β₀
             if nb !== nothing
                 init[end] = nb.n
             end
@@ -297,69 +299,9 @@ function predict_small(frame::DataFrame, Pmean, ∇Pmean!, HPmean!, pm::Posterio
     return res
 end
 
-function main()
-    # define order of linear models
-    αOrder = 1
-    βOrder = 1
-
-    # read in data and create posterior
-    dim = αOrder + βOrder
-    ∇res, Hres = allocations(dim)
-    frame, (P, ∇P!, HP!) = problem(αOrder=αOrder, βOrder=βOrder, run=99)
-
-    # compute the posterior mode to estimate the evidence
-    @time maxP, mode, ret = run_nlopt(frame, P, ∇P!, HP!, αOrder, βOrder, xtol_rel=1e-8)
-    HP!(mode, Hres)
-    evidence = laplace(maxP, Hres)
-    println("got $maxP at $mode (returned $ret) and evidence $evidence")
-
-    # the posterior mean with the normalized posterior
-    pm = PosteriorMean(0.1, 0.2, 6)
-    Pmean, ∇Pmean!, HPmean! = targetfactory(frame, αOrder, βOrder, evidence=evidence, pm=pm)
-    println(Pmean(mode))
-    @time maxPmean, mode, ret = run_nlopt(frame, Pmean, ∇Pmean!, HPmean!, αOrder, βOrder,
-                                          init=mode, xtol_rel=1e-8)
-    println("max of normalized posterior = $maxPmean at $mode")
-
-    nb = NegBinom(5, 0.5)
-    Pall, ∇Pall!, HPall! = targetfactory(frame, αOrder, βOrder, evidence=evidence, pm=pm, nb=nb)
-    @time maxPall, mode, ret = run_nlopt(frame, Pall, ∇Pall!, HPall!, αOrder, βOrder,
-                                          init=vcat(mode, 10), xtol_rel=1e-8, nb=nb)
-    println("max of normalized all posterior = $maxPall at $mode")
-
-    return
-    points = collect(linspace(0.0, 0.6, 25))
-    results = zeros(points)
-    # skip X = 0
-    optimize = false
-    for i in 2:length(points)
-        pm.X = points[i]
-        results[i] = predict_small(frame, Pmean, ∇Pmean!, HPmean!, pm, αOrder, βOrder, mode, nb, optimize=optimize)
-    end
-
-    # self-normalize estimates through Simpson's rule
-    @pyimport scipy.integrate as si
-    norm = si.simps(results, points)
-    println("norm = $norm")
-    results /= norm
-    println(results)
-
-    Plots.plot(points, results)
-fname =
-    Plots.pdf("test_$(optimize? "opt" : "noopt").pdf")
-
-    # # update X
-    # pm.N = 7
-    # println(Pmean(mode))
-    # @time maxPmean, mode, ret = run_nlopt(frame, Pmean, ∇Pmean!, HPmean!, αOrder, βOrder,
-    #                                       init=mode, xtol_rel=1e-8)
-    # println("max of normalized posterior = $maxPmean at $mode")
-
-end
 end # module optim
 
 # trynlopt()
-optim.main()
 
 # predict([0.1, 0.2, 0.3, 0.4], run=9)
 

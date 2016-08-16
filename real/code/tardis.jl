@@ -107,15 +107,16 @@ Raise ν to the power of m + n, where m and n are 1-based indices.
 
 @enum STATE kLikelihood kMean kAll
 
-type PosteriorMean
-    ν::Real
-    X::Real
-    N::Real
+# use specific types
+type PosteriorMean{T<:Real}
+    ν::T
+    X::T
+    N::T
 end
 
-type NegBinom
-    n::Integer
-    a::Real
+type NegBinom{T1<:Integer,T2<:Real}
+    n::T1
+    a::T2
 end
 
 """
@@ -167,16 +168,26 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
     log_likelihood = function(θ::Vector)
         update_polynomials!(θ, αPoly, βPoly)
 
-        res::Float64 = 0
-        α::Float64 = 0
-        β::Float64 = 0
+        @inbounds begin
+            res::Float64 = 0
+            α::Float64 = 0
+            β::Float64 = 0
 
-        for i in eachindex(ν)
-            @inbounds α = polyval(αPoly, ν[i])
-            @inbounds β = polyval(βPoly, ν[i])
+            for i in eachindex(ν)
+                α = polyval(αPoly, ν[i])
+                β = polyval(βPoly, ν[i])
 
-            res += loggamma(x[i], α, β)
+                if α < 1.0 || β < 0.0
+                    res = -Inf
+                    break
+                    # println("Hit invalid α = $α or β = $β")
+                    # exit()
+                end
+
+                res += loggamma(x[i], α, β)
+            end
         end
+
         return res - rescale
     end # log_likelihood
 
@@ -245,7 +256,7 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
     #
     # mean
     #
-        posterior_mean = function(θ::Vector)
+    posterior_mean = function(θ::Vector)
         update_polynomials!(θ, αPoly, βPoly)
         @inbounds α = polyval(αPoly, pm.ν)
         @inbounds β = polyval(βPoly, pm.ν)
