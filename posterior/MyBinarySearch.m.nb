@@ -1,0 +1,354 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 10.1' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[     10767,        344]
+NotebookOptionsPosition[      9903,        310]
+NotebookOutlinePosition[     10237,        325]
+CellTagsIndexPosition[     10194,        322]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[{
+ RowBox[{"BeginPackage", "[", "\"\<MyBinarySearch`\>\"", "]"}], "\n", 
+ RowBox[{
+  RowBox[{"binSearchMin", "::", "usage"}], " ", "=", " ", "\n", 
+  "\"\<binSearchMin[list, key] returns the index of the smallest element of \
+the sorted list that is larger or equal to key.\n0 is returned if no such \
+element exists in the list. \nFor consecutive identical values, the index of \
+the first such value is returned.\>\""}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"binSearchMax", "::", "usage"}], " ", "=", " ", "\n", 
+   "\"\<binSearchMax[list, key] returns the index of the largest element of \
+the sorted list that is less than or equal to key.\n0 is returned if no such \
+element exists in the list. \nFor consecutive identical values, the index of \
+the last such value is returned.\>\""}], "\n"}], "\n", 
+ RowBox[{"Begin", "[", "\"\<`Private`\>\"", "]"}]}], "Code",
+ CellChangeTimes->{{3.654596689242038*^9, 3.65459669177459*^9}, {
+  3.6545968540135593`*^9, 3.65459718641297*^9}, {3.65459789877317*^9, 
+  3.654597928069717*^9}}],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+Follow http://googleresearch.blogspot.de/2006/06/extra-extra-read-all-about-\
+it-nearly.html\
+\>", "Title"],
+
+Cell[CellGroupData[{
+
+Cell["Return first element >= key", "Section"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"binSearchMin", "[", 
+   RowBox[{"list_List", ",", " ", "key_"}], "]"}], ":=", 
+  RowBox[{"Module", "[", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"low", "=", "1"}], ",", 
+      RowBox[{"high", "=", 
+       RowBox[{"Length", "[", "list", "]"}]}], ",", "mid", ",", "midVal"}], 
+     "}"}], ",", "\n", 
+    RowBox[{"(*", " ", 
+     RowBox[{
+     "first", " ", "element", " ", "is", " ", "the", " ", "right", " ", 
+      "one"}], " ", "*)"}], "\n", 
+    RowBox[{
+     RowBox[{"If", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"First", "[", "list", "]"}], ">=", "key"}], ",", 
+       RowBox[{"Return", "[", "1", "]"}]}], "]"}], ";", "\n", 
+     RowBox[{"(*", " ", 
+      RowBox[{
+      "key", " ", "larger", " ", "than", " ", "everything", " ", "in", " ", 
+       "list"}], " ", "*)"}], "\n", 
+     RowBox[{"If", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"Last", "[", "list", "]"}], "<", "key"}], ",", 
+       RowBox[{"Return", "[", "0", "]"}]}], "]"}], ";", "\n", "\n", 
+     RowBox[{"(*", " ", 
+      RowBox[{
+      "else", " ", "it", " ", "is", " ", "inside", " ", "the", " ", "list"}], 
+      " ", "*)"}], "\n", 
+     RowBox[{"While", "[", 
+      RowBox[{
+       RowBox[{"low", "<", " ", 
+        RowBox[{"high", "-", "1"}]}], ",", "\n", 
+       RowBox[{
+        RowBox[{"mid", "=", 
+         RowBox[{"Quotient", "[", 
+          RowBox[{
+           RowBox[{"low", "+", "high"}], ",", "2"}], "]"}]}], ";", "\n", 
+        RowBox[{"midVal", " ", "=", " ", 
+         RowBox[{"list", "[", 
+          RowBox[{"[", "mid", "]"}], "]"}]}], ";", "\n", 
+        RowBox[{"(*", 
+         RowBox[{
+          RowBox[{"Print", "[", 
+           RowBox[{"{", 
+            RowBox[{"mid", ",", "midVal"}], "}"}], "]"}], ";"}], "*)"}], "\n", 
+        RowBox[{"If", "[", 
+         RowBox[{
+          RowBox[{"midVal", ">=", " ", "key"}], ",", 
+          RowBox[{"high", "=", "mid"}], ",", "\n", 
+          RowBox[{
+           RowBox[{"If", "[", 
+            RowBox[{
+             RowBox[{"midVal", "<", "key"}], ",", 
+             RowBox[{"low", "=", "mid"}]}], "]"}], ";"}]}], "\n", "]"}], 
+        ";"}]}], "\n", "]"}], ";", "\n", "high"}]}], "\n", "]"}]}]], "Input"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Return last element <= key", "Section"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"binSearchMax", "[", 
+   RowBox[{"list_List", ",", " ", "key_"}], "]"}], ":=", 
+  RowBox[{"Module", "[", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"low", "=", "1"}], ",", 
+      RowBox[{"high", "=", 
+       RowBox[{"Length", "[", "list", "]"}]}], ",", "mid", ",", "midVal"}], 
+     "}"}], ",", "\n", 
+    RowBox[{"(*", " ", 
+     RowBox[{
+      RowBox[{"first", " ", "element", " ", "too", " ", "large"}], " ", "=", 
+      RowBox[{">", " ", 
+       RowBox[{"element", " ", "cannot", " ", "be", " ", "found"}]}]}], " ", 
+     "*)"}], "\n", 
+    RowBox[{
+     RowBox[{"If", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"First", "[", "list", "]"}], ">", "key"}], ",", 
+       RowBox[{"Return", "[", "0", "]"}]}], "]"}], ";", "\n", 
+     RowBox[{"(*", " ", 
+      RowBox[{
+      "key", " ", "larger", " ", "than", " ", "everything", " ", "in", " ", 
+       "list"}], " ", "*)"}], "\n", 
+     RowBox[{"If", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"Last", "[", "list", "]"}], "<=", " ", "key"}], ",", 
+       RowBox[{"Return", "[", "high", "]"}]}], "]"}], ";", "\n", "\n", 
+     RowBox[{"(*", " ", 
+      RowBox[{
+      "else", " ", "it", " ", "is", " ", "inside", " ", "the", " ", "list"}], 
+      " ", "*)"}], "\n", 
+     RowBox[{"While", "[", 
+      RowBox[{
+       RowBox[{"low", "<", " ", 
+        RowBox[{"high", "-", "1"}]}], ",", "\n", 
+       RowBox[{
+        RowBox[{"mid", "=", 
+         RowBox[{"Quotient", "[", 
+          RowBox[{
+           RowBox[{"low", "+", "high"}], ",", "2"}], "]"}]}], ";", "\n", 
+        RowBox[{"midVal", " ", "=", " ", 
+         RowBox[{"list", "[", 
+          RowBox[{"[", "mid", "]"}], "]"}]}], ";", "\n", 
+        RowBox[{"(*", 
+         RowBox[{
+          RowBox[{"Print", "[", 
+           RowBox[{"{", 
+            RowBox[{"mid", ",", "midVal"}], "}"}], "]"}], ";"}], "*)"}], "\n", 
+        RowBox[{"If", "[", 
+         RowBox[{
+          RowBox[{"midVal", "<=", "  ", "key"}], ",", 
+          RowBox[{"low", "=", "mid"}], ",", "\n", 
+          RowBox[{
+           RowBox[{"If", "[", 
+            RowBox[{
+             RowBox[{"midVal", ">", " ", "key"}], ",", 
+             RowBox[{"high", "=", "mid"}]}], "]"}], ";"}]}], "\n", "]"}], 
+        ";"}]}], "\n", "]"}], ";", "\n", "low"}]}], "\n", "]"}]}], "\n", 
+ RowBox[{
+  RowBox[{"data", "=", 
+   RowBox[{"{", 
+    RowBox[{
+    "1", ",", "3", ",", "6", ",", "7", ",", "9", ",", "9", ",", "9", ",", "9",
+      ",", "9", ",", "10"}], "}"}]}], ";"}], "\n", 
+ RowBox[{"Length", "[", "data", "]"}], "\n", 
+ RowBox[{"a", "=", 
+  RowBox[{"binSearchMax", "[", 
+   RowBox[{"data", ",", "9"}], "]"}]}], "\n", 
+ RowBox[{"data", "[", 
+  RowBox[{"[", "a", "]"}], "]"}], "\n"}], "Input"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Testing", "Section"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"On", "[", "Assert", "]"}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{"data", "=", 
+   RowBox[{"{", 
+    RowBox[{
+    "1", ",", "3", ",", "6", ",", "7", ",", "9", ",", "9", ",", "9", ",", "9",
+      ",", "10"}], "}"}]}], ";"}]}], "Input"],
+
+Cell["Need Apply to index arg as #1, #2...", "Text"],
+
+Cell[BoxData[{
+ RowBox[{"Map", "[", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     RowBox[{"#", "[", 
+      RowBox[{"[", "1", "]"}], "]"}], "+", 
+     RowBox[{"#", "[", 
+      RowBox[{"[", "2", "]"}], "]"}]}], "&"}], ",", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"x", ",", "b"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"c", ",", "d"}], "}"}]}], "}"}], ",", 
+   RowBox[{"{", "1", "}"}]}], "]"}], "\n", 
+ RowBox[{"Map", "[", 
+  RowBox[{
+   RowBox[{"Apply", "[", 
+    RowBox[{
+     RowBox[{"#1", "+", "#2"}], "&"}], "]"}], ",", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"x", ",", "b"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"c", ",", "d"}], "}"}]}], "}"}], ",", 
+   RowBox[{"{", "1", "}"}]}], "]"}], "\n"}], "Input"],
+
+Cell[BoxData[
+ RowBox[{"(*", " ", 
+  RowBox[{"test", " ", "for", " ", 
+   RowBox[{"(", 
+    RowBox[{"key", ",", " ", 
+     RowBox[{"ret", ".", " ", "value"}]}], ")"}], " ", "pairs"}], " ", 
+  "*)"}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{"Map", "[", 
+  RowBox[{
+   RowBox[{"Apply", "[", 
+    RowBox[{
+     RowBox[{"Assert", "[", 
+      RowBox[{
+       RowBox[{"binSearchMax", "[", 
+        RowBox[{"data", ",", "#1"}], "]"}], "==", "#2"}], "]"}], "&"}], "]"}],
+    ",", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"0.1", ",", "0"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"1", ",", "1"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"2.2", ",", "1"}], "}"}], ",", " ", 
+     RowBox[{"{", 
+      RowBox[{"7", ",", "4"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"9", ",", "8"}], "}"}], ",", " ", 
+     RowBox[{"{", 
+      RowBox[{"9.2", ",", "8"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"11", ",", "9"}], "}"}]}], "}"}]}], "]"}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Apply", "[", 
+   RowBox[{
+    RowBox[{"Assert", "[", 
+     RowBox[{
+      RowBox[{"binSearchMin", "[", 
+       RowBox[{"data", ",", "#1"}], "]"}], "==", "#2"}], "]"}], "&"}], "]"}], 
+  "/@", 
+  RowBox[{"{", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{"0.1", ",", "1"}], "}"}], ",", 
+    RowBox[{"{", 
+     RowBox[{"1", ",", "1"}], "}"}], ",", 
+    RowBox[{"{", 
+     RowBox[{"2.2", ",", "2"}], "}"}], ",", " ", 
+    RowBox[{"{", 
+     RowBox[{"7", ",", "4"}], "}"}], ",", 
+    RowBox[{"{", 
+     RowBox[{"9", ",", "5"}], "}"}], ",", " ", 
+    RowBox[{"{", 
+     RowBox[{"9.2", ",", "9"}], "}"}], ",", 
+    RowBox[{"{", 
+     RowBox[{"11", ",", "0"}], "}"}]}], "}"}]}]], "Input"],
+
+Cell[BoxData[{
+ RowBox[{"End", "[", "]"}], "\n", 
+ RowBox[{"EndPackage", "[", "]"}]}], "Code",
+ CellChangeTimes->{{3.654597200758398*^9, 3.654597208712448*^9}}]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{926, 1053},
+WindowMargins->{{0, Automatic}, {0, Automatic}},
+FrontEndVersion->"10.1 for Linux x86 (64-bit) (March 23, 2015)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[558, 20, 1045, 18, 226, "Code"],
+Cell[CellGroupData[{
+Cell[1628, 42, 117, 3, 207, "Title"],
+Cell[CellGroupData[{
+Cell[1770, 49, 46, 0, 65, "Section"],
+Cell[1819, 51, 2218, 61, 335, "Input"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[4074, 117, 45, 0, 65, "Section"],
+Cell[4122, 119, 2736, 75, 428, "Input"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6895, 199, 26, 0, 65, "Section"],
+Cell[6924, 201, 265, 8, 50, "Input"],
+Cell[7192, 211, 52, 0, 31, "Text"],
+Cell[7247, 213, 769, 27, 68, "Input"],
+Cell[8019, 242, 209, 6, 31, "Input"],
+Cell[8231, 250, 765, 25, 50, "Input"],
+Cell[8999, 277, 713, 24, 50, "Input"],
+Cell[9715, 303, 160, 3, 69, "Code"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+
