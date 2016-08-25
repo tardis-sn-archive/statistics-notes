@@ -5,8 +5,18 @@ import ConjugatePriors
 import Distributions
 using DataFrames
 using Optim
+using Plots
 import ForwardDiff
 chunk = ForwardDiff.Chunk{3}()
+
+function plotprediction(sums, predict, stddev, i=10)
+    pyplot()
+    Plots.histogram(sums, normed=true, lab="250 replicas")
+    vline!([sums[i]], line=:red, lab="lum. in replica $i")
+    dist=Distributions.Normal(predict[i], stddev[i])
+    plot!(x->Distributions.pdf(dist, x), linspace(predict[i] - 4*stddev[i], predict[i] + 4*stddev[i]), lab="prediction from replica $i", line=:black)
+    Plots.pdf("replica-prediction.pdf")
+end
 
 function read_replica(nsim)
 
@@ -46,7 +56,11 @@ function read_replica(nsim)
     n, x, means, sumsqdiff
 end
 
-function logposterior_factory(n, xmean, xsumsq; a=1)
+@enum TARGET Posterior FirstMoment SecondMoment
+
+function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64, a::Float64=1)
+    0 <= a <= 1 || error("need a in [0,1]")
+
     function logposterior(x::Vector)
         λ, μ, σSq = x
 
@@ -63,76 +77,117 @@ function logposterior_factory(n, xmean, xsumsq; a=1)
 
         ## println(resinvgamma," ", resnormal)
         return resgamma + resnormal + resinvgamma
+    end
 
-        # some bug in the normalization here, at the end of lZinv?
-        ## lZinv = d.shape*log(d.scale) - lgamma(d.shape) - 0.5*(-log(d.v0) + log(2pi))
-        ## resnorminvgamma = lZinv - 0.5*log(σSq) - (d.shape+1.)*log(σSq) - d.scale/σSq - 0.5/(σSq*d.v0)*(μ-d.mu).^2
-        ## println(resnorminvgamma)
-        ## return resgamma + resnorminvgamma
+    """log(-d/dt f(target=0|x))"""
+    function logfirst(x::Vector)
+        λ, μ, σSq = x
+        exponent = λ*μ^2 / (2*σSq)
+        tmp = exp(-exponent) * sqrt(λ * σSq / (2 * π)) + 1/2 * λ * μ * (1 + erf(sqrt(exponent)))
+        log(tmp)
+    end
+
+    """log(d²/dt² f(target=0|x))"""
+    function logsecond(x::Vector)
+        λ, μ, σSq = x
+        exponent = λ*μ^2 / (2*σSq)
+        tmp = exp(-exponent) * sqrt(2 / π * λ^3 * σSq) * μ + λ*(λ*μ^2 + σSq)*(1 + erf(sqrt(exponent)))
+        log(1/2 * tmp)
+    end
+
+    if target === Posterior
+        return -logposterior
+    elseif target === FirstMoment
+        return x -> -(logposterior(x) + logfirst(x))
+    elseif target === SecondMoment
+        return x -> -(logposterior(x) + logsecond(x))
     end
 end
 
-"""log(-d/dt f(t=0|x))"""
-function logfirst(x::Vector)
-    λ, μ, σSq = x
-    exponent = λ*μ^2 / (2*σSq)
-    tmp = exp(-exponent) * sqrt(λ * σSq / (2 * π)) + 1/2 * λ * μ * (1 + erf(sqrt(exponent)))
-    log(tmp)
+
+function test()
+    n, sums, means, sumsqdiff = read_replica(10)
+    i = 10
+    logposterior=logposterior_factory(n[i], means[i], sumsqdiff[i])
+    target(x) = -logposterior(x)
+    x = [501.0,1.406,0.001]
+    res = optimize(target, x, Newton(), OptimizationOptions(autodiff = true))
+    # compare to mathematica
+    @test -Optim.minimum(res) ≈ 10.515182417513643
+
+    H = zeros((3,3))
+    # measured, chunk size of 3 is twice as fast as 1 or 2
+    ForwardDiff.hessian!(H,logposterior, φ, chunk)
+
+    # need a really good starting point, else run into
+    # ERROR: DomainError:
+    # in logposterior at none:12
+
+    # minimize the negative to maximize
+    target(x) = -logposterior(x) - logfirst(x)
+    res = optimize(target, x, Newton(), OptimizationOptions(autodiff=true))
+    @test -Optim.minimum(res) ≈ 17.06965251449796
+
+    ForwardDiff.hessian!(H, target, Optim.minimizer(res), chunk)
+    logmean = tardis.laplace(-Optim.minimum(res), H)
+    @test exp(logmean) ≈ 697.496
+
+    target(x) = -logposterior(x) - logsecond(x)
+    res = optimize(target, x, Newton(), OptimizationOptions(autodiff=true))
+    @test -Optim.minimum(res) ≈ 23.626124437003362
+    logsecmom = tardis.laplace(-Optim.minimum(res), H)
+    # difference in 5th decimal, perhaps because of rounding in determinant?
+    @test_approx_eq_eps logsecmom 13.104967686073357 2e-3
+    stddev = sqrt(exp(logsecmom) - exp(logmean)^2)
+
+    ## grad = zeros(3)
+    ## ForwardDiff.gradient!(grad, logposterior, φ, chunk)
+    ## ForwardDiff.gradient!(grad, x::Vector -> logfirst(x) + logposterior(x), φ, chunk)
+    ## ForwardDiff.gradient!(grad, x::Vector -> logsecond(x) + logposterior(x), φ, chunk)
 end
-
-"""log(d²/dt² f(t=0|x))"""
-function logsecond(x::Vector)
-    λ, μ, σSq = x
-    exponent = λ*μ^2 / (2*σSq)
-    tmp = exp(-exponent) * sqrt(2 / π * λ^3 * σSq) * μ + λ*(λ*μ^2 + σSq)*(1 + erf(sqrt(exponent)))
-    log(1/2 * tmp)
-end
-
-n, sums, means, sumsqdiff = read_replica(30)
-i = 10
-logposterior=logposterior_factory(n[i], means[i], sumsqdiff[i])
-target(x) = -logposterior(x)
-x = [501.0,1.406,0.001]
-res = optimize(target, x, Newton(), OptimizationOptions(autodiff = true))
-# compare to mathematica
-@test -Optim.minimum(res) ≈ 10.515182417513643
-
-grad = zeros(3)
-ForwardDiff.gradient!(grad, logposterior, φ, chunk)
-ForwardDiff.gradient!(grad, x::Vector -> logfirst(x) + logposterior(x), φ, chunk)
-ForwardDiff.gradient!(grad, x::Vector -> logsecond(x) + logposterior(x), φ, chunk)
-
-H = zeros((3,3))
-# measured, chunk size of 3 is twice as fast as 1 or 2
-ForwardDiff.hessian!(H,logposterior, φ, chunk)
-
-# need a really good starting point, else run into
-# ERROR: DomainError:
-# in logposterior at none:12
-
-# minimize the negative to maximize
-target(x) = -logposterior(x) - logfirst(x)
-res = optimize(target, x, Newton(), OptimizationOptions(autodiff=true))
-@test -Optim.minimum(res) ≈ 17.06965251449796
-
-ForwardDiff.hessian!(H, target, Optim.minimizer(res), chunk)
-logmean = tardis.laplace(-Optim.minimum(res), H)
-@test exp(logmean) ≈ 697.496
-
-target(x) = -logposterior(x) - logsecond(x)
-res = optimize(target, x, Newton(), OptimizationOptions(autodiff=true))
-@test -Optim.minimum(res) ≈ 23.626124437003362
-logsecmom = tardis.laplace(-Optim.minimum(res), H)
-# difference in 5th decimal, perhaps because of rounding in determinant?
-@test_approx_eq_eps logsecmom 13.104967686073357 2e-3
-stddev = sqrt(exp(logsecmom) - exp(logmean)^2)
-
-# need the Hessian of -log(f)
-ForwardDiff.hessian!(H, target, Optim.minimizer(res), chunk)
-tardis.laplace(-Optim.minimum(res), H)
-# can't use with autodiff: Distributions expects Float64
+# can'target use with autodiff: Distributions expects Float64
 ## posteriorμσSq = ConjugatePriors.NormalInverseGamma(x[i], n[i], n[i]/2, sumsq[i]/2)
 ## posteriorλ = Distributions.Gamma(n[i], 1.0)
 ## ConjugatePriors.logpdf(posteriorμσSq, 697, 0.000947)
 ## Distributions.logpdf(posteriorλ, 500)
 ## log_posterior(x::Vector) = Distributions.logpdf(posteriorλ, x[1]) + ConjugatePriors.logpdf(posterior, x[2], x[3])
+
+# TODO safe Hessian in buffer passed by user
+function uncertainty(n::Int64, xmean::Float64, xsumsq::Float64, a::Float64=1.0)
+    # initial guess for optimization
+    init = [n, xmean, xsumsq / n]
+    # Hessian
+    H = Array{Float64}(3,3)
+
+    # mean
+    target = targetfactory(FirstMoment, n, xmean, xsumsq, a)
+    res = optimize(target, init, Newton(), OptimizationOptions(autodiff=true))
+    ForwardDiff.hessian!(H, target, Optim.minimizer(res), chunk)
+    logfirst = tardis.laplace(-Optim.minimum(res), H)
+    mean = exp(logfirst)
+
+    # second moment
+    target = targetfactory(SecondMoment, n, xmean, xsumsq, a)
+    res = optimize(target, init, Newton(), OptimizationOptions(autodiff=true))
+    ForwardDiff.hessian!(H, target, Optim.minimizer(res), chunk)
+    logsecond = tardis.laplace(-Optim.minimum(res), H)
+
+    mean, sqrt(exp(logsecond) - mean^2)
+end
+
+nsim = 250
+n, sums, means, sumsqdiff = read_replica(nsim)
+
+predict, stddev = begin
+    a = zeros(means)
+    b = zeros(means)
+
+    for i in 1:nsim
+        a[i], b[i] = uncertainty(n[i], means[i], sumsqdiff[i])
+    end
+    a, b
+end
+println("Observed: $(mean(sums)) ± $(std(sums))")
+println("Predicted: $(mean(predict)) ± $(mean(stddev))")
+
+plotprediction(sums, predict, stddev)
