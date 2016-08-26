@@ -4,22 +4,22 @@ using Base.Test
 import ConjugatePriors
 import Distributions
 using DataFrames
+using HDF5
 using Optim
 using Plots
 import ForwardDiff
 chunk = ForwardDiff.Chunk{3}()
 
-function plotprediction(sums, predict, stddev, i=10)
+function plotprediction(sums, predict, stddev, i=1)
     pyplot()
-    Plots.histogram(sums, normed=true, lab="250 replicas")
+    Plots.histogram(sums, normed=true, lab="$(length(sums)) replicas")
     vline!([sums[i]], line=:red, lab="lum. in replica $i")
     dist=Distributions.Normal(predict[i], stddev[i])
     plot!(x->Distributions.pdf(dist, x), linspace(predict[i] - 4*stddev[i], predict[i] + 4*stddev[i]), lab="prediction from replica $i", line=:black)
     Plots.pdf("replica-prediction.pdf")
 end
 
-function read_replica(nsim)
-
+function read_real(nsim)
     n = Array(Int64, (nsim,))
     x = Array(Float64, (nsim,))
     means = zeros(x)
@@ -53,6 +53,32 @@ function read_replica(nsim)
         read_run(i)
     end
 
+    n, x, means, sumsqdiff
+end
+
+function read_virtual(nsim; νmin=1.00677e15, νmax=1.023018e15, cutoff=1e-20)
+    n = Array(Int64, (nsim,))
+    x = Array(Float64, (nsim,))
+    means = zeros(x)
+    sumsqdiff = zeros(x)
+
+    h5open("/data/tardis/virtual_packets.h5", "r") do f
+        for (i, id) in enumerate(names(f["data"]))
+            (i > nsim) && break
+
+            # filter frequencies in bin
+            nus = f["/data/$(id)/runner_virt_packet_nus/values"][:]
+            mask = (nus .> νmin) & (nus .< νmax)
+            # select the energies in the frequency bin
+            energies = f["/data/$(id)/runner_virt_packet_energies/values"][:][mask]
+            # remove small values
+            energies = energies[energies .> cutoff]
+            n[i] = length(energies)
+            x[i] = sum(energies)
+            means[i] = mean(energies)
+            sumsqdiff[i] = (n[i]-1)*var(energies)
+        end
+    end
     n, x, means, sumsqdiff
 end
 
@@ -106,7 +132,7 @@ end
 
 
 function test()
-    n, sums, means, sumsqdiff = read_replica(10)
+    n, sums, means, sumsqdiff = read_real(10)
     i = 10
     logposterior=logposterior_factory(n[i], means[i], sumsqdiff[i])
     target(x) = -logposterior(x)
@@ -154,8 +180,9 @@ end
 
 # TODO safe Hessian in buffer passed by user
 function uncertainty(n::Int64, xmean::Float64, xsumsq::Float64, a::Float64=1.0)
-    # initial guess for optimization
-    init = [n, xmean, xsumsq / n]
+    # initial guess for optimization: slightly off to avoid
+    # ERROR: Linesearch failed to converge
+    init = [n * 1.0001, xmean * 1.0005, xsumsq / n * 1.0005]
     # Hessian
     H = Array{Float64}(3,3)
 
@@ -175,19 +202,23 @@ function uncertainty(n::Int64, xmean::Float64, xsumsq::Float64, a::Float64=1.0)
     mean, sqrt(exp(logsecond) - mean^2)
 end
 
-nsim = 250
-n, sums, means, sumsqdiff = read_replica(nsim)
+function analyze(nsim, readf)
+    n, sums, means, sumsqdiff = readf(nsim)
 
-predict, stddev = begin
-    a = zeros(means)
-    b = zeros(means)
+    predict, stddev = begin
+        a = zeros(means)
+        b = zeros(means)
 
-    for i in 1:nsim
-        a[i], b[i] = uncertainty(n[i], means[i], sumsqdiff[i])
+        for i in 1:nsim
+            a[i], b[i] = uncertainty(n[i], means[i], sumsqdiff[i])
+            println("$(i): $(a[i]), $(b[i])")
+        end
+        a, b
     end
-    a, b
-end
-println("Observed: $(mean(sums)) ± $(std(sums))")
-println("Predicted: $(mean(predict)) ± $(mean(stddev))")
+    println("Observed: $(mean(sums)) ± $(std(sums))")
+    println("Predicted: $(mean(predict)) ± $(mean(stddev))")
 
-plotprediction(sums, predict, stddev)
+    plotprediction(sums, predict, stddev)
+
+    n, sums, predict, stddev
+end
