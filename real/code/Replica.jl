@@ -1,4 +1,5 @@
-push!(LOAD_PATH, pwd())
+module Replica
+
 using tardis
 using Base.Test
 import ConjugatePriors
@@ -10,16 +11,20 @@ using Plots
 import ForwardDiff
 chunk = ForwardDiff.Chunk{3}()
 
+"""
+
+"""
 function plotprediction(sums, predict, stddev, i=1)
-    pyplot()
     Plots.histogram(sums, normed=true, lab="$(length(sums)) replicas")
     vline!([sums[i]], line=:red, lab="lum. in replica $i")
     dist=Distributions.Normal(predict[i], stddev[i])
     plot!(x->Distributions.pdf(dist, x), linspace(predict[i] - 4*stddev[i], predict[i] + 4*stddev[i]), lab="prediction from replica $i", line=:black)
     Plots.pdf("replica-prediction.pdf")
+    # replot to show it interactively
+    plot!()
 end
 
-function read_real(nsim)
+function read_real(nsim; npackets=typemax(Int64))
     n = Array(Int64, (nsim,))
     x = Array(Float64, (nsim,))
     means = zeros(x)
@@ -37,7 +42,7 @@ function read_real(nsim)
     end
 
     function read_run(run)
-        raw_data = readdata(run)
+        raw_data = readdata(run; npackets=npackets)
         frame = filter_positive(raw_data...)
         scale_data!(frame)
         nmin=searchsortedfirst(frame[:nus], νmin)
@@ -202,8 +207,11 @@ function uncertainty(n::Int64, xmean::Float64, xsumsq::Float64, a::Float64=1.0)
     mean, sqrt(exp(logsecond) - mean^2)
 end
 
-function analyze(nsim, readf)
-    n, sums, means, sumsqdiff = readf(nsim)
+"""
+Analyze all replicas and compare mean and standard deviation from the replicas and the model
+"""
+function analyze(nsim, readf; npackets=typemax(Int64))
+    n, sums, means, sumsqdiff = readf(nsim; npackets=npackets)
 
     predict, stddev = begin
         a = zeros(means)
@@ -211,14 +219,14 @@ function analyze(nsim, readf)
 
         for i in 1:nsim
             a[i], b[i] = uncertainty(n[i], means[i], sumsqdiff[i])
-            println("$(i): $(a[i]), $(b[i])")
+           # println("$(i): $(a[i]), $(b[i])")
         end
         a, b
     end
     println("Observed: $(mean(sums)) ± $(std(sums))")
     println("Predicted: $(mean(predict)) ± $(mean(stddev))")
 
-    plotprediction(sums, predict, stddev)
-
     n, sums, predict, stddev
+end
+
 end
