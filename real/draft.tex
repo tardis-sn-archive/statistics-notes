@@ -165,12 +165,19 @@
 \newcommand{\reffig}[1]{Fig.~\ref{fig:#1}}
 \newcommand{\refsec}[1]{Sec.~\ref{sec:#1}}
 
+\DeclareMathOperator{\Expect}{\mathbb{E}}
+\newcommand{\expect}[1]{\Expect\left[#1\right]}
 \DeclareMathOperator{\GammaDist}{Gamma}
+\DeclareMathOperator{\GaussianDist}{\mathcal{N}}
 \newcommand{\Kalpha}{{K_\alpha}}
 \newcommand{\Kbeta}{{K_\beta}}
 \newcommand{\npack}{n_p}
 \newcommand{\lmax}{\ell_{\rm max}}
 \newcommand{\Lmax}{L_{\rm max}}
+\newcommand{\Lumtot}{Q}
+\newcommand{\lumtot}{q}
+\newcommand{\Lum}{L}
+\newcommand{\lum}{\ell}
 \newcommand{\rmdx}[1]{\mbox{d} #1 \,} % differential
 \newcommand{\firstDeriv}[1]{\frac{\partial}{\partial #1}}
 \newcommand{\secDeriv}[1]{\frac{\partial^2}{\partial #1^2}} % second partial derivative
@@ -206,15 +213,15 @@ concrete realization $\ell$.  To learn about $\bmtheta$, we need to
 compare to data from a telescope available as luminosities in
 frequency bins, $D = \{ ( \nu_b, \ell_b): b=1 \dots B\}$. The natural
 estimate from a single simulation is to add up the luminosities of all
-packets in a bin to estimate $L_b$.  With a different seed but
+packets in a bin to estimate $\Lumtot_b$.  With a different seed but
 identical $\bmtheta$, both the number of packets in the bin and their
 luminosities are usually different. Our goal is to capture what is
-known about $L$ based on a \emph{single} simulation without recourse
+known about $\Lumtot$ based on a \emph{single} simulation without recourse
 to expensive repetitions or asymptotic approximations; i.e., we seek
-$P(L_b \cond \nu_b, \npack, \bmnu, \bml )$. In an actual physics
+$P(\Lumtot_b \cond \nu_b, \npack, \bmnu, \bml )$. In an actual physics
 analysis, one would proceed to plug in the observed value $\ell_b$ and
 perform an analysis to learn about $\bmtheta$. But here we focus on
-the specific problem of $P(L_b \cond \nu_b, \npack, \bmnu, \bml )$ and
+the specific problem of $P(\Lumtot_b \cond \nu_b, \npack, \bmnu, \bml )$ and
 hence omit $\bmtheta$ throughout.
 
 Various features, for example absorption lines, usually make it
@@ -241,69 +248,69 @@ on a single bin and to drop the subscript $b$ in the remainder. Hence
   p(N\cond\lambda) &= \frac{e^{-\lambda}\lambda^N}{N!}
   \qquad N = 0,1,\ldots,\infty ,
 \end{align}
-where the dependency of the Poisson mean $\lambda>0$ on $\nu$ is of no
-concern to us. Let $\bmL$ denote the collection of luminosities of
-packets in a certain bin. The total luminosity in that bin is then
-given by
+where the dependency of the Poisson mean, $\lambda>0$, on $\nu$ is
+implicit. Let $\bmL$ denote the collection of luminosities of packets
+in a certain bin. The total luminosity in that bin is then given by
 \begin{align}
   \lleq{cab}
-  L = \sum_{j=1}^{N} L_j\,.
+  \Lumtot = \sum_{j=1}^{N} \Lum_j\,.
 \end{align}
-We assume that each $L_j$ has a distribution depending on $\nu$ and
+We assume that each luminosity $\Lum_j$, and we usually omit the subscript $j$ to refer to a single luminosity, has a distribution depending on $\nu$ and
 other parameters $\bmphi$, and that each packet is logically
-independent. Since $N$ follows a Poisson distribution, $L$ is said to
-follow a compound Poisson process. The joint distribution then is
+independent. Since $N$ follows a Poisson distribution, $\Lumtot$
+follows a \emph{compound Poisson process}. The joint distribution then is
 \begin{align}
   \lleq{cac}
   (N,\bmL) &\ \sim\ p(N,\bmL\cond \bmphi,\lambda, \nu)
-  = p(\bmL\cond N,\bmphi, \nu)\; p(N\cond \lambda) = \prod_{j=1}^N p(L_j\cond \bmphi, \nu) \; p(N\cond \lambda),
+  = p(\bmL\cond N,\bmphi, \nu)\; p(N\cond \lambda) = \prod_{j=1}^N p(\Lum_j\cond \bmphi, \nu) \; p(N\cond \lambda),
 \end{align}
 where we used that the Poisson term does not depend on $\nu$
-explicitly. In general, the distribution of $L_j$ could be a of a
+explicitly. In general, the distribution of $\Lum_j$ could be a of a
 different functional form in each bin. For simplicity, we assume it is
 identical but may depend on parameters that differ from bin to bin. In
 practice, the distribution of packets usually does not change abruptly
 with frequency. We therefore assume that any parameter needed to fully
-specify $p(L_j)$ is given explicitly as a continuous function of $\nu$
+specify $p(\Lum_j)$ is given explicitly as a continuous function of $\nu$
 and the unknown parameters $\bmphi$. This allows us to use a small
-number of parameters to describe $p(L)$ across the entire frequency
+number of parameters to describe $p(\Lumtot)$ across the entire frequency
 range instead of having a few parameters per bin which could lead to
 tens of thousands of parameters for the applications we have in
 mind. So we determine $\bmphi$ from fitting all simulated packets
 simultaneously whereas $\lambda$ is a per-bin quantity.
+\fred{Reformulate when asymptotic approx. included: it has thousands of parameters}
 
-Our goal of predicting $L$ in some bin given the simulation output
+Our goal of predicting $\Lumtot$ in some bin given the simulation output
 $(\npack,\bmnu, \bml)$ is captured in the probability density
-$p(L\cond \nu, \npack,\bmnu, \bml)$ with all relevant parameters
+$p(\Lumtot\cond \nu, \npack,\bmnu, \bml)$ with all relevant parameters
 integrated out. To simplify the treatment, we assume that the
-frequency bins are narrow or equivalently that $p(L \cond \nu, \npack,
+frequency bins are narrow or equivalently that $p(\Lumtot \cond \nu, \npack,
 \bmnu, \bml)$ does not vary within a bin. This implies that every
-sample $L_j$ in the bin follows the same distribution.  As the
+sample $\Lum_j$ in the bin follows the same distribution.  As the
 reference frequency, we choose the bin center.
 
 % From \refeq{caa}, $N$ does not depend on $\bml$ at all and only
 % indirectly depends on $\bmnu$ through $n$.
-Since $L$ is fully determined by $(N,\bmL)$, it does not depend on
+Since $\Lumtot$ is fully determined by $(N,\bmL)$, it does not depend on
 $(\npack,\bml,\bmnu)$, i.e.
 \begin{align}
   \lleq{pmi}
-  p(L\cond N,\bmL,\nu,\npack,\bmnu, \bml)
-  = p(L\cond N, \bmL)
-  &= \delta(L - \textstyle\sum_{j=1}^N L_j),
+  p(\Lumtot\cond N,\bmL,\nu,\npack,\bmnu, \bml)
+  = p(\Lumtot\cond N, \bmL)
+  &= \delta(\Lumtot - \textstyle\sum_{j=1}^N \Lum_j),
 \end{align}
 \fred{Uniform order: $\nu$ first, then $\ell$, compare to $S$} where
-each $L_j$ is assumed to occur at $\nu$.  Using the law of total
+each $\Lum_j$ is assumed to occur at $\nu$.  Using the law of total
 probability repeatedly, we can write the desired distribution as
 \fred{Discuss $N=0$ case somewhere}
 \begin{align}
   \lleq{pmj}
-  p(L\cond \nu, \npack,\bmnu, \bml)
-  &= \sum_N p(N\cond \nu, \npack,\bmnu, \bml) \, p(L\cond N,\nu, \npack,\bmnu, \bml) \\
+  p(\Lumtot\cond \nu, \npack,\bmnu, \bml)
+  &= \sum_N p(N\cond \nu, \npack,\bmnu, \bml) \, p(\Lumtot\cond N,\nu, \npack,\bmnu, \bml) \\
   \lleq{pmjb}
-  &= \sum_N p(N\cond n)\,\int \rmdx{\bmL} p(L\cond N,\bmL,\nu, \npack,\bmnu, \bml)\, p(\bmL\cond N,\nu, \npack,\bmnu, \bml)
+  &= \sum_N p(N\cond n)\,\int \rmdx{\bmL} p(\Lumtot\cond N,\bmL,\nu, \npack,\bmnu, \bml)\, p(\bmL\cond N,\nu, \npack,\bmnu, \bml)
   \\
   \lleq{pmjc}
-  &= \sum_N p(N\cond n)\,\int \rmdx{\bmL} \delta(L - \textstyle\sum_{j=1}^N L_j)
+  &= \sum_N p(N\cond n)\,\int \rmdx{\bmL} \delta(\Lumtot - \textstyle\sum_{j=1}^N \Lum_j)
   \, p(\bmL\cond N,\nu, \npack,\bmnu, \bml).
 \end{align}
 The dependence on the simulation output $(\npack,\bmnu, \bml)$ enters
@@ -352,9 +359,9 @@ into \refeq{pmjc}, we obtain the desired master equation:
 \begin{equation}
   \lleq{pmp}
   \boxed{
-  p(L\cond \nu, \npack,\bmnu, \bml)
+  p(\Lumtot\cond \nu, \npack,\bmnu, \bml)
   = \frac{1}{p(\bml\cond \npack, \bmnu)}
-  \sum_N p(N\cond n)\,\int \rmdx{\bmL} \delta(L - \textstyle\sum_j L_j)
+  \sum_N p(N\cond n)\,\int \rmdx{\bmL} \delta(\Lumtot - \textstyle\sum_j \Lum_j)
   \displaystyle\int \rmdx{\bmphi} p(\bmL\cond \bmphi, N, \nu) \, p(\bml\cond \bmphi,\npack,\bmnu)
   \, p(\bmphi)
   }
@@ -362,21 +369,21 @@ into \refeq{pmjc}, we obtain the desired master equation:
 with
 \begin{align}
   \lleq{pmq}
-  p(\bmL\cond \bmphi, N, \nu) &= \prod_{j=1}^N p(L_j\cond \bmphi, \nu), \\
+  p(\bmL\cond \bmphi, N, \nu) &= \prod_{j=1}^N p(\Lum_j\cond \bmphi, \nu), \\
   \lleq{pmr}
   p(\bml\cond \bmphi,\npack,\bmnu) &= \prod_{i=1}^{\npack} p(\ell_i\cond \bmphi, \nu_i)
 \end{align}
 and $p(\cdot \cond \bmphi, \cdot)$ is the same function in both
 equations.  In the next section, we compute the general result for
 $P(N \cond n)$. Equation \refeq{pmp} then implies that once we specify
-the prior $p(\bmphi)$ and the likelihood $p(L_j\cond \bmphi, \nu)$, we
-have a prediction for $L$ which takes into account all possible $N$,
+the prior $p(\bmphi)$ and the likelihood $p(\Lum_j\cond \bmphi, \nu)$, we
+have a prediction for $\Lumtot$ which takes into account all possible $N$,
 $\lambda$ and $\bmphi$. Both likelihood and prior depend on the
 simulation under consideration but a general requirement to render our
 approach tractable is that the distribution of a single packet
-luminosity $P(L_j \cond \bmphi, \nu)$ should be such that the integral
+luminosity $P(\Lum_j \cond \bmphi, \nu)$ should be such that the integral
 over $\bmL$ has a closed-form solution. In other words, for a given
-distribution of $L_j$, the distribution of $L = \sum_N L_j$ should be
+distribution of $\Lum_j$, the distribution of $\Lumtot = \sum_N \Lum_j$ should be
 known.
 %  An important special case is the class of \emph{stable}
 % distributions.
@@ -440,7 +447,7 @@ results for the evidence and the posterior predictive are
 packets as opposed to the virtual packets output by tardis.
 
 % Based on staring at the distribution of luminosities,
-To apply \refeq{pmp}, we first need to choose $P(L_j \cond \bmphi,
+To apply \refeq{pmp}, we first need to choose $P(\Lum_j \cond \bmphi,
 \nu)$. A histogram of the luminosities from a \tardis{} run indicates
 a strongly skewed distribution with a single mode that is close to but
 not at the sharp end point $\lmax$. There is a long tail for small
@@ -456,7 +463,7 @@ if we transform the data as
   \lleq{gmf}
   x_i \equiv 1- \frac{\ell_i}{\lmax} > 0
 \end{align}
-and similarly for $L \to X$ because $\ell$ is bounded from above and
+and similarly for $\Lumtot \to X$ because $\ell$ is bounded from above and
 $x$ is bounded from below.  We first take the largest luminosity of
 all \tardis{} packets across the entire frequency range and increase
 it slightly to avoid numerical difficulties at the end point
@@ -470,26 +477,26 @@ constant independent of the data is negligible. We checked that
 leaving $\lmax$ as a free parameter in a fit gave equivalent results.
 
 We infer $P(X \cond \nu, \npack, \bmnu, \bmx)$ and only in the end
-transform back to a probability density in $L$ via
+transform back to a probability density in $\Lumtot$ via
 \begin{align}
   \lleq{gmg}
-  p(L  \cond \nu,  \npack, \bmnu, \bml) = p(X  \cond \nu,  \npack, \bmnu, \bmx) \frac{1}{\lmax} \,.
+  p(\Lumtot  \cond \nu,  \npack, \bmnu, \bml) = p(X  \cond \nu,  \npack, \bmnu, \bmx) \frac{1}{\lmax} \,.
 \end{align}
 To simplify the numerics, we also rescale the frequencies by a
 constant from $\mathcal{O}(10^{15})$ to $\mathcal{O}(1)$.  A major
-numerical simplification arises because of the $L \to X$
+numerical simplification arises because of the $\Lumtot \to X$
 transformation. Rewriting the master~\refeq{pmp} formally as
 \begin{align}
   \lleq{gmh}
-  p(L  \cond \nu,  \npack, \bmnu, \bml) = \sum_{N} p(N \cond \nu,  n) p(L \cond N,
+  p(\Lumtot  \cond \nu,  \npack, \bmnu, \bml) = \sum_{N} p(N \cond \nu,  n) p(\Lumtot \cond N,
 \nu, \npack, \bmnu, \bml),
 \end{align}
 we see that the right-hand side is a mixture density. In our
 application, the distribution of a single-packet luminosity is narrow
 in the sense that the standard deviation relative to the mean is at
-the percent level. This implies that $p(L \cond \nu, \npack,
+the percent level. This implies that $p(\Lumtot \cond \nu, \npack,
 \bmnu, \bml)$ has one mode from each $N$ and all modes are clearly
-separated. The transformation $L \to x$ effects a strong overlap
+separated. The transformation $\Lumtot \to x$ effects a strong overlap
 between the distributions $p(X \cond N, \nu, \npack, \bmnu, \bmx)$
 with similar $N$, so $p(X \cond \nu, \npack, \bmnu, \bmx)$ can be well
 approximated by a unimodal distribution; see \reffig{hedgehog}.
@@ -497,7 +504,7 @@ approximated by a unimodal distribution; see \reffig{hedgehog}.
 \begin{figure}[ht]
   \centering
   % \includegraphics[width=0.48\textwidth]{hedgehog}
-  \caption{Left: Prediction $p(L \cond  \nu,  \npack, \bmnu, \bml)$, right: $p(x \cond  \nu,  \npack, \bmnu, \bmx)$. I sum over $N$ in both cases. }
+  \caption{Left: Prediction $p(\Lumtot \cond  \nu,  \npack, \bmnu, \bml)$, right: $p(x \cond  \nu,  \npack, \bmnu, \bmx)$. I sum over $N$ in both cases. }
   \fred{I still need to pretty this up. I used the old binned approach
     with 50 samples in a bin from which I computed the mean and
     variance to plug into \refeq{gmr} but I computed the sum over $N$
@@ -611,6 +618,36 @@ integrate over $N$ and $\bmphi$.
 \fred{Our implementation is available online on \href{https://github.com/tardis-sn/XXX}{github}}
 
 \subsection{Graphical output}
+
+\section{Asymptotic approximation} \label{sec:asymptotic}
+
+In the case that there are many packets in every bin, some
+simplifications arise as the distribution of individual packets
+$p(\Lum_j \cond \bmphi, \nu)$ becomes irrelevant in the asymptotic regime
+$n \to \infty$, which implies $\lambda \to \infty$. In that case, the
+compound Poisson distribution can be approximated by a Gaussian
+distribution provided that the second moment of $\Lum_j, \expect{\Lum_j^2}$
+is finite. Theorem 4.3.1 of \cite{bening2002generalized} states
+that
+% \begin{align}
+%   \label{eq:asympt-conv}
+%   P\left(\frac{L- \lambda \expect{\Lum_j}}{\sqrt{\lambda \expect{\Lum_j^2}}}  < z \right)  \Rightarrow \Phi(z) \mbox{ as } \lambda \to \infty,
+% \end{align}
+the asymptotic distribution of $\Lumtot$ when $\lambda \to \infty$, given
+the first and second moment of $\Lum_j$, is
+\begin{align}
+  \label{eq:asympt-normal}
+  P(\Lumtot \cond \bmphi, \nu) = \GaussianDist \left( \Lumtot \cond \lambda \expect{\Lum_j}, \lambda \expect{\Lum_j^2} \right).
+\end{align}
+That allows us to model $\Lumtot$ in each bin \emph{without} making concrete
+assumptions about the functional form of $P(\Lum_j \cond \bmphi, \nu)$; i.e., we may now view $\bmphi$ as the collection of first and second moment in each bin
+\begin{align}
+  \label{eq:phi-bin-moments}
+  \bmphi = \left(\expect{\Lum_j(\nu_b)}, \expect{\Lum_j^2(\nu_b)} \right)_{b=1}^{n_b}.
+\end{align}
+The price for this flexibility is that $\bmphi$ may now contain many
+parameters, and each one is determined only from the samples in a
+single bin.
 
 \section{Conclusion} \label{sec:conclusion}
 
