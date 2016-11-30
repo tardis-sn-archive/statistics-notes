@@ -10,7 +10,7 @@
 \usepackage[a4paper, left=20mm, right=20mm, top=25mm, bottom=25mm]{geometry}
 \usepackage[numbers]{natbib}
 \usepackage{hyperref}
-\synctex=1
+\usepackage{physics}
 
 \usepackage[colorinlistoftodos]{todonotes} % Use 'disable' to remove todos in final version
 \newcommand{\fred}[1]{\todo[color=orange!40,inline]{#1}} %
@@ -65,8 +65,6 @@
 \newcommand{\integers}{\mathbb{Z}}
 \newcommand{\cond}{\,|\,}
 \newcommand{\NBD}{\mathrm{NB}}
-\newcommand{\var}{\mathrm{var}}
-
 
 \newcommand{\refeq}[1]{Eq.~(\ref{#1})}
 \newcommand{\reffig}[1]{Fig.~\ref{fig:#1}}
@@ -87,7 +85,8 @@
 \newcommand{\lumtot}{q}
 \newcommand{\Lum}{L}
 \newcommand{\lum}{\ell}
-\newcommand{\rmdx}[1]{\mbox{d} #1 \,} % differential
+% \newcommand{\rmdx}[1]{\mbox{d} #1 \,} % differential
+\newcommand{\rmdx}[1]{\dd{#1}} % differential
 \newcommand{\firstDeriv}[1]{\frac{\partial}{\partial #1}}
 \newcommand{\secDeriv}[1]{\frac{\partial^2}{\partial #1^2}} % second partial derivative
 \newcommand{\secPartial}[2]{\frac{\partial^2}{\partial #1 \, \partial #2}} % second partial derivative
@@ -691,14 +690,64 @@ where the hyperparameters are updated from prior to posterior based on $\bmy$ as
   % $\expect{\Lum}, \expect{\Lum^2}$ as indicated in \refeq{rae} because
   % the Jacobian determinant is one.
 
-  Now all ingredients for the prediction of $\Lumtot$ in one bin are
+  Finally all ingredients for the prediction of $\Lumtot$ in one bin are
   ready, and \refeq{qaa} simplifies to
 \begin{align}
   \lleq{ral}
   p(\Lumtot \cond \bmy) &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda \sigma^2 \right) p(\lambda \cond \bmy) p( \mu, \sigma^2 \cond \bmy) \,,
 \end{align}
-where $ p(\lambda \cond \bmy)$ is given by \refeq{pms} and $ p( \mu, \sigma^2 \cond \bmy)$ by \refeq{raf}--\refeq{rak}.
-\fred{Could integrate directly, or use mgf to get moments of $  p(\Lumtot \cond \bmy)$. Then do mode finding, describe initial values and Laplace approximation. }
+where $ p(\lambda \cond \bmy)$ is given by \refeq{pms} and
+$ p( \mu, \sigma^2 \cond \bmy)$ by
+\refeq{raf}--\refeq{rak}.
+
+\subsection{Numerical implementation}\label{sec:asympt-numeric}
+
+Unfortunately we could not integrate \refeq{ral} analytically but
+since the integrand is unimodal and strongly peaked the Laplace or
+saddle-point approximation~\cite[Ch. 27]{mackay2003information} can be
+applied in two ways. First, if only the value
+$p(\Lumtot=\lumtot \cond \bmy)$ for some particular $q$ is sought,
+then one can approximate it directly. Second, we can compute the
+moments of $\Lumtot$ through the \emph{moment-generating
+  function}\fredmargin{ref}
+\begin{align}
+  \lleq{rap}
+  M(t \cond \bmy) = \int_0^{\infty} \rmdx{\Lumtot} p(\Lumtot \cond \bmy) e^{-t \Lumtot} \,
+\end{align}
+from which the moments are accessible by differentiation
+\begin{align}
+  \lleq{raq}
+  \expect{\Lumtot^k} = (-1)^k \eval{\dv[k]{M(t \cond \bmy)}{t}}_{t=0}
+\end{align}
+
+Assuming all involved integrals are absolutely convergent, we can
+exchange the order of integration and find
+\begin{align}
+  \lleq{rar}
+  M(t \cond \bmy) &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond \bmy) p( \mu, \sigma^2 \cond \bmy)  f(t \cond \lambda, \mu, \sigma^2),
+  \intertext{where }
+  f\left(t \cond  \lambda, \mu, \sigma^2\right) &\equiv \int \rmdx{\Lumtot} \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda \sigma^2 \right) e^{-t \Lumtot}= \frac{1}{2} e^{t \lambda (t \sigma^2/2 - \mu)} \left[ 1 + \erf\qty( \frac{\sqrt{\lambda}(\mu - t \sigma^2)}{\sqrt{2 \sigma^2}}) \right].
+\end{align}
+This implies that the mean and variance of $\Lumtot$ require an integral over the three parameters
+\begin{align}
+  \lleq{ras}
+  \expect{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond \bmy) p( \mu, \sigma^2 \cond \bmy) \qty(-\eval{\dv{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0})\\
+  \variance{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond \bmy) p( \mu, \sigma^2 \cond \bmy) \qty(\eval{\dv[2]{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0}) - \expect{\Lumtot}^2
+\end{align}
+We implemented the above formulae in the julia language~\cite{julia14}
+and used Newton's method from the \texttt{Optim.jl} package in
+combination with automatic
+differentiation~\cite{RevelsLubinPapamarkou2016} to optimize the
+respective integrand and compute the Hessian at the mode. As initial
+values, we slightly offset the sample estimates to avoid issues if the
+optimizer cannot improve on the initial guess and found convergence
+within $\order{10}$ steps:
+\begin{align}
+  \lleq{rat}
+  \qty(\lambda, \mu, \sigma^2) = 1.0005 (n, \expectest{\lum}, \widehat{\variance{\lum}}).
+\end{align}
+\fred{Did we define expectation value and variance? Should be in notation or intro section}
+\fred{At least for us, I should do a comparison plot to evaluate $p(\Lumtot \cond \bmy)$ with both methods }
 
 \section{Conclusion} \label{sec:conclusion}
 
