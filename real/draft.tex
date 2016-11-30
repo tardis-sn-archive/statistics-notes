@@ -617,11 +617,15 @@ $p(\Lum \cond \bmphi, \nu)$ becomes irrelevant in the asymptotic
 regime $n \to \infty$, which implies $\lambda \to \infty$. In that
 case, the compound Poisson distribution can be approximated by a
 Gaussian distribution provided that the second moment of
-$\Lum, \expect{\Lum^2}$ is finite. For a compound Poisson process with Poisson mean $\lambda$,
-the general result is that, even for $\lambda$ small,
+$\Lum, \expect{\Lum^2}$ is finite. To see this in more detail, we define
+\begin{align}
+  \lleq{ram}
+  \mu \equiv \expect{\Lum}, \qquad \sigma^2 \equiv \variance{\Lum}\,.
+\end{align}
+For a compound Poisson process with arbitrary Poisson mean $\lambda > 0$,
 \begin{align}
   \lleq{raa}
-  \expect{Q} = \lambda \expect{L}, \qquad \variance{Q} = \lambda \expect{L^2} \,.
+  \expect{Q} =\lambda \expect{L} = \lambda \mu, \qquad \variance{Q} = \lambda \expect{L^2} = \lambda (\mu^2 + \sigma^2) \,.
 \end{align}
 
 From Theorem 4.3.1 of \cite{bening2002generalized}, we can conclude
@@ -629,42 +633,47 @@ that the asymptotic distribution of $\Lumtot$ when
 $\lambda \to \infty$, given the first and second moment of $\Lum$, is
 \begin{align}
   \lleq{rab}
-  P(\Lumtot \cond \bmphi) = \GaussianDist \left( \Lumtot \cond \expect{Q}, \variance{Q} \right) = \GaussianDist \left( \Lumtot \cond \lambda \expect{\Lum}, \lambda \expect{\Lum^2} \right).
+  P(\Lumtot \cond \bmphi) = \GaussianDist \left( \Lumtot \cond \expect{Q}, \variance{Q} \right) = \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\mu^2 + \sigma^2) \right).
 \end{align}
 This result is a drastic simplification as it eliminates both the sum over $N$ in \refeq{qab} and the integral over $\bmL$ in \refeq{qaf}.
 That allows us to model $\Lumtot$ in each bin \emph{without} making concrete
-assumptions about the functional form of $P(\Lum \cond \bmphi)$; i.e., we may now view $\bmphi$ as the collection of first and second moment in each bin in addition to $\lambda$. Continuing the notation of \refeq{qadd},
+assumptions about the functional form of $P(\Lum \cond \bmphi)$; i.e., we may now view $\bmphi$ as the collection of first and second moments in each bin in addition to $\lambda$. Continuing the notation of \refeq{qadd},
 \begin{align}
   \lleq{rac}
-  \bmphi =  \left( \bmlambda, \bmxi \right) = \left(\lambda_b, \expect{\Lum_b}, \expect{\Lum^2_b} \right)_{b=1}^B.
+  \bmphi =  \left(\lambda_b, \mu_b, \sigma^2_b \right)_{b=1}^B.
 \end{align}
 The price for this flexibility is that $\bmphi$ may now contain many
 parameters, and each one is determined only from the samples in a
-single bin. To obtain the posterior $p(\bmxi \cond \bmy)$, we may focus on
-a single bin again
+single bin. The joint posterior is
 \begin{align}
   \lleq{rad}
-  p(\bmxi \cond \bmy) = \prod_{b=1}^B p\left(\expect{\Lum_b}, \expect{\Lum^2_b} \cond \bmy\right)
+  p(\bmphi \cond \bmy ) = \prod_{b=1}^B p\left(\lambda_b, \mu_b, \sigma^2_b \cond \bmy\right),
 \end{align}
-and omit the subscript $b$. To learn the moments of $\Lum$, we follow
+Focussing on a single bin, we omit the subscript $b$. As before, we
+further assume that
+\begin{align}
+  \lleq{rao}
+p(\lambda, \mu, \sigma^2 \cond \bmy) = p(\lambda \cond \bmy) p(\mu,
+\sigma \cond \bmy).
+\end{align}
+The posterior for $\lambda$ is given by \refeq{pms}.  To learn mean
+and variance of $\Lum$ from $\bmy$, we follow
 Jaynes~\cite[Ch. 7.10]{jaynes2003probability} and assign a Gaussian
 sampling distribution
 \begin{align}
   \lleq{rae}
-  p(\Lum \cond \expect{\Lum}, \expect{\Lum^2} )
-  &= \GaussianDist(\Lum \cond \mu = \expect{\Lum}, \sigma^2
-  = \expect{\Lum^2} - \expect{\Lum}^2)
+  p(\Lum \cond \mu, \sigma^2 ) &= \GaussianDist(\Lum \cond \mu, \sigma^2)
 \end{align}
-although the actual frequencies will be quite different from a
+although the actual frequencies may be quite different from a
 Gaussian. Our motivation is that this Gaussian represents our state of
 knowledge \emph{before} observing $\bmy$ well. To make the
 calculations easier, we assume a conjugate prior for unknown $\mu$ and
 $\sigma^2$. The standard result for the posterior is
 \begin{align}
   \lleq{raf}
-  p(\mu, \sigma^2) &= \GaussianDist(\mu \cond \mu_0^\prime, \frac{\sigma^2}{n_0^\prime}) \InvGammaDist\left( \sigma^2 \cond \frac{\nu_0^\prime}{2}, \frac{\nu_0^\prime \sigma_0^{\prime 2}}{2} \right)
+  p(\mu, \sigma^2 \cond \bmy) &= \GaussianDist(\mu \cond \mu_0^\prime, \frac{\sigma^2}{n_0^\prime}) \InvGammaDist\left( \sigma^2 \cond \frac{\nu_0^\prime}{2}, \frac{\nu_0^\prime \sigma_0^{\prime 2}}{2} \right)
 \end{align}
-where the hyperparameters are updated from prior to posterior as
+where the hyperparameters are updated from prior to posterior based on $\bmy$ as
 \begin{align}
   \lleq{rag}
   \expectest{\lum} &= \frac{1}{n} \sum_{i=1}^n \lum_i,\\
@@ -675,21 +684,20 @@ where the hyperparameters are updated from prior to posterior as
   \end{align}
   By default, we take a noninformative prior and set
   $n_0 = \mu_0 = \nu_0 = 0$, so the value $\sigma_0^2>0$ is
-  irrelevant. The posterior
-  $ p(\expect{\Lum}, \expect{\Lum^2} \cond \bmy)$ is given by
-  \refeq{raf} with $\mu, \sigma^2$ replaced by
-  $\expect{\Lum}, \expect{\Lum^2}$ as indicated in \refeq{rae} because
-  the Jacobian determinant is one.
+  irrelevant.
+  % The posterior
+  % $ p(\expect{\Lum}, \expect{\Lum^2} \cond \bmy)$ is given by
+  % \refeq{raf} with $\mu, \sigma^2$ replaced by
+  % $\expect{\Lum}, \expect{\Lum^2}$ as indicated in \refeq{rae} because
+  % the Jacobian determinant is one.
 
   Now all ingredients for the prediction of $\Lumtot$ in one bin are
-  ready, and \refeq{qaa} becomes
+  ready, and \refeq{qaa} simplifies to
 \begin{align}
   \lleq{ral}
-  p(\Lumtot \cond \bmy) &= \int \rmdx{\lambda} \rmdx{\expect{\Lum}} \rmdx{\expect{\Lum^2}} \GaussianDist \left( \Lumtot \cond \lambda \expect{\Lum}, \lambda \expect{\Lum^2} \right) p(\expect{\Lum}, \expect{\Lum^2} \cond \bmy) \,.
+  p(\Lumtot \cond \bmy) &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda \sigma^2 \right) p(\lambda \cond \bmy) p( \mu, \sigma^2 \cond \bmy) \,,
 \end{align}
-\fred{$\int \rmdx{\expect{\Lum}}$ looks ugly, I'd rather have other
-  symbols, perhaps just use $\mu$ and $\sigma^2$. The transformation
-  is one-to-one anyways.}
+where $ p(\lambda \cond \bmy)$ is given by \refeq{pms} and $ p( \mu, \sigma^2 \cond \bmy)$ by \refeq{raf}--\refeq{rak}.
 \fred{Could integrate directly, or use mgf to get moments of $  p(\Lumtot \cond \bmy)$. Then do mode finding, describe initial values and Laplace approximation. }
 
 \section{Conclusion} \label{sec:conclusion}
