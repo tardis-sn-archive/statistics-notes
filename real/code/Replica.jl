@@ -87,8 +87,14 @@ function read_virtual(nsim; νmin=1.00677e15, νmax=1.023018e15, cutoff=1e-20)
     n, x, means, sumsqdiff
 end
 
+"""
+Enumeration to specify which target function to create
+"""
 @enum TARGET Posterior FirstMoment SecondMoment
 
+"""
+Create a function for Laplace approximation
+"""
 function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64, a::Float64=1)
     0 <= a <= 1 || error("need a in [0,1]")
 
@@ -126,8 +132,9 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64
         log(1/2 * tmp)
     end
 
+    # optimizer minimizes => add minus sign at the last possible moment
     if target === Posterior
-        return -logposterior
+        return x -> -logposterior(x)
     elseif target === FirstMoment
         return x -> -(logposterior(x) + logfirst(x))
     elseif target === SecondMoment
@@ -139,8 +146,9 @@ end
 function test()
     n, sums, means, sumsqdiff = read_real(10)
     i = 10
-    logposterior=logposterior_factory(n[i], means[i], sumsqdiff[i])
-    target(x) = -logposterior(x)
+    a = 1.0
+    target = targetfactory(Posterior, n[i], means[i], sumsqdiff[i], a)
+    # target(x) = -logposterior(x)
     x = [501.0,1.406,0.001]
     res = optimize(target, x, Newton(), OptimizationOptions(autodiff = true))
     # compare to mathematica
@@ -148,22 +156,27 @@ function test()
 
     H = zeros((3,3))
     # measured, chunk size of 3 is twice as fast as 1 or 2
-    ForwardDiff.hessian!(H,logposterior, φ, chunk)
+    ForwardDiff.hessian!(H,target, Optim.minimizer(res), chunk)
+
+    println("Posterior")
+    println(res)
 
     # need a really good starting point, else run into
     # ERROR: DomainError:
     # in logposterior at none:12
 
     # minimize the negative to maximize
-    target(x) = -logposterior(x) - logfirst(x)
+    target = targetfactory(FirstMoment, n[i], means[i], sumsqdiff[i], a)
     res = optimize(target, x, Newton(), OptimizationOptions(autodiff=true))
     @test -Optim.minimum(res) ≈ 17.06965251449796
 
     ForwardDiff.hessian!(H, target, Optim.minimizer(res), chunk)
     logmean = tardis.laplace(-Optim.minimum(res), H)
-    @test exp(logmean) ≈ 697.496
+    @test exp(logmean) ≈ 697.496291
+    println("First moment")
+    println(res)
 
-    target(x) = -logposterior(x) - logsecond(x)
+    target = targetfactory(SecondMoment, n[i], means[i], sumsqdiff[i], a)
     res = optimize(target, x, Newton(), OptimizationOptions(autodiff=true))
     @test -Optim.minimum(res) ≈ 23.626124437003362
     logsecmom = tardis.laplace(-Optim.minimum(res), H)
@@ -171,17 +184,9 @@ function test()
     @test_approx_eq_eps logsecmom 13.104967686073357 2e-3
     stddev = sqrt(exp(logsecmom) - exp(logmean)^2)
 
-    ## grad = zeros(3)
-    ## ForwardDiff.gradient!(grad, logposterior, φ, chunk)
-    ## ForwardDiff.gradient!(grad, x::Vector -> logfirst(x) + logposterior(x), φ, chunk)
-    ## ForwardDiff.gradient!(grad, x::Vector -> logsecond(x) + logposterior(x), φ, chunk)
+    println("Second moment")
+    println(res)
 end
-# can'target use with autodiff: Distributions expects Float64
-## posteriorμσSq = ConjugatePriors.NormalInverseGamma(x[i], n[i], n[i]/2, sumsq[i]/2)
-## posteriorλ = Distributions.Gamma(n[i], 1.0)
-## ConjugatePriors.logpdf(posteriorμσSq, 697, 0.000947)
-## Distributions.logpdf(posteriorλ, 500)
-## log_posterior(x::Vector) = Distributions.logpdf(posteriorλ, x[1]) + ConjugatePriors.logpdf(posterior, x[2], x[3])
 
 # TODO safe Hessian in buffer passed by user
 function uncertainty(n::Int64, xmean::Float64, xsumsq::Float64, a::Float64=1.0)
