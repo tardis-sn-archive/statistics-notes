@@ -27,11 +27,11 @@ function main()
 
     return
 
-    # nb = NegBinom(5, 0.5)
-    # Pall, ∇Pall!, HPall! = targetfactory(frame, αOrder, βOrder, evidence=evidence, pm=pm, nb=nb)
-    # @time maxPall, mode, ret = run_nlopt(frame, Pall, ∇Pall!, HPall!, αOrder, βOrder,
-    #                                       init=vcat(mode, 10), xtol_rel=1e-8, nb=nb)
-    # println("max of normalized all posterior = $maxPall at $mode")
+    nb = NegBinom(5, 0.5)
+    Pall, ∇Pall!, HPall! = targetfactory(frame, αOrder, βOrder, evidence=evidence, pm=pm, nb=nb)
+    @time maxPall, mode, ret = run_nlopt(frame, Pall, ∇Pall!, HPall!, αOrder, βOrder,
+                                          init=vcat(mode, 10), xtol_rel=1e-8, nb=nb)
+    println("max of normalized all posterior = $maxPall at $mode")
     # return
 
     points = collect(linspace(0.0, 0.6, 25))

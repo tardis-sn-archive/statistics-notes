@@ -1,9 +1,7 @@
 module tardis
 
-using DataFrames
-using HDF5
-using Optim
-using Polynomials
+using DataFrames, HDF5, Optim, Polynomials
+import GSL, StatsFuns
 
 export allocations, filter_positive, laplace, loggamma, lognegativebinomial, NegBinom, νpower, PosteriorMean, readdata, symmetrize!, targetfactory, transform_data!, update_polynomials!
 
@@ -61,7 +59,25 @@ function transform_data!(frame::DataFrame, nuscale::Float64=1e15)
 end
 
 function loggamma(x::Float64, α::Float64, β::Float64)
-    α * log(β) - lgamma(α) + (α-1)*log(x) - β * x
+    if isnan(α) || isnan(β) === NaN
+        return -Inf
+    end
+    if α >= 171
+        # x ∈ [0, ∞]
+        return α * log(β) - lgamma(α) + (α-1)*log(x) - β * x
+    end
+    # renormalize to a Gamma distribution for x ∈ [0, 1]
+    gammainc = 0.0
+    try
+        gammainc = GSL.sf_gamma_inc(α, β)
+    catch err
+        println("GSL problem at α = $α, β = $β")
+        throw( err)
+    end
+    if gamma(α)-gammainc < 0.0
+        return -Inf
+    end
+    res = α * log(β) - log(gamma(α)-gammainc) + (α-1)*log(x) - β * x
 end
 
 function lognegativebinomial(N::Real, n::Integer, a::Real)
