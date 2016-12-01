@@ -21,16 +21,15 @@ function plotprediction(sums, predict, stddev, i=1)
     plot!(x->Distributions.pdf(dist, x), linspace(predict[i] - 4*stddev[i], predict[i] + 4*stddev[i]), lab="prediction from replica $i", line=:black)
     Plots.pdf("replica-prediction.pdf")
     # replot to show it interactively
+    info("Replica $i: $(sums[i]) vs $(predict[i]) ± $(stddev[i])")
     plot!()
 end
 
-function read_real(nsim; npackets=typemax(Int64))
+function read_real(nsim; npackets=typemax(Int64), νmin=1.00677, νmax=1.023018)
     n = Array(Int64, (nsim,))
     x = Array(Float64, (nsim,))
     means = zeros(x)
     sumsqdiff = zeros(x)
-
-    νmin, νmax = 1.00677, 1.023018
 
     function scale_data!(frame::DataFrame, nuscale::Float64=1e15, xscale::Float64=1e38)
         sort!(frame, cols=:nus)
@@ -44,14 +43,19 @@ function read_real(nsim; npackets=typemax(Int64))
     function read_run(run)
         raw_data = readdata(run; npackets=npackets)
         frame = filter_positive(raw_data...)
-        scale_data!(frame)
+        # scale_data!(frame)
+        transform_data!(frame)
         nmin=searchsortedfirst(frame[:nus], νmin)
         nmax=searchsortedlast(frame[:nus], νmax)
         n[run] = nmax - nmin + 1
         x[run] = sum(frame[:energies][nmin:nmax])
-        means[run] = mean(frame[:energies][nmin:nmax])
+        means[run] = mean(frame[:energies][nmin:nmax]) # 1/n[run] * x[run]
         # remove Bessel's correction
         sumsqdiff[run] = (n[run]-1) * var(frame[:energies][nmin:nmax])
+        # if run == 1
+        #     info("first run: n=$(n[1]), sum=$(x[1]), mean=$(means[1]), sum^2=$(sumsqdiff[1])")
+        #     println(frame[:energies][nmin:nmax])
+        # end
     end
 
     for i in 1:nsim
@@ -61,24 +65,26 @@ function read_real(nsim; npackets=typemax(Int64))
     n, x, means, sumsqdiff
 end
 
-function read_virtual(nsim; νmin=1.00677e15, νmax=1.023018e15, cutoff=1e-20)
+function read_virtual(nsim; νmin::Float64=1.00677, νmax::Float64=1.023018, νscale::Float64=1e15,
+                      cutoff::Float64=1e-20, filename::String="virtual_packets.h5")
     n = Array(Int64, (nsim,))
     x = Array(Float64, (nsim,))
     means = zeros(x)
     sumsqdiff = zeros(x)
 
-    h5open("/data/tardis/virtual_packets.h5", "r") do f
+    h5open(filename, "r") do f
         for (i, id) in enumerate(names(f["data"]))
             (i > nsim) && break
 
             # filter frequencies in bin
             nus = f["/data/$(id)/runner_virt_packet_nus/values"][:]
-            mask = (nus .> νmin) & (nus .< νmax)
+            mask = (nus .> νmin*νscale) & (nus .< νmax*νscale)
             # select the energies in the frequency bin
             energies = f["/data/$(id)/runner_virt_packet_energies/values"][:][mask]
             # remove small values
             energies = energies[energies .> cutoff]
             n[i] = length(energies)
+            n[i] > 0 || error("No packets found in [$νmin, $νmax]")
             x[i] = sum(energies)
             means[i] = mean(energies)
             sumsqdiff[i] = (n[i]-1)*var(energies)
@@ -90,13 +96,15 @@ end
 """
 Enumeration to specify which target function to create
 """
-@enum TARGET Posterior FirstMoment SecondMoment
+@enum TARGET Posterior FirstMoment SecondMoment ThirdMoment FourthMoment
 
 """
 Create a function for Laplace approximation
 """
 function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64, a::Float64=1)
     0 <= a <= 1 || error("need a in [0,1]")
+    (xmean > 0) || error("nonpositive xmean $xmean")
+    (xsumsq > 0) || error("nonpositive xsumsq $xsumsq")
 
     function logposterior(x::Vector)
         λ, μ, σSq = x
@@ -132,6 +140,24 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64
         log(1/2 * tmp)
     end
 
+    """log(-d^3/dt^3 f(target=0|x))"""
+    function logthird(x::Vector)
+        λ, μ, σSq = x
+        exponent = λ*μ^2 / (2*σSq)
+        tmp = exp(-exponent) / sqrt(2π) * λ^(3/2) * sqrt(σSq) * (λ*μ^2 + 2σSq)
+        tmp += 1/2 * λ * μ * (λ*μ^2 + 3σSq)*(1 + erf(sqrt(exponent)))
+        log(tmp)
+    end
+
+    """log(d^4/dt^4 f(target=0|x))"""
+    function logfourth(x::Vector)
+        λ, μ, σSq = x
+        exponent = λ*μ^2 / (2*σSq)
+        tmp = exp(-exponent) / sqrt(2π) * λ^(5/2) * μ * sqrt(σSq) * (λ*μ^2 + 5σSq)
+        tmp += 1/2 * λ^2 * (λ^2*μ^4 + 6λ*μ^2 + 3σSq)*(1 + erf(sqrt(exponent)))
+        log(tmp)
+    end
+
     # optimizer minimizes => add minus sign at the last possible moment
     if target === Posterior
         return x -> -logposterior(x)
@@ -139,9 +165,73 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64
         return x -> -(logposterior(x) + logfirst(x))
     elseif target === SecondMoment
         return x -> -(logposterior(x) + logsecond(x))
+    elseif target === ThirdMoment
+        return x -> -(logposterior(x) + logthird(x))
+    elseif target === FourthMoment
+        return x -> -(logposterior(x) + logfourth(x))
     end
 end
 
+# TODO safe Hessian in buffer passed by user
+function uncertainty(n::Int64, xmean::Float64, xsumsq::Float64, a::Float64=1.0)
+    # initial guess for optimization: slightly off to avoid
+    # ERROR: Linesearch failed to converge
+    init = [n * 1.0001, xmean * 1.0005, xsumsq / n * 1.0005]
+    # Hessian
+    H = Array{Float64}(3,3)
+
+    function integrate(moment::TARGET)
+        target = targetfactory(moment, n, xmean, xsumsq, a)
+        res = optimize(target, init, Newton(), OptimizationOptions(autodiff=true))
+        ForwardDiff.hessian!(H, target, Optim.minimizer(res), chunk)
+        exp(tardis.laplace(-Optim.minimum(res), H))
+    end
+
+    # mean
+    μ = integrate(FirstMoment)
+
+    # second moment
+    # target = targetfactory(SecondMoment, n, xmean, xsumsq, a)
+    # res = optimize(target, init, Newton(), OptimizationOptions(autodiff=true))
+    # ForwardDiff.hessian!(H, target, Optim.minimizer(res), chunk)
+    # logsecond = tardis.laplace(-Optim.minimum(res), H)
+    second = integrate(SecondMoment)
+    σ = sqrt(second - μ^2)
+
+    third = integrate(ThirdMoment)
+    skewness = (third - 3μ*second + 2μ^3) / σ^3
+
+    fourth = integrate(FourthMoment)
+    kurtosis = (fourth - 4μ*third + 6μ^2*second - 4μ^4) / σ^4
+
+    # excess kurtosis = kurtosis - 3
+    return μ, σ, skewness, kurtosis - 3
+end
+
+"""
+Analyze all replicas and compare mean and standard deviation from the replicas and the model
+"""
+function analyze(nsim, readf)
+    n, sums, means, sumsqdiff = readf(nsim)
+
+    predict, stddev, skewness, excess_kurtosis = begin
+        a = zeros(means)
+        b = zeros(means)
+        c = zeros(means)
+        d = zeros(means)
+
+        for i in 1:nsim
+            # println("run $i")
+            a[i], b[i], c[i], d[i] = uncertainty(n[i], means[i], sumsqdiff[i])
+           # println("$(i): $(a[i]), $(b[i])")
+        end
+        a, b, c, d
+    end
+    println("Observed: $(mean(sums)) ± $(std(sums))")
+    println("Predicted: $(mean(predict)) ± $(mean(stddev))")
+
+    n, sums, predict, stddev, skewness, excess_kurtosis
+end
 
 function test()
     n, sums, means, sumsqdiff = read_real(10)
@@ -186,52 +276,6 @@ function test()
 
     println("Second moment")
     println(res)
-end
-
-# TODO safe Hessian in buffer passed by user
-function uncertainty(n::Int64, xmean::Float64, xsumsq::Float64, a::Float64=1.0)
-    # initial guess for optimization: slightly off to avoid
-    # ERROR: Linesearch failed to converge
-    init = [n * 1.0001, xmean * 1.0005, xsumsq / n * 1.0005]
-    # Hessian
-    H = Array{Float64}(3,3)
-
-    # mean
-    target = targetfactory(FirstMoment, n, xmean, xsumsq, a)
-    res = optimize(target, init, Newton(), OptimizationOptions(autodiff=true))
-    ForwardDiff.hessian!(H, target, Optim.minimizer(res), chunk)
-    logfirst = tardis.laplace(-Optim.minimum(res), H)
-    mean = exp(logfirst)
-
-    # second moment
-    target = targetfactory(SecondMoment, n, xmean, xsumsq, a)
-    res = optimize(target, init, Newton(), OptimizationOptions(autodiff=true))
-    ForwardDiff.hessian!(H, target, Optim.minimizer(res), chunk)
-    logsecond = tardis.laplace(-Optim.minimum(res), H)
-
-    mean, sqrt(exp(logsecond) - mean^2)
-end
-
-"""
-Analyze all replicas and compare mean and standard deviation from the replicas and the model
-"""
-function analyze(nsim, readf; npackets=typemax(Int64))
-    n, sums, means, sumsqdiff = readf(nsim; npackets=npackets)
-
-    predict, stddev = begin
-        a = zeros(means)
-        b = zeros(means)
-
-        for i in 1:nsim
-            a[i], b[i] = uncertainty(n[i], means[i], sumsqdiff[i])
-           # println("$(i): $(a[i]), $(b[i])")
-        end
-        a, b
-    end
-    println("Observed: $(mean(sums)) ± $(std(sums))")
-    println("Predicted: $(mean(predict)) ± $(mean(stddev))")
-
-    n, sums, predict, stddev
 end
 
 end

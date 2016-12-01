@@ -50,7 +50,7 @@ function transform_data!(frame::DataFrame, nuscale::Float64=1e15)
         en[i] = 1.0 - en[i] / maxen
     end
 
-    frame[:nus] /= nuscale
+    scale!(frame[:nus], 1/nuscale)
 
     # println("min nu = $(frame[:nus][1]), max  max en = $(maximum(en))")
 
@@ -62,22 +62,31 @@ function loggamma(x::Float64, α::Float64, β::Float64)
     if isnan(α) || isnan(β) === NaN
         return -Inf
     end
-    if α >= 171
-        # x ∈ [0, ∞]
-        return α * log(β) - lgamma(α) + (α-1)*log(x) - β * x
-    end
-    # renormalize to a Gamma distribution for x ∈ [0, 1]
-    gammainc = 0.0
-    try
-        gammainc = GSL.sf_gamma_inc(α, β)
-    catch err
-        println("GSL problem at α = $α, β = $β")
-        throw( err)
-    end
-    if gamma(α)-gammainc < 0.0
-        return -Inf
-    end
-    res = α * log(β) - log(gamma(α)-gammainc) + (α-1)*log(x) - β * x
+    return α * log(β) - lgamma(α) + (α-1)*log(x) - β * x
+
+    # # ugly modifications to allow limiting range of GammaDist x ∈ [0,1]
+    # if α >= 171
+    #     # x ∈ [0, ∞]
+    #     return α * log(β) - lgamma(α) + (α-1)*log(x) - β * x
+    # end
+    # # renormalize to a Gamma distribution for x ∈ [0, 1]
+    # gammainc = 0.0
+    # try
+    #     gammainc = GSL.sf_gamma_inc(α, β)
+    # catch err
+    #     println("GSL problem at α = $α, β = $β")
+    #     throw( err)
+    # end
+    # # avoid Domain error with negative and divergence with == 0
+    # # because 8.54e202 - 8.64e202=0 with double precision
+    # if gamma(α)-gammainc <= 0.0
+    #     return -Inf
+    # end
+    # res = α * log(β) - log(gamma(α)-gammainc) + (α-1)*log(x) - β * x
+    # if res == Inf
+    #     error("loggamma diverges to ∞")
+    # end
+    # return res
 end
 
 function lognegativebinomial(N::Real, n::Integer, a::Real)
@@ -201,6 +210,7 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
                 end
 
                 res += loggamma(x[i], α, β)
+                (res < Inf) || error("Infinite likelihood at sample $i with θ=$θ, α=$α, β=$β")
             end
         end
 
@@ -279,7 +289,12 @@ function targetfactory(frame::DataFrame, αOrder::Int64, βOrder::Int64;
         # N could be a constant or a fit parameter
         const N = (state === kAll) ? θ[end] : pm.N
 
-        return log_likelihood(θ) + loggamma(pm.X, N * α, β)
+        # return log_likelihood(θ) + loggamma(pm.X, N * α, β)
+        res1 = log_likelihood(θ)
+        res2 = loggamma(pm.X, N * α, β)
+        (res1 < Inf) || error("log_likelihood infinite")
+        (res2 < Inf) || error("loggamma infinite")
+        return res1 + res2
     end
 
     ∇posterior_mean! = function(θ::Vector, ∇::Vector)
