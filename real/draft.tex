@@ -84,6 +84,36 @@
 
 \textbf{Abstract} TODO\\
 
+\section{What's left to do}
+
+\subsection{why asymptotic approx. has larger variance}
+\begin{enumerate}
+  \item For $\alpha=1.5, \beta=60, n=14000$ still get 50 \% larger uncertainty from asymptotic compared to summation over $N$. Is it due very asymmetric one-packet distribution? Try larger $\alpha$, for example $\alpha = 30$.
+  \item  Another option: $\int \rmdx{\alpha} \rmdx{\beta}$, use true values in simulation. Where does uncertainty come from? From $\lambda$ or $\mu, \sigma^2$?
+  \item Are finite number of terms in $\sum_N$ a problem? Check
+\end{enumerate}
+
+\subsection{Plots}
+
+\begin{enumerate}
+  \item generate a toy spectrum, take frequencies from actual tardis,
+  generate luminosities from a $\GammaDist(\alpha, \beta)$, no $\nu$
+  dependence of $\alpha, \beta$ for clarity , plot spectrum with
+  uncertainty bands, show it early in the paper, then describe where
+  it comes from
+  \item compare asymptotic and $\sum_N$ $p(\Lumtot \cond \bmy)$ on a
+  plot, add what happens if only $\sqrt{n}$ uncertainty is used: that
+  would neglect uncertainty on the single-packet distribution, show
+  case when parameters determined from a single bin with few samples,
+  should make large difference. Fix $\lambda$, what are the uncertainties now?
+  \item Statistics of replicas: again compare \refeq{spe} to \refeq{ral}. Teach a lesson: from a single data set, prediction will be centered there
+  \item Question: does Wolfgang want to see a plot in which ``$\lambda$ is divided out''? That is , just plot how mean
+\end{enumerate}
+
+\subsection{tardis}
+
+move tardis section into separate document in this git repo. Better to keep it out of the paper. Cite tardis when showing the toy spectrum. Mention that in reality $\alpha$ and $\beta$ are $\nu$ dependent
+
 \section{Introduction (Wolfgang)}
 
 \subsection{Astrophysical context}
@@ -139,7 +169,7 @@ where $\bmtheta = (\theta_1,\theta_2,\ldots,\theta_K)$ is the set of
 unknown parameters specified by the model. The likelihood is the
 probability assigned by the model $\hypo$ to the data $\bmy$ when the
 parameters $\bmtheta$ are fixed and known.
-% 
+%
 If and when the individual measurements $y_i$ are independent, the
 joint likelihood is the product
 \begin{align}
@@ -167,8 +197,8 @@ into account and the \textit{evidence}
   \lleq{bti}
   p(\bmy) &= \int d\bmtheta'\, p(\bmy\cond\bmtheta')\;p(\bmtheta'),
 \end{align}
-is fully determined by the likelihood and prior. 
-% 
+is fully determined by the likelihood and prior.
+%
 Prediction of any ``future'' data $Y$ is made not by considering the
 likelihood $p(Y\cond\bmtheta_{\rm max})$ using single best-fit
 parameter values $\bmtheta_{\rm max}$, but by integrating over all
@@ -214,7 +244,7 @@ in bin $b$ is the sum of luminosities of those packets whose frequency
 falls into $\Delta_b$,
 \begin{align}
   \lleq{sdc}
-  \lumtot_b 
+  \lumtot_b
   % &= \sum_{i=1}^\npack \bm{1}_{\Delta_b}(\nu_i)\,\ell_i
   &= \sum_{j=1}^{n_b} \lum_{b,j}.
 \end{align}
@@ -241,7 +271,7 @@ are strictly reserved for the simulated data at hand.
 The goal of this paper is to illustrate how the single-simulation data
 $\bmy$ can be used to predict the distribution of total bin
 luminosities $Q_b, b = 1,\ldots,B$ if many simulations had been
-carried out. 
+carried out.
 
 
 Various features such as absorption lines make the luminosity spectrum
@@ -263,7 +293,7 @@ bins as shown in \refsec{example} and secondly by assuming that
 Our approach
 is to predict each bin's luminosity $Q_b$ separately using the same
 model but allowing its parameters to vary independently in each bin.
-Connections between them 
+Connections between them
 
 
 function of frequency. In a binned analysis, we can avoid these
@@ -285,7 +315,7 @@ Below, we calculate $p(Q_b\cond n_b,\bml_b)$ for fixed $b$ and hence
 drop the subscript, i.e.\ $Q_b\to Q, n_b \to n, N_b\to N$ etc.
 
 %%%%%%%%%%%%%%%%%%%
-\fred{Refs: Zech, maybe others, too} 
+\fred{Refs: Zech, maybe others, too}
 
 In terms of the generic notation of Section \ref{sec:bayp}, Bayesian
 prediction of the distribution of the bin's luminosity
