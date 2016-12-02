@@ -1,9 +1,10 @@
 module tardis
 
 using DataFrames, HDF5, Optim, Polynomials
-import GSL, StatsFuns
+import PyCall
+# import GSL, StatsFuns
 
-export allocations, filter_positive, laplace, loggamma, lognegativebinomial, NegBinom, νpower, PosteriorMean, readdata, symmetrize!, targetfactory, transform_data!, update_polynomials!
+export allocations, filter_positive, laplace, loggamma, lognegativebinomial, NegBinom, νpower, PosteriorMean, readdata, simpson, symmetrize!, targetfactory, transform_data!, update_polynomials!
 
 """
 read energies and frequencies from a particular run. Limit to read in at most npackets
@@ -59,7 +60,7 @@ function transform_data!(frame::DataFrame, nuscale::Float64=1e15)
 end
 
 function loggamma(x::Float64, α::Float64, β::Float64)
-    if isnan(α) || isnan(β) === NaN
+    if isnan(α) || isnan(β)
         return -Inf
     end
     return α * log(β) - lgamma(α) + (α-1)*log(x) - β * x
@@ -426,5 +427,20 @@ the mode, -Hf(θ). Both f and Hf are on the log scale.
 """
         laplace(logf::Real, log_det_H::Real, dim::Integer) = logf + dim/2 * log(2pi) - 1/2*log_det_H
         laplace(logf::Real, H::Matrix) = laplace(logf, log(det(H)), size(H)[1])
+
+
+"""
+Use Simpson's rule to evalue the integral of a function with
+`values` evaluated at `points`, and compute the mean and standard deviation.
+
+"""
+
+            function simpson(points, values)
+                PyCall.@pyimport scipy.integrate as si
+                normalization = si.simps(values, points)
+                μ = si.simps(values .* points, points)
+                σ2 = si.simps(values .* (points - μ).^2, points)
+                normalization, μ, sqrt(σ2)
+            end
 
     end # module
