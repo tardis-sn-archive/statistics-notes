@@ -23,7 +23,7 @@
     \begin{minipage}{\textwidth} #2\end{minipage}}} %
 
 %% CHANGE THIS DATE AS YOU MODIFY THE FILE
-\newcommand{\vdate}{161130}
+\newcommand{\vdate}{161202}
 \pagestyle{myheadings}
 \markboth{Version \vdate} {Version \vdate}
 
@@ -143,8 +143,8 @@ move tardis section into separate document in this git repo. Better to keep it o
   not only the variability of the luminosity per packet, but also the
   distribution of the number of packets.
 
-\item Traditional methods using conventional counting ratio
-  (``relative frequency'') can also make predictions for such
+\item Traditional methods using conventional counting ratios
+  (``relative frequencies'') can also make predictions for such
   uncertainties, but only if the number of packets is large. By
   contrast, the Bayesian method presented here remains valid also for
   small packet multiplicities.
@@ -200,10 +200,10 @@ into account and the \textit{evidence}
 is fully determined by the likelihood and prior.
 %
 Prediction of any ``future'' data $Y$ is made not by considering the
-likelihood $p(Y\cond\bmtheta_{\rm max})$ using single best-fit
-parameter values $\bmtheta_{\rm max}$, but by integrating over all
-possible values of the $\bmtheta$ in terms of the posterior
-$p(\bmtheta\cond n,\bml)$,
+likelihood $p(Y\cond\bmtheta_{\rm max})$ using single
+maximum-likelihood parameter values $\bmtheta_{\rm max}$, but by
+integrating over all possible values of the likelihood, weighted by
+the posterior,
 \begin{align}
   \lleq{btj}
   p(Y\cond \bmy) &= \int d\bmtheta\,p(Y\cond\bmtheta)\,p(\bmtheta\cond \bmy).
@@ -216,13 +216,13 @@ Likewise, all parameters considered below relate strictly to model
 descriptions of the simulation.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{From single-simulation data to many-simulation prediction}
+\section{Single-simulation data and multi-simulation prediction}
 
 % \subsection{Output data from radiative transfer simulations}
-\subsection{Simulation data}
+% \subsection{Simulation data}
 
 We consider a single computer simulation which generates a luminosity
-spectrum from $\npack$ photon packets, each with a particular
+spectrum from $\npack$ photon packets, each having a particular
 frequency $\nu_i$ and luminosity $\lum_i$. Together, these frequencies
 and luminosities form the raw simulation data
 $\bmy = \{ (\nu_i,\lum_i): i = 1,\ldots,\npack\}$.  We divide up the
@@ -239,206 +239,159 @@ cast into the more compact histogram form
   \bmy = \{(n_b,\bml_b): b = 1,\ldots,B\}
 \end{align}
 with loss of information limited to replacing the exact packet
-frequencies $\nu_i$ by the appropriate $\nu_b$. The total luminosity
-in bin $b$ is the sum of luminosities of those packets whose frequency
-falls into $\Delta_b$,
+frequencies $\nu_i$ by the approximate bin frequency $\nu_b$. The
+total luminosity in bin $b$ is
 \begin{align}
   \lleq{sdc}
-  \lumtot_b
-  % &= \sum_{i=1}^\npack \bm{1}_{\Delta_b}(\nu_i)\,\ell_i
+  \lumtot_b 
   &= \sum_{j=1}^{n_b} \lum_{b,j}.
 \end{align}
-% where the indicator function $\bm{1}_{[a,b]}(x) = 1$ when $x$ is in
-% the interval $[a,b]$ and 0 otherwise.
-
-\subsection{Prediction of luminosity spectrum}
-
 Within a given model $\hypo$, the data $\bmy$ is only one of many
 possible realisations of the corresponding random variables; for
 example, starting the simulation with a different seed would result in
 different output data. We denote the general random variables by the
 corresponding upper-case symbols,
 \begin{align}
+  \lleq{sdd}
   \bmL_b &= \{(\Lum_{b,j}): j = 1,\ldots,N_b\}\\
+  \lleq{sde}
   \bmY &= \{(N_b, \bmL_b): b = 1,\ldots,B\},\\
+  \lleq{sdf}
   \Lumtot_b &= \sum_{j=1}^{N_b} \Lum_{b,j},
 \end{align}
-with corresponding likelihood $p(\bmY\cond\bmtheta)$ and posterior
-$p(\bmtheta\cond\bmY)$ for any $\bmY$. The lower-case $(n_b,\bml_b)$
-are strictly reserved for the simulated data at hand.
+Lower-case symbols such as $\bmy, n_b,\bml_b$ etc.\ are strictly
+reserved for the simulated data at hand.
 
 
 The goal of this paper is to illustrate how the single-simulation data
 $\bmy$ can be used to predict the distribution of total bin
 luminosities $Q_b, b = 1,\ldots,B$ if many simulations had been
-carried out.
-
-
-Various features such as absorption lines make the luminosity spectrum
-highly variable. The model we develop below takes into account this
-variability in a two-step process. First, the number of packets $N_b$
-is modelled by means of a separate Poisson distribution
-$p(N_b\cond\lambda_b)$ for each bin, where the parameter $\lambda_b$
-will capture most of the variability of the spectrum.  Second, the
-single-packet luminosity distribution is modelled by means of a packet
-likelihood for $\Lum_{b,j}$ with packet parameters, a packet prior and,
-of course, packet parameter posterior. The packet parameters, which
-depend on the frequency bin, will be calculated in two ways: first by
-drawing them from a ``parametrisation of the parameters'' across all
-bins as shown in \refsec{example} and secondly by assuming that
-\refsec{asymptotic}
-
-
-
-Our approach
-is to predict each bin's luminosity $Q_b$ separately using the same
-model but allowing its parameters to vary independently in each bin.
-Connections between them
-
-
-function of frequency. In a binned analysis, we can avoid these
-difficulties associated to modeling $n_b$. Our approach, however,
-requires an explicit expression of how the distribution of the
-luminosity of a single packet in our simulation changes with $\nu$. It
-is this crucial piece of information that allows us to extend previous
-methods in dealing with the extreme cases when the number of packets
-in a bin, $n_b$, is one or even zero.
-
-
-
-To keep it simple, we shall assume that all bins are independent,
-meaning that
+carried out. At this introductory level, we assume that the different
+luminosities are independent, so that the prediction of the entire
+spectrum (including all its uncertainty) is the product of predictions
+for each frequency bin,
 \begin{align}
-  p(Q_1,Q_2,\ldots,Q_B\cond\bmy) = \prod_{b=1}^B p(Q_b\cond n_b,\bml_b).
+  \lleq{sdg}
+  p(Q_1,Q_2,\ldots,Q_B\cond\bmy) = \prod_{b=1}^B p(Q_b\cond \bmy).
 \end{align}
-Below, we calculate $p(Q_b\cond n_b,\bml_b)$ for fixed $b$ and hence
-drop the subscript, i.e.\ $Q_b\to Q, n_b \to n, N_b\to N$ etc.
 
+\section{The generic model} \label{sec:model}
+
+Various physical processes such as absorption result in luminosity
+spectra with strong features. The model we develop below takes into
+account the variability introduced by these features in a two-step
+process termed a \textit{compound process} in the statistics
+literature. 
+% 
+In the first step, the number of packets $N$ is modelled by means of a
+separate Poisson distribution $p(N\cond\lambda)$ for each bin, where
+the magnitude of $\lambda$ will capture most of the variability of the
+spectrum. Given $N$, the single-packet luminosity distribution is
+modelled in the second step by means of a packet likelihood for
+$\Lum_{b,j}$ with packet parameters, a packet prior and, of course,
+packet parameter posterior. The single-packet distribution contains
+the crucial information which allows us to extend previous methods to
+cases where the number of packets in a bin is small.
 %%%%%%%%%%%%%%%%%%%
-\fred{Refs: Zech, maybe others, too}
+\fred{Refs: Zech, maybe others, too} 
 
-In terms of the generic notation of Section \ref{sec:bayp}, Bayesian
-prediction of the distribution of the bin's luminosity
-$Q = \sum_{j=1}^n L_j$ given the bin's data $(n,\bml)$ is obtained by
-considering not only the likelihood $p(Q\cond\bmtheta_{\rm max})$
-using best-fit parameter values $\bmtheta_{\rm max}$, but by
-integrating over all possible values of the $\bmtheta$ in terms of the
-posterior $p(\bmtheta\cond n,\bml)$,
+
+We derive in this section the generic equations of the compound
+process, and then proceed to show in Sections \ref{sec:example} and
+\ref{sec:asymptotic} how these equations can be used in two different
+ways.
+% 
+We consider for the moment quantities in one bin $b$ only, and hence
+drop the $b$-subscripts, e.g.\
+$Q_b \to Q, n_b \to n, N_b\to N, \bml_b\to\bml, L_{b,j} \to L_j$ etc.
+
+
+We seek a Bayesian prediction for the total luminosity in one bin,
+$p(Q\cond n,\bml)$, one of the factors in Eq.~(\ref{sdg}).  To do so,
+we must take into account all possible values of variables and
+parameters entering our model.  This involves multiple use of the
+\textit{marginalisation rule}, which states that, to obtain the
+probability for a variable $U$ when we are not interested in another
+variable $V$, the marginal probability for $U$ is %
+$p(U) = \int dV\,p(U,V) = \int dV\,p(U\cond V)\,p(V)$ for continuous
+$V$ and $p(U) = \sum_V p(U,V) = \sum_V p(U\cond V)\,p(V)$ for discrete
+$V$ respectively.
+% 
+The uninteresting variables $V$ in the present case are the number of
+packets $N$, the set of luminosities $\bmL$ of the $N$ packets
+whose likelihood is modelled by a distribution determined by
+likelihood parameters $\bmphi$,
 \begin{align}
-  p(Q\cond n,\bml) &= \int d\bmtheta\,p(Q\cond\bmtheta)\,p(\bmtheta\cond n,\bml).
+  \lleq{slk}
+  p(\bmL\cond N,\bmphi)
+  &= \prod_{j=1}^{N} p(L_j\cond \bmphi)
 \end{align}
-The model's parameters $\bmtheta$ and calculation of this prediction
-will be set out in detail below.
+and the parameter $\lambda$ governing the likelihood for the number of
+packets, $p(N\cond\lambda)$. Multiple use of the marginalisation rule
+on $p(Q\cond n,\bml)$ results in
+\begin{align}
+  \lleq{sll}
+  p(Q\cond n,\bml)
+  &= \sum_{N=0}^\infty \;\int_0^\infty d\lambda\;
+    p(N\cond\lambda)\;
+    p(\lambda\cond n)
+    \int d\bmL\;
+    p(Q\cond N,\bmL)\;
+    \int d\bmphi\;
+    p(\bmL\cond N,\bmphi)\,
+    p(\bmphi\cond n,\bml),
+\end{align}
+where we have omitted from the probabilities all quantities to the
+right of the conditional line which are irrelevant to the variable at
+hand. For example, Eq.~(\ref{sdf}) shows that the total bin luminosity
+$Q$ is fully determined by $N$ and $\bmL$ and so we can shorten
+$p(Q\cond N,\bmL,\lambda,\bmphi,n,\bml)$ to $p(Q\cond N,\bmL)$. %
+Likewise the probability for $\bmL$ is fully determined by $N$ and the
+parameters $\bmphi$ and does not depend on the data $n,\bml$.  The
+bounds of $\int d\bmL$ and $\int d\bmphi$ are determined by the
+specific model and data for which $p(Q\cond n,\bml)$ is to be
+calculated.
+% 
+We note that a part of Eq.~(\ref{sll}) can be seen as a convolution
+since $p(Q\cond N,\bmL)$ can be written as a Dirac delta function,
+\begin{align}
+  \lleq{ddf}
+  \int d\bmL\; p(Q\cond N,\bmL)\; p(\bmL\cond N,\bmphi)
+  &= \int d\bmL\;\delta(Q - \textstyle\sum_{j=1}^N L_j)\; \prod_j p(L_j\cond \bmphi).
+\end{align}
+Eq.~(\ref{sll}) is exact, and in principle all that remains is to make
+specific choices for the various probabilities which are judged best
+to represent the data at hand, and thence to carry out the sum and
+multiple integrals. In practice, of course, such calculations may be
+time-consuming, and there will often be more than one choice for the
+functional form of each probability. In Section \ref{sec:example}, we
+shall therefore set out a specific example
 
-\section{Model} \label{sec:model}
 
-We consider the total number of packets $\npack$ fixed, for example
-chosen by a user. In contrast, the number of packets in a bin, $n_b$
-is a realization of a random variable $N_b$ which we assume to follow
-a Poisson distribution. With this assumption, we neglect bin-by-bin
-correlations and treat each bin independently. From now on, we focus
-on a single bin and drop the subscript $b$. Hence
+\section{Example A: modelling single-packet luminosity distributions} 
+\label{sec:example}
+
+In this section, we show by example how information on the
+single-packet luminosity distributions can be utilised to find exact
+expressions for Eq.~(\ref{sll}). 
+
+\subsection{Multiplicity prediction}
+
+First, the parameter $\lambda$ is eliminated as follows. The number of
+packets $N$ is Poisson-distributed
 \begin{align}
   \lleq{caa}
-  p(N\cond\lambda) &= \frac{e^{-\lambda}\lambda^N}{N!}
-  \qquad N = 0,1,\ldots,\infty ,
+  p(N\cond\lambda) &= \frac{e^{-\lambda}\lambda^{N}}{N!}
+  \quad N = 0,1,\ldots,\infty.
 \end{align}
-where the dependency of the Poisson mean, $\lambda>0$, on the bin, or
-respectively the frequency $\nu$, is implicit. Let $\bmL = (\Lum_1,\dotsc,\Lum_N)$ denote the
-collection of luminosities of packets in the bin, then the total
-luminosity in that bin is
-% and its realization based on the data $\bmy$ are
-\begin{align}
-  \lleq{cab}
-  \Lumtot &= \sum_{j=1}^{N} \Lum_j%, \qquad \lumtot = \sum_{j=1}^{n} \lum_j
-  \,.
-\end{align}
-The distribution of the luminosity for each packet,
-$p(\Lum \cond \bmphi)$, depends on parameters $\bmphi$ and potentially
-on the frequency but we suppress the latter dependency.  The packets
-are logically independent. Since $N$ follows a Poisson distribution,
-$\Lumtot$ follows a \emph{compound Poisson process}.
-%
-The key quantity of interest is the distribution of $\Lumtot$ given
-the data $\bmy$, $p(\Lumtot \cond \bmy)$ for the compound Poisson
-process. In the following, we rewrite $p(\Lumtot \cond \bmy)$ to
-obtain an expression that we can readily evaluate numerically. Using
-the law of total probability,
-\begin{align}
-  \lleq{qaa}
-  p(\Lumtot \cond \bmy) &= \int \rmdx{\bmphi} p(\bmphi \cond \bmy) p(\Lumtot \cond \bmphi, \bmy) \,,
-\end{align}
-where the first term in the integral is the posterior $p(\bmphi \cond \bmy)$ after observing $\bmy$. We can decompose the second term as
-\begin{align}
-  \lleq{qab}
-  p(\Lumtot \cond \bmphi, \bmy) &= \sum_{N=0}^\infty  p(N \cond \bmphi, \bmy) p(\Lumtot \cond N, \bmphi, \bmy)\,,
-\end{align}
-where $p(N \cond \bmphi, \bmy) = p(N \cond \lambda)$ is given by
-\refeq{caa} and the second term in the sum is
-\begin{align}
-  \lleq{qac}
-  p(\Lumtot \cond N, \bmphi, \bmy) &= \int \rmdx{\bmL} p(\Lumtot \cond \bmL, N, \bmphi, \bmy) p(\bmL \cond N, \bmphi, \bmy)\\
-  \lleq{qaf}
-  &= \int \rmdx{\bmL} \delta \left( \Lumtot - \sum_{j=1}^N \Lum_j  \right) \prod_{j=1}^N p(\Lum_j \cond \bmphi)\,,
-\end{align}
-hence $Q$ does not depend on $\bmy$ explicitly. In the next
-subsections, we provide more details on our assumptions and provide
-explicit expressions for \refeq{qaa}--\refeq{qaf}.
-
-% As the reference frequency, we choose the bin center.
-
-\subsection{Modeling the packet luminosity} \label{sec:pack-lum}
-
-In general, the distribution $p(\Lum_j \cond \bmphi)$ could be a of a
-different functional form in each bin. For simplicity, we assume it is
-identical but may depend on parameters $\bmphi$ that need to be
-inferred from $\bmy$.  To simplify the treatment, we assume that the
-frequency bins are narrow or equivalently that $p(\Lumtot \cond \bmy)$
-does not vary within a bin. This implies that every sample $\Lum_j$ in
-the bin follows the same distribution.
-
-What is the role of $\bmphi$? It contains all parameters needed to
-model the entire spectrum that have to be learned from $\bmy$. To
-begin, we include the Poisson means for each bin
-\begin{align}
-  \lleq{qad} \bmphi = \left( \bmlambda, \bmxi \right) = \left(
-    {\lambda_1,\dotsc,\lambda_{n_b}}, \bmxi \right)\,.
-\end{align}
-\fred{How }
-The number and the luminosity of the packets are assumed independent,
-so the posterior factorizes as
-\begin{align}
-  \lleq{qadd}
-  p(\bmphi \cond \bmy) = p(\bmlambda \cond \bmy) p(\bmxi \cond \bmy) \,.
-\end{align}
-
-Regarding the additional parameters $\bmxi$, we have essentially two
-extreme options; both illustrated below in \refsec{example} and
-\refsec{asymptotic}. The first option is to assume an explicit
-\emph{parametric} form, for example some function $f$, such that
-\begin{align}
-  \lleq{qae}
-  p(\Lum \cond \bmphi) = f(\Lum \cond \bmxi, \nu) \,,
-\end{align}
-where we now made the dependency on $\nu$ explicit again.  In this
-way, we assume the same distribution for all frequencies and we only
-need to learn the probable values of $\bmxi$ from the data $\bmy$,
-$p(\bmxi \cond \bmy)$. The advantage is that $f(\Lum \cond \bmxi, \nu)$ may
-be well constrained by $\bmy$ if $\npack$ is large and it is easy to
-include further assumptions; e.g., $f$ should be continuous in $\nu$.
-
-The second option is preferable if it is impossible to elicit an
-appropriate explicit expression for $p(\Lum \cond \bmphi)$ \emph{and}
-each bin has many packets; i.e., $n \gg 1$. Then we can include one or
-more parameters for each bin, consider each bin independently, and
-perform a \emph{nonparametric} analysis. Compared to the parametric
-approach, we now typically have many more parameters, and each one is
-determined only by the packets in one instead of all bins.
-
-\subsection{Poisson analysis}
-
-In order to constrain the Poisson mean $\lambda$ in a bin, we have one
-measurement, the number of packets $n$ in that bin. Using Bayes' theorem, we find the posterior
+Data $n$ is naturally presumed to have arisen from the same Poisson
+distribution with the same $\lambda$, so $p(n\cond\lambda) =
+e^{-\lambda}\lambda^{n}/n!$. %
+% and since $n$ is just one realisation of $N$, it likewise is
+% poissonian $p(n\cond\lambda) = e^{-\lambda}\lambda^{n}/n!$ with the
+% same $\lambda$.
+The posterior for $\lambda$ is found from the data $n$ via Bayes'
+Theorem,
 \begin{align}
   \lleq{pmd}
   p(\lambda\cond n) %
@@ -446,116 +399,262 @@ measurement, the number of packets $n$ in that bin. Using Bayes' theorem, we fin
   \ =\ \frac{p(n\cond\lambda)\,p(\lambda)} %
   {\int \rmdx{\lambda} p(n\cond\lambda)\,p(\lambda)} \,.
 \end{align}
-% to find the posterior predictive of $N$ given $n$ taking into account
-% all possible values of $\lambda$,
-% \begin{align}
-%   \lleq{pme}
-%   p(N\cond n)
-%   &= \int \rmdx{\lambda}p(N,\lambda\cond n)
-%   \ =\ \int \rmdx{\lambda} p(N\cond\lambda, n)\,p(\lambda\cond n)
-%   \ =\ \frac{\int \rmdx{\lambda} p(N\cond\lambda)\,p(n\cond\lambda)\,p(\lambda)}
-%   {\int \rmdx{\lambda} p(n\cond\lambda)\,p(\lambda)}
-% \end{align}
-% where $p(N\cond\lambda,n) = p(N\cond\lambda)$ is independent of $n$.
-Common uninformative priors are
+We use an improper prior 
 \begin{align}
   \lleq{pmf}
   p(\lambda) = c \lambda^{-a},
 \end{align}
-where $a=0$ gives the uniform prior\footnote{For a uniform prior, the
-  case $a{=}0$, we require of course a maximum $\lambda_{\rm max}$. As
-  long as $\lambda_{\rm max}$ is large enough, the integral can
-  effectively be taken to infinity.}, $a=1/2$ gives the Jeffreys and
-reference prior, and $a=1$ is the transformation-group result
-advocated by Jaynes~\cite[Ch. 12]{jaynes2003probability}. All choices
-lead to an improper prior but the posterior is proper provided that
-$n \ge 1$; i.e., at least one packet is observed in the bin. The
-standard result for the posterior is
+meaning that $\int_0^\infty d\lambda\,p(\lambda)$ is known only up to
+a constant $c$. A hyperparameter choice $a=0$ yields the uniform
+prior, $a=1/2$ gives the Jeffreys and reference prior, and $a=1$ is
+the transformation-group result advocated by
+Jaynes~\cite[Ch. 12]{jaynes2003probability}. An improper prior is not
+a problem because $c$ cancels out when calculating the posterior,
+provided that $n \ge 1$; i.e., at least one packet is observed in the
+bin.\footnote{For a uniform prior, the case $a{=}0$, we require of
+  course a parameter $\lambda_{\rm max}$. As long as
+  $\lambda_{\rm max}$ is large enough, it too would cancel.}, The
+posterior is
 \begin{align}
   \lleq{pms}
-  p(\lambda\cond n) &= \GammaDist(\lambda \cond \alpha = n-a+1, \beta = 1)\,,
+  p(\lambda\cond n) 
+  &= \GammaDist(\lambda \cond \alpha = n{-}a{+}1 \,,\, \beta = 1)\,,
 \end{align}
-where the  $\GammaDist$ distribution with shape parameter $\alpha$ and rate
-parameter $\beta$ is defined as
+where the $\GammaDist$ distribution with shape parameter $\alpha > 0$ and
+rate parameter $\beta > 0$ is defined as
 \begin{align}
   \lleq{gma}
-  \GammaDist(\lambda | \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x}\, , \; x > 0 .
+  \GammaDist(x\cond \alpha, \beta) 
+  &= \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x}\,,
+  \quad 0 \leq x < \infty.
 \end{align}
+The evidence is 
+$p(n) =  \int_0^\infty d\lambda\, p(n\cond\lambda)\,p(\lambda) = c\,(n-a)!/n!$
 % \begin{align}
 %   \lleq{pmg}
-%   p(n) &= %
-%   \int_0^\infty d\lambda\, p(n\cond\lambda)\,p(\lambda)
-%   \ =\
-%   c \int_0^\infty d\lambda\, \frac{e^{-\lambda}\,\lambda^{n-a}}{n!}
-%   \ =\ c\frac{(n-a)!}{n!} \, ,
-%   \\
-%   \lleq{pmh}
-%   p(N\cond n) %
-%   &= \frac{n!}{(n-a)!} \int_0^\infty d\lambda\,
-%   \frac{e^{-2\lambda} \lambda^{N+n-a}}{N!\, n!}
-%   \ =\ \frac{(N+n-a)!}{N!\,(n-a)!\,2^{N+n+1-a}} \, .
+%   p(n) 
+%   &=  \int_0^\infty d\lambda\, p(n\cond\lambda)\,p(\lambda)
+%     \ =\ c\frac{(n-a)!}{n!} \,, \\
 % \end{align}
-
-\section{Example application: \tardis} \label{sec:example}
-
- The \tardis{} packages simulates supernovae with \fred{Wolfgang's
-  favorite description of his package}. Here we focus on the real
-packets as opposed to the virtual packets output by tardis.
-
-% Based on staring at the distribution of luminosities,
-To apply \refeq{pmp}, we first need to choose $P(\Lum_j \cond \bmphi,
-\nu)$. A histogram of the luminosities from a \tardis{} run indicates
-a strongly skewed distribution with a single mode that is close to but
-not at the sharp end point $\lmax$. There is a long tail for small
-$\ell$. These features can be accomodated by a $\GammaDist$
-distribution with shape parameter $\alpha$ and rate
-parameter $\beta$
+and inserting Eqs.~(\ref{caa}) and (\ref{pmd}), the prediction for $N$
+given $n$ is
 \begin{align}
-  \lleq{gma}
-  \GammaDist(x | \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x}\, , \; x > 0 .
+  \lleq{pmh}
+  p(N\cond n) %
+  &= \int_0^\infty d\lambda\, p(N\cond\lambda)\,p(\lambda\cond n)
+  \ =\ \frac{(N+n-a)!}{N!\,(n-a)!\,2^{N+n+1-a}} \, .
 \end{align}
-if we transform the data as
+so that Eq.~(\ref{sll}) simplifies to
+\begin{align}
+  \lleq{gmh}
+  p(Q\cond n,\bml)
+  &= \sum_{N=0}^\infty \;
+    p(N\cond n)\;
+    \int d\bmL\;
+    p(Q\cond N,\bmL)\;
+    \int d\bmphi\;
+    p(\bmL\cond N,\bmphi)\,
+    p(\bmphi\cond n,\bml),
+\end{align}
+
+\subsection{Single-packet description}
+
+Next, we consider detailed modelling of $p(\bmL\cond N,\bmphi)$ which
+was written in Eq.~(\ref{slk}) as a product single-packet
+distributions $p(L_j\cond \bmphi)$, meaning that single packets are
+assumed to be mutually independent and to follow the same distribution
+independent of $N$. 
+
+Which specific probability function to choose for $p(L\cond\bmtheta)$
+depends, of course, on the specific simulation data. In this section,
+we choose it to be the same Gamma distribution for all $L_j$,
+with parameters $\bmphi = (\alpha,\beta)$,
+\begin{align}
+  \lleq{spc}
+  p(L_j\cond \bmphi) &\sim \GammaDist(L_j\cond \alpha,\beta)
+\end{align}
+which has the nice property that the convolution (\ref{ddf}) results
+in yet another Gamma distribution,
+\begin{align}
+  \lleq{spd}
+  \int d\bmL\; p(Q\cond N,\bmL)\; p(\bmL\cond N,\bmphi)
+  &= \GammaDist(Q\cond N\alpha, \beta).
+\end{align}
+and so (\ref{gmh}) becomes in this example
+\begin{align}
+  \lleq{spe}
+  p(Q\cond n,\bml)
+  &= \sum_{N=0}^\infty \;
+    p(N\cond n)\;
+    \int d\alpha\,d\beta\;
+    \GammaDist(Q\cond N\alpha, \beta)\;
+    p(\alpha,\beta\cond n,\bml).
+\end{align}
+The posterior for the parameters is calculated by yet another 
+application of Bayes' Theorem,
+\begin{align}
+  \lleq{spf}
+  p(\alpha,\beta\cond n,\bml)
+  &= \frac{p(n,\bml\cond \alpha,\beta)\,p(\alpha,\beta)}{p(n,\bml)}
+\end{align}
+where the data $(n,\bml)$ must naturally follow the same
+Gamma-distribution likelihood as $(N,\bmL)$, i.e.\
+\begin{align}
+  \lleq{spg}
+  p(n,\bml\cond \alpha,\beta) 
+  & = \prod_{j=1}^n \GammaDist(\ell_j\cond\alpha,\beta)
+    \ =\ \frac{\beta^{n\alpha} p^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}
+\end{align}
+with compact representation of the data in terms of
+$q = \sum_{j=1}^n \ell_j$ and $r = \prod_{j=1}^n \ell_j$.
+
+
+The only missing piece to explicitly evaluate \refeq{spf} is the prior
+$p(\alpha,\beta)$. 
+% To gain some insight, consider the standard $\GammaDist$ model with
+% $\Kalpha = \Kbeta = 0$.
+% There is a conjugate prior but
+% unfortunately the normalization constant cannot be evaluated in closed
+% form, so it is thus of no use for us.
+% How about a noninformative prior? 
+The authors of \cite{moala2013bayesian} present an overview of
+possible choices and conclude that the point estimate given by the
+mode of the posterior is nearly insensitive to the prior choice
+starting from around $n = 30$. This requirement is nearly always
+satisfied and so the functional form of $p(\alpha,\beta)$ is not
+important. There is, however, some explicit prior information which we
+want to build into our analysis. The distribution
+$p(\ell \cond \alpha, \beta)$ should always vanish at the origin,
+requiring that $\alpha$ must be larger than 1.  For $\beta$, we
+likewise choose a uniform prior
+\begin{align}
+  \lleq{sph}
+  p(\alpha,\beta) 
+  &= \frac{1}{(\alpha_{\rm max}{-}1)\beta_{\rm max}}
+  \qquad 1 < \alpha < \alpha_{\rm max},\; 0 < \beta < \beta_{\rm max}.
+\end{align}
+% since $\alpha_{\rm max}$ and $\beta_{\rm max}$ cancel in (\ref{spf}).
+The posterior is
+\begin{align}
+  \lleq{spi}
+  p(\alpha,\beta\cond n,\bml)
+  &= \frac{1}{C}\; \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}\\
+  \lleq{spj}
+  C &= \int_1^{\alpha_{\rm max}} d\alpha \int_0^{\beta_{\rm max}} d\beta\;
+    \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}
+\end{align}
+and hence
+\begin{align}
+  \lleq{spj}
+  p(Q\cond n,\bml)
+  &= \frac{1}{C} 
+    \sum_{N=0}^\infty \;
+    p(N\cond n)\;
+    \int d\alpha\,d\beta\;
+    \GammaDist(Q\cond N\alpha, \beta)\;
+    \frac{\beta^{n\alpha} p^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}
+\end{align}
+
+
+\subsection{Numerical implementation} \label{sec:numerical}
+
+\fred{Editing will be done by Fred}
+
+In our numerical implementation, the constants
+$(\alpha_{\rm max}, \beta_{\rm max})$ are chosen by trial and error to
+be large enough to contain the relevant region of
+$p(\ell\cond \alpha,\beta)$.
+% 
+To perform the integrals over $(\alpha,\beta)$ to find $C$ and the
+Gamma-weighted numerator in (\ref{spe}), we used the fact that the
+posterior $p(\alpha,\beta \cond n,\bml)$ is approximately Gaussian in
+both $\alpha$ and $\beta$ for large $n$, so we can apply Laplace's
+method for both. This requires the Hessian at the mode and the
+gradient helps in locating the mode. The relevant analytic expressions
+are summarized in \refsec{appendix}.
+
+
+Regarding the sum over $N$, we start at
+$N = \lfloor n-a+1 \rfloor = \arg \max_N p(N|n)$ %
+\fred{Actually we should say $p(N \cond n, a)$} %
+and continue to larger and smaller values of $N$ until the
+contribution to $P(Q \cond n,\bml)$ becomes negligible. In case the
+relevant contribution is from large $N$ and $n$, we interpret $N$ as a
+continuous variable, replace factorials by $\Gamma$ function in
+\refeq{spj}, and apply Laplace's method to integrate over $N$ also.
+
+\fred{Our implementation is available online on \href{https://github.com/tardis-sn/XXX}{github}}
+
+\subsection{Results} \label{sec:gammaresults}
+
+\fred{Graphics output, comments, conclusions by Fred}
+
+
+\subsection{Specifics of \tardis} \label{sec:tardis}
+
+
+\hans{H: This subsection needs much more work. I have just copied some
+  relevant text in here which may be useful. Much of it should be
+  removed.}
+
+The \tardis{} packages simulates supernovae with %
+\fred{Wolfgang's favorite description of his package}. %
+Here we focus on the real packets as opposed to the virtual packets
+output by tardis.
+
+
+A histogram of the luminosities from a \tardis{} run indicates a
+distribution strongly skewed with a mode close to the maximum
+luminosity $\lmax$, while there is a long tail for small $\ell$. These
+features can be accomodated by a $\GammaDist$ distribution if we
+transform the luminosities to
 \begin{align}
   \lleq{gmf}
-  x_i \equiv 1- \frac{\ell_i}{\lmax} > 0
+  x_j \equiv 1- \frac{\ell_j}{\lmax} > 0
 \end{align}
-and similarly for $\Lumtot \to X$ because $\ell$ is bounded from above and
-$x$ is bounded from below.  We first take the largest luminosity of
-all \tardis{} packets across the entire frequency range and increase
-it slightly to avoid numerical difficulties at the end point
+and similarly $X_j = 1 - (L_j/\lmax)$ and $\Lumtot \to X$. We assume
+the total number of samples across all bins is large, hence the effect
+of considering $\lmax$ a constant independent of the data is
+negligible. We checked that leaving $\lmax$ as a free parameter in a
+fit gave equivalent results.
+% 
+Numerically, we take the largest luminosity of all \tardis{} packets
+across the entire frequency range and increase it slightly to avoid
+numerical difficulties at the end point
 \begin{align}
   \lleq{gme}
   \lmax \equiv (1+\epsilon) \times \max_i \ell_i,
 \end{align}
-where $ \epsilon=10^{-6}$.  We assume the total number of samples
-across all bins is large, hence the effect of considering $\lmax$ a
-constant independent of the data is negligible. We checked that
-leaving $\lmax$ as a free parameter in a fit gave equivalent results.
+where $ \epsilon=10^{-6}$.  
 
-We infer $P(X \cond \nu, \npack, \bmnu, \bmx)$ and only in the end
-transform back to a probability density in $\Lumtot$ via
+We infer $P(X \cond n,\bml)$ and only in the end transform back to a
+probability density in $\Lumtot$ via
 \begin{align}
   \lleq{gmg}
-  p(\Lumtot  \cond \nu,  \npack, \bmnu, \bml) = p(X  \cond \nu,  \npack, \bmnu, \bmx) \frac{1}{\lmax} \,.
+  p(\Lumtot  \cond n, \bml) 
+  &= p(X  \cond n, \bmx) \frac{1}{\lmax} \,.
 \end{align}
 To simplify the numerics, we also rescale the frequencies by a
-constant from $\mathcal{O}(10^{15})$ to $\mathcal{O}(1)$.  A major
-numerical simplification arises because of the $\Lumtot \to X$
-transformation. Rewriting the master~\refeq{pmp} formally as
+constant from $\mathcal{O}(10^{15})$ to $\mathcal{O}(1)$.  %
+
+
+ 
+A major numerical simplification arises because of the $\Lumtot \to X$
+transformation. Rewriting the \refeq{sll} formally as
 \begin{align}
-  \lleq{gmh}
-  p(\Lumtot  \cond \nu,  \npack, \bmnu, \bml) = \sum_{N} p(N \cond \nu,  n) p(\Lumtot \cond N,
-\nu, \npack, \bmnu, \bml),
+  \lleq{gmhb}
+  p(Q  \cond n,\bml) 
+  & = \sum_{N} p(N \cond n)\; p(Q \cond N, n, \bml),
 \end{align}
 we see that the right-hand side is a mixture density. In our
 application, the distribution of a single-packet luminosity is narrow
 in the sense that the standard deviation relative to the mean is at
-the percent level. This implies that $p(\Lumtot \cond \nu, \npack,
-\bmnu, \bml)$ has one mode from each $N$ and all modes are clearly
-separated. The transformation $\Lumtot \to x$ effects a strong overlap
-between the distributions $p(X \cond N, \nu, \npack, \bmnu, \bmx)$
-with similar $N$, so $p(X \cond \nu, \npack, \bmnu, \bmx)$ can be well
-approximated by a unimodal distribution; see \reffig{hedgehog}.
+the percent level. This implies that $p(Q \cond N, n, \bml)$ has one
+mode from each $N$ and all modes are clearly separated. The
+transformation $\Lumtot \to X$ effects a strong overlap between the
+distributions $p(X \cond N, n, \bmx)$ with similar $N$, so
+$p(X \cond n, \bmx)$ can be well approximated by a unimodal
+distribution; see \reffig{hedgehog}.
 
 \begin{figure}[ht]
   \centering
@@ -578,35 +677,33 @@ Assuming $\alpha = \alpha(\nu \cond \bmphi)$ and $\beta = \beta(\nu
 \cond \bmphi)$ are functions of $\nu$ that depend on parameters
 $\bmphi$, we set
 \begin{align}
-  \lleq{gmi}
+  \lleq{gmib}
   p(\bmX \cond \bmphi, N, \nu) &= \prod_{j=1}^N \GammaDist(X_j \cond \alpha, \beta ),\\
   p(\bmx \cond \bmphi, \npack, \bmnu) &= \prod_{i=1}^{\npack} \GammaDist(x_i \cond \alpha_i, \beta_i).
 \end{align}
 where $\alpha_i \equiv \alpha(\nu_i \cond \bmphi), \beta_i \equiv
-\beta(\nu_i \cond \bmphi)$.  Combining \refeq{gmb} and \refeq{gmi}, we
-can solve the integral
-\begin{align}
-  \lleq{gmc}
-  \int \rmdx{\bmX} \delta(X - \textstyle\sum_j X_j)
-  \,p(\bmX\cond N,\bmphi, \nu) = \GammaDist(X \cond N \alpha, \beta)
-\end{align}
-implying that the master equation~(\ref{pmp}) considerably simplifies
-as
-\begin{align}
-  \lleq{gmd}
-    \boxed{
-    p(X\cond \nu, \npack,\bmx,\bmnu)
-  = \frac{1}{p(\bmx\cond \npack, \bmnu)}
-  \sum_N p(N\cond n)\, \int \rmdx{\bmphi} \GammaDist(X \cond N \alpha, \beta) % p(X \cond N, \bmphi, \nu)
-  \, p(\bmx\cond \bmphi, \npack, \bmnu)
-  \, p(\bmphi).
-  }
-\end{align}
+\beta(\nu_i \cond \bmphi)$. 
 
 \subsection{Linear model}
 
-In the absence of a physical model to determine $\alpha(\nu \cond
-\bmphi)$ and $\beta(\nu \cond \bmphi)$, we propose to start with a simple polynomial ansatz   $\alpha(\nu \cond \bmphi) = \sum_{k=0}^\Kalpha \alpha_k \nu^k, \beta(\nu \cond \bmphi) = \sum_{k=0}^\Kbeta \beta_k \nu^k$ such that
+\fred{Parts may still be relevant, especially if we put a plot of an
+  entire spectrum in the paper.}
+
+For simple functions $\alpha(\nu \cond \bmphi)$, one can find the
+minimum value of $\alpha$ over the entire range of $\nu$
+analytically. If this is too complicated, we propose to require
+$\alpha(\nu_i \cond \bmphi) > 1$ only at each packet frequency
+$\nu_i$. In the evaluation of $p(\bmx \cond \bmphi, \npack, \bmnu)$,
+one has to loop over all packets and compute $\alpha$ and $\beta$
+anyways, so the constraint imposes essentially no computational
+overhead.  
+
+
+In the absence of a physical model to determine
+$\alpha(\nu \cond \bmphi)$ and $\beta(\nu \cond \bmphi)$, we propose
+to start with a simple polynomial ansatz
+$\alpha(\nu \cond \bmphi) = \sum_{k=0}^\Kalpha \alpha_k \nu^k,
+\beta(\nu \cond \bmphi) = \sum_{k=0}^\Kbeta \beta_k \nu^k$ such that
 \begin{align}
   \lleq{gmp}
   \bmphi = (\alpha_0, \dots \alpha_\Kalpha , \beta_0, \dots \beta_\Kbeta)
@@ -616,94 +713,72 @@ model the frequency dependence determines the orders of the
 polynomials, $\Kalpha$ and $\Kbeta$. This is outside the scope of this
 paper. Here we choose $\Kalpha = 3$ and $\Kbeta = 1$.
 
-\subsection{Prior} \label{sec:priors}
-
-The only missing piece to explicitly evaluate \refeq{gmd} is the prior
-$p(\bmphi)$. To gain some insight, consider the standard $\GammaDist$
-model with $\Kalpha = \Kbeta = 0$.
-% There is a conjugate prior but
-% unfortunately the normalization constant cannot be evaluated in closed
-% form, so it is thus of no use for us.
-How about a noninformative prior? The authors of
-\cite{moala2013bayesian} present an overview of possible choices and
-conclude that the point estimate given by the mode of the posterior is
-nearly insensitive to the prior choice starting from around 30
-independent identically distributed samples. We posit that there are
-this many samples available near any $\nu$ under consideration, so the
-form of the prior is not crucial for our application. But there is
-some explicit prior information that we want to build into our
-analysis. The distribution $p(x \cond \alpha, \beta)$ should always
-vanish at the origin. This is equivalent to requiring a maximum away
-from the boundary leading to $\alpha > 1$. We choose a uniform prior
-on $\bmphi$ on a finite box $V$ through indicator functions
-\begin{align}
-  p(\bmphi) = \mathbf{1}_{\alpha(\bmphi) > 1}(\bmphi) \mathbf{1}_V(\bmphi).
-\end{align}
-
-\subsection{Numerical implementation} \label{sec:numerical}
-
-The box $V$ is chosen by trial and error to be large enough to contain
-the relevant region of $p(\bmx\cond \bmphi, \npack, \bmnu)$. For
-simple functions $\alpha(\nu \cond \bmphi)$, one can find the minimum
-value of $\alpha$ over the entire range of $\nu$ analytically. If this
-is too complicated, we propose to require $\alpha(\nu_i \cond \bmphi)
-> 1$ only at each packet frequency $\nu_i$. In the evaluation of
-$p(\bmx \cond \bmphi, \npack, \bmnu)$, one has to loop over all
-packets and compute $\alpha$ and $\beta$ anyways, so the constraint
-imposes essentially no computational overhead.  To explicitly evaluate
-\refeq{gmd}, we have to overcome the remaining two difficulties: the
-integral over $\bmphi$ and the sum over $N$.
-
-As for the former, the posterior $p(\bmphi \cond \npack, \bmnu, \bmx)$
-is approximately Gaussian in $\phi$ for $\npack$ large, so we can
-apply Laplace's method to perform the $\bmphi$ integrals for both the
-evidence $p(\bmx \cond \npack, \bmnu)$ and the posterior mean $p(X
-\cond N, \npack, \bmnu, \bmx)$. This requires the Hessian at the mode
-and the gradient helps in locating the mode; the analytic expressions
-are summarized in \refsec{appendix}.
-
-Regarding the sum over $N$, we start at $N = \lfloor n-a+1 \rfloor =
-\arg \max_N p(N|n)$ \fred{Actually we should say $p(N \cond n, a)$}
-and continue to larger and smaller values of $N$ until the
-contribution to $P(X \cond \nu, \npack, \bmnu, \bmx)$ becomes
-negligible. In case the relevant contribution is from large $N$ and
-$n$, we interpret $N$ as a continuous variable, replace factorials by
-$\Gamma$ function in \refeq{pmh}, and apply Laplace's method to
-integrate over $N$ and $\bmphi$.
-
-\fred{Our implementation is available online on \href{https://github.com/tardis-sn/XXX}{github}}
-
-\subsection{Graphical output}
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Asymptotic approximation} \label{sec:asymptotic}
 
-In the case that there are many packets in every bin, some
-simplifications arise as the exact distribution of individual packets
-$p(\Lum \cond \bmphi, \nu)$ becomes irrelevant in the asymptotic
-regime $n \to \infty$, which implies $\lambda \to \infty$. In that
-case, the compound Poisson distribution can be approximated by a
-Gaussian distribution provided that the second moment of
-$\Lum, \expect{\Lum^2}$ is finite. To see this in more detail, we define
+We return to the general formulation of \refeq{sll}, whose factors we 
+rearrange to write it as 
+\begin{align}
+  \lleq{asc}
+  p(Q\cond n,\bml) 
+  &= \int d\lambda\; d\bmphi\; 
+    p(\lambda\cond n)\;
+    p(\bmphi\cond n,\bml)\;
+    p(Q\cond \lambda,\bmphi) \\
+  \lleq{asd}
+  p(Q\cond \lambda,\bmphi)
+  &= \sum_N 
+    p(N\cond \lambda)\;
+    \int d\bmL\; 
+    p(Q\cond N,\bmL)\;
+    p(\bmL\cond n,\bmphi)
+\end{align}
+with $p(\bmL\cond n,\bmphi) = \prod_{j=1}^n p(L\cond\bmphi)$ as
+before.  If, as assumed, $p(N\cond\lambda)$ is Poissonian, there is a
+simple relation between their respective moments\footnote{The $k$-th
+  moment of a variable is defined as
+  $\mu_k = \expect{x^k} = \int dx\,p(x)\,x^k, k = 1,2,\ldots$, while
+  the variance is equal to $\sigma^2 = \mu_2 - \mu_1^2$.} %
+for $p(Q\cond \lambda,\bmphi)$ and $p(L\cond \bmphi)$ as follows.
+%%%%%%%%%%%%%%%
+\fred{citation} %
+%%%%%%%%%%%%%%%
+In terms of the moments and variance of $L$,
 \begin{align}
   \lleq{ram}
-  \mu \equiv \expect{\Lum}, \qquad \sigma^2 \equiv \variance{\Lum}\,.
+  \mu_1 &\equiv \expect{\Lum}, \qquad 
+  \mu_2 \equiv \expect{\Lum^2}, \\
+  \sigma^2 &\equiv \variance{\Lum} 
+  = \expect{\Lum^2} - \expect{\Lum}^2\,,
 \end{align}
-For a compound Poisson process with arbitrary Poisson mean $\lambda > 0$,
+the first moment and variance of $Q$ are 
 \begin{align}
   \lleq{raa}
-  \expect{Q} =\lambda \expect{L} = \lambda \mu, \qquad \variance{Q} = \lambda \expect{L^2} = \lambda (\mu^2 + \sigma^2) \,.
+  \expect{Q} = \lambda\, \mu_1, \qquad 
+  \variance{Q} = \lambda \mu_2 = \lambda (\mu_1^2 + \sigma^2) \,.
 \end{align}
-
+for \textit{any} $p(L\cond\bmphi)$. 
+%
+\hans{Stopped editing HERE 161202 18h30}
+Furthermore, higher-order quantities such as the skewness and kurtosis
+are suppressed by powers of $\lambda^{-1/2}$.
+% 
 From Theorem 4.3.1 of \cite{bening2002generalized}, we can conclude
 that the asymptotic distribution of $\Lumtot$ when
 $\lambda \to \infty$, given the first and second moment of $\Lum$, is
 \begin{align}
   \lleq{rab}
-  P(\Lumtot \cond \bmphi) = \GaussianDist \left( \Lumtot \cond \expect{Q}, \variance{Q} \right) = \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\mu^2 + \sigma^2) \right).
+  P(\Lumtot \cond \bmphi) 
+  &= \GaussianDist \left( \Lumtot \cond \expect{Q}, \variance{Q} \right) %
+    = \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\mu^2 + \sigma^2) \right).
 \end{align}
-This result is a drastic simplification as it eliminates both the sum over $N$ in \refeq{qab} and the integral over $\bmL$ in \refeq{qaf}.
-That allows us to model $\Lumtot$ in each bin \emph{without} making concrete
-assumptions about the functional form of $P(\Lum \cond \bmphi)$; i.e., we may now view $\bmphi$ as the collection of first and second moments in each bin in addition to $\lambda$. Continuing the notation of \refeq{qadd},
+This result is a drastic simplification as it eliminates both the sum
+over $N$ in \refeq{qab} and the integral over $\bmL$ in \refeq{qaf}.
+That allows us to model $\Lumtot$ in each bin \emph{without} making
+concrete assumptions about the functional form of
+$P(\Lum \cond \bmphi)$; i.e., we may now view $\bmphi$ as the
+collection of first and second moments in each bin in addition to
+$\lambda$. Continuing the notation of \refeq{qadd},
 \begin{align}
   \lleq{rac}
   \bmphi =  \left(\lambda_b, \mu_b, \sigma^2_b \right)_{b=1}^B.
