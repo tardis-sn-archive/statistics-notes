@@ -23,7 +23,7 @@
     \begin{minipage}{\textwidth} #2\end{minipage}}} %
 
 %% CHANGE THIS DATE AS YOU MODIFY THE FILE
-\newcommand{\vdate}{161202}
+\newcommand{\vdate}{161203}
 \pagestyle{myheadings}
 \markboth{Version \vdate} {Version \vdate}
 
@@ -79,7 +79,7 @@
 
 \begin{center}
   \textbf{\Large Bayesian prediction of supernova luminosity  distributions}\\[8pt]
-  \textbf{\Large based on simulation output: An example from \tardis}\\[12pt]
+  \textbf{\Large based on simulation output}\\[12pt]
 \end{center}
 
 \textbf{Abstract} TODO\\
@@ -91,6 +91,7 @@
   \item For $\alpha=1.5, \beta=60, n=14000$ still get 50 \% larger uncertainty from asymptotic compared to summation over $N$. Is it due very asymmetric one-packet distribution? Try larger $\alpha$, for example $\alpha = 30$.
   \item  Another option: $\int \rmdx{\alpha} \rmdx{\beta}$, use true values in simulation. Where does uncertainty come from? From $\lambda$ or $\mu, \sigma^2$?
   \item Are finite number of terms in $\sum_N$ a problem? Check
+
 \end{enumerate}
 
 \subsection{Plots}
@@ -110,23 +111,35 @@
   \item Question: does Wolfgang want to see a plot in which ``$\lambda$ is divided out''? That is , just plot how mean
 \end{enumerate}
 
-\subsection{tardis}
+\subsection{Other issues that need to be resolved}
 
-move tardis section into separate document in this git repo. Better to keep it out of the paper. Cite tardis when showing the toy spectrum. Mention that in reality $\alpha$ and $\beta$ are $\nu$ dependent
+\begin{enumerate}
+
+\item Clean up integrals using \verb=\rmdx= rather than $d$.
+
+\item Write everything in terms of frequency $\nu$ or wavelength
+  $\lambda$
+
+\item Now that we have removed direct analysis of \tardis\ from the
+  paper, there is no need to define an overall parameterization of the
+  Gamma parameters $\alpha(\nu_b) = \sum_k a_k \nu_b^k$ and
+  $\beta(\nu_b) = \sum_k b_k \nu_b^k$. However, the possibility of
+  linking the analyses of all the bins by this and similar methods
+  should be highlighted. Perhaps in the Conclusions?
+
+\item \textbf{\tardis} move tardis section into separate document in
+  this git repo. Better to keep it out of the paper. Cite tardis when
+  showing the toy spectrum. Mention that in reality $\alpha$ and
+  $\beta$ are $\nu$ dependent
+
+\end{enumerate}
+
 
 \section{Introduction (Wolfgang)}
 
 \subsection{Astrophysical context}
 
-\textbf{Define here?}
-\begin{enumerate}
-\item Basic notation for packets, luminosity as used below
-\end{enumerate}
-
-\textbf{Issues that need to be resolved}
-\begin{enumerate}
-\item Write everything in terms of frequency $\nu$ or wavelength $\lambda$
-\end{enumerate}
+Wolfgang's text
 
 \subsection*{Main points of this paper}
 
@@ -393,7 +406,7 @@ e^{-\lambda}\lambda^{n}/n!$. %
 The posterior for $\lambda$ is found from the data $n$ via Bayes'
 Theorem,
 \begin{align}
-  \lleq{pmd}
+  \lleq{cab}
   p(\lambda\cond n) %
   &= \frac{p(n\cond\lambda)\,p(\lambda)} {p(n)}
   \ =\ \frac{p(n\cond\lambda)\,p(\lambda)} %
@@ -436,7 +449,7 @@ $p(n) =  \int_0^\infty d\lambda\, p(n\cond\lambda)\,p(\lambda) = c\,(n-a)!/n!$
 %   &=  \int_0^\infty d\lambda\, p(n\cond\lambda)\,p(\lambda)
 %     \ =\ c\frac{(n-a)!}{n!} \,, \\
 % \end{align}
-and inserting Eqs.~(\ref{caa}) and (\ref{pmd}), the prediction for $N$
+and inserting Eqs.~(\ref{caa}) and (\ref{cab}), the prediction for $N$
 given $n$ is
 \begin{align}
   \lleq{pmh}
@@ -595,7 +608,8 @@ continuous variable, replace factorials by $\Gamma$ function in
 
 \hans{H: This subsection needs much more work. I have just copied some
   relevant text in here which may be useful. Much of it should be
-  removed.}
+  removed. Some connection to TARDIS should preferably be kept in the
+  paper, in my view, eg the definition of $X = 1 - L/\ell_{\rm max}$.}
 
 The \tardis{} packages simulates supernovae with %
 \fred{Wolfgang's favorite description of his package}. %
@@ -716,8 +730,10 @@ paper. Here we choose $\Kalpha = 3$ and $\Kbeta = 1$.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Asymptotic approximation} \label{sec:asymptotic}
 
-We return to the general formulation of \refeq{sll}, whose factors we 
-rearrange to write it as 
+\subsection{Derivation of $p(Q\,|\,n,\boldmath{\ell})$ for large $n$}
+
+We return to the general formulation of \refeq{sll} and re-arrange its
+factors into
 \begin{align}
   \lleq{asc}
   p(Q\cond n,\bml) 
@@ -733,55 +749,60 @@ rearrange to write it as
     p(Q\cond N,\bmL)\;
     p(\bmL\cond n,\bmphi)
 \end{align}
-with $p(\bmL\cond n,\bmphi) = \prod_{j=1}^n p(L\cond\bmphi)$ as
-before.  If, as assumed, $p(N\cond\lambda)$ is Poissonian, there is a
-simple relation between their respective moments\footnote{The $k$-th
-  moment of a variable is defined as
-  $\mu_k = \expect{x^k} = \int dx\,p(x)\,x^k, k = 1,2,\ldots$, while
-  the variance is equal to $\sigma^2 = \mu_2 - \mu_1^2$.} %
-for $p(Q\cond \lambda,\bmphi)$ and $p(L\cond \bmphi)$ as follows.
-%%%%%%%%%%%%%%%
-\fred{citation} %
-%%%%%%%%%%%%%%%
-In terms of the moments and variance of $L$,
+with $p(\bmL\cond n,\bmphi) = \prod_{j=1}^n p(L_j\cond\bmphi)$ as
+before. Writing the moments and variance of $L$ as\footnote{The $k$-th
+  moment of variable $x$ is defined as the expectation value
+  $\mu_k = \expect{x^k} = \int dx\,x^k\,p(x),\; k = 0,1,2,\ldots$.} %
 \begin{align}
   \lleq{ram}
-  \mu_1 &\equiv \expect{\Lum}, \qquad 
+  \mu =  \mu_1 &\equiv \expect{\Lum}, \qquad 
   \mu_2 \equiv \expect{\Lum^2}, \\
   \sigma^2 &\equiv \variance{\Lum} 
-  = \expect{\Lum^2} - \expect{\Lum}^2\,,
+  = \expect{\Lum^2} - \expect{\Lum}^2,
 \end{align}
-the first moment and variance of $Q$ are 
+it is easy to show that, for the Poissonian compound process
+(\ref{asd}), the first moment and variance of $Q$ are related to those
+of $L$ by
+%%%%%%%%%%%%%%%%
+\fredmargin{citation} %
+%%%%%%%%%%%%%%%
 \begin{align}
   \lleq{raa}
-  \expect{Q} = \lambda\, \mu_1, \qquad 
-  \variance{Q} = \lambda \mu_2 = \lambda (\mu_1^2 + \sigma^2) \,.
+  \expect{Q} = \lambda \mu, \qquad 
+  \variance{Q} = \lambda \mu_2 = \lambda (\mu^2 + \sigma^2) \,.
 \end{align}
-for \textit{any} $p(L\cond\bmphi)$. 
+for any probability $p(L\cond\bmphi)$.
 %
-\hans{Stopped editing HERE 161202 18h30}
 Furthermore, higher-order quantities such as the skewness and kurtosis
 are suppressed by powers of $\lambda^{-1/2}$.
-% 
-From Theorem 4.3.1 of \cite{bening2002generalized}, we can conclude
+%%%%%%%%%%%
+\hans{The variance is the second so-called \textit{cumulant}. The
+  relation for all orders is that the $k$-th order cumulant
+  $\kappa_q(Q)$ is equal to $\lambda$ times the $k$-th order moment of
+  $L$, $\mu_k$. The skewness is therefore
+  $\kappa_3(Q)/\kappa_2(Q)^{3/2} = \lambda \mu_3/(\lambda \mu_2)^{3/2}
+  = \lambda^{-1/2} \mu_3/\mu_2^{3/2}$. The magnitude of the correction
+  to (rab) due to $\kappa_3$ and higher orders is unclear.}
+%%%%%%%%%%%
+From Theorem 4.3.1 of Ref.~\cite{bening2002generalized}, we conclude
 that the asymptotic distribution of $\Lumtot$ when
 $\lambda \to \infty$, given the first and second moment of $\Lum$, is
+a gaussian or normal distribution,
 \begin{align}
   \lleq{rab}
-  P(\Lumtot \cond \bmphi) 
+  P(\Lumtot \cond \lambda,\bmphi) 
   &= \GaussianDist \left( \Lumtot \cond \expect{Q}, \variance{Q} \right) %
-    = \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\mu^2 + \sigma^2) \right).
+    = \GaussianDist \left( \Lumtot \cond \lambda \mu_1, \lambda (\mu^2 {+} \sigma^2) \right).
 \end{align}
-This result is a drastic simplification as it eliminates both the sum
-over $N$ in \refeq{qab} and the integral over $\bmL$ in \refeq{qaf}.
-That allows us to model $\Lumtot$ in each bin \emph{without} making
-concrete assumptions about the functional form of
-$P(\Lum \cond \bmphi)$; i.e., we may now view $\bmphi$ as the
-collection of first and second moments in each bin in addition to
-$\lambda$. Continuing the notation of \refeq{qadd},
+This drastic simplification eliminates both the sum over $N$ and the
+integral over $\bmL$ in \refeq{asd} and allows us to model $\Lumtot$
+in each bin without having to make concrete assumptions about the
+functional form of $P(\Lum \cond \bmphi)$. Correspondingly, we may now
+redefine $\bmphi$ as the moment $\mu$ and variance $\sigma^2$ of
+$p(L\cond\bmphi)$,
 \begin{align}
   \lleq{rac}
-  \bmphi =  \left(\lambda_b, \mu_b, \sigma^2_b \right)_{b=1}^B.
+  \bmphi =  (\mu, \sigma^2).
 \end{align}
 The price for this flexibility is that $\bmphi$ may now contain many
 parameters, and each one is determined only from the samples in a
@@ -805,53 +826,71 @@ sampling distribution
   \lleq{rae}
   p(\Lum \cond \mu, \sigma^2 ) &= \GaussianDist(\Lum \cond \mu, \sigma^2)
 \end{align}
-although the actual frequencies may be quite different from a
+although the actual data histograms may be quite different from a
 Gaussian. Our motivation is that this Gaussian represents our state of
-knowledge \emph{before} observing $\bmy$ well. To make the
-calculations easier, we assume a conjugate prior for unknown $\mu$ and
-$\sigma^2$. The standard result for the posterior is
+knowledge \emph{before} data $\bmy$ is observed. To simplify the
+calculations, we assume a conjugate prior for unknown $\mu$ and
+$\sigma^2$. The standard result for the posterior is a Gaussian for
+$\mu$ and an Inverse Gamma distribution for $\sigma^2$,
 \begin{align}
   \lleq{raf}
-  p(\mu, \sigma^2 \cond \bmy) &= \GaussianDist(\mu \cond \mu_0^\prime, \frac{\sigma^2}{n_0^\prime}) \InvGammaDist\left( \sigma^2 \cond \frac{\nu_0^\prime}{2}, \frac{\nu_0^\prime \sigma_0^{\prime 2}}{2} \right)
+  p(\mu, \sigma^2 \cond \bmy) 
+  &= \GaussianDist\left(\mu \cond \mu_0^\prime, \sigma^2/n_0^\prime\right) %
+    \InvGammaDist\left( \sigma^2 \,\Bigl|\, \tfrac{1}{2}\nu_0^\prime, 
+    \tfrac{1}{2}\nu_0^\prime \sigma_0^{\prime 2} \right)
 \end{align}
-where the hyperparameters are updated from prior to posterior based on $\bmy$ as
+where the hyperparameters $(n_0',\mu_0',\nu_0')$ are updated from
+prior to posterior based on $\bmy$ with the sample mean
+$\langle\lum\rangle = (1/n) \sum_{j=1}^n \lum_j$,
 \begin{align}
-  \lleq{rag}
-  \expectest{\lum} &= \frac{1}{n} \sum_{i=1}^n \lum_i,\\
-  \lleq{rah}  n_0^\prime &= n_0 + n,\\
-  \lleq{rai}    \mu_0^\prime &= \frac{n_0 \mu_0 + n \expectest{\lum}}{n^\prime},\\
-  \lleq{raj}    \nu_0^\prime &= \nu_0 + n,\\
-  \lleq{rak}    \nu_0^\prime \sigma_0^{\prime 2} &= \nu_0 \sigma_0^{ 2} + \sum_{i=1}^n \left(\lum_j - \expectest{\lum}\right)^2 + \frac{n_0 n}{n^\prime} \left(\mu_0 - \expectest{\lum}\right)\,.
-  \end{align}
-  By default, we take a noninformative prior and set
-  $n_0 = \mu_0 = \nu_0 = 0$, so the value $\sigma_0^2>0$ is
-  irrelevant.
+  %\lleq{rag}
+  \lleq{rah}  n_0^\prime 
+  &= n_0 + n,\\
+  \lleq{rai}    \mu_0^\prime 
+  &= \frac{n_0 \mu_0 + n \langle\lum\rangle}{n_0^\prime},\\
+  \lleq{raj}    \nu_0^\prime 
+  &= \nu_0 + n,\\
+  \lleq{rak}    
+  \nu_0^\prime \sigma_0^{\prime 2} 
+  &= \nu_0 \sigma_0^{ 2} 
+    + \sum_{j=1}^n \left(\lum_j - \langle\lum\rangle\right)^2 
+    + \frac{n_0 n}{n_0^\prime} \left(\mu_0 - \langle\lum\rangle\right)^2\,.
+\end{align}
+\hans{H: The last term in (\ref{rak}) was missing a square. Even so, I
+  have not yet been able to verify that equation (rak) from
+  Wikipedia's Normal Distribution entry agrees with Eq.(200) of
+  Murphy's 2007 paper.} %
+By default, we take a noninformative prior and set
+$n_0 = \mu_0 = \nu_0 = 0$, so the value $\sigma_0^2>0$ is irrelevant.
   % The posterior
   % $ p(\expect{\Lum}, \expect{\Lum^2} \cond \bmy)$ is given by
   % \refeq{raf} with $\mu, \sigma^2$ replaced by
   % $\expect{\Lum}, \expect{\Lum^2}$ as indicated in \refeq{rae} because
   % the Jacobian determinant is one.
-
-  Finally all ingredients for the prediction of $\Lumtot$ in one bin are
-  ready, and \refeq{qaa} simplifies to
+The above equations also show that the data $\bmy$ appears only in the
+form of $n$ and the first two sample moments
+$m_1 = \langle\ell\rangle$ and $m_2 = \langle\ell^2\rangle$.
+Inserting all these ingredients into Eq.~(\ref{asc}), we obtain
 \begin{align}
   \lleq{ral}
-  p(\Lumtot \cond \bmy) &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda \sigma^2 \right) p(\lambda \cond \bmy) p( \mu, \sigma^2 \cond \bmy) \,,
+  p(\Lumtot \cond \bmy) 
+  &= \int d\lambda\; d\mu\; d\sigma^2\;
+    p(\lambda \cond n)\; p( \mu, \sigma^2 \cond \bmy)\;
+    \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\sigma^2{+}\mu^2) \right)
+    \,,
 \end{align}
-where $ p(\lambda \cond \bmy)$ is given by \refeq{pms} and
-$ p( \mu, \sigma^2 \cond \bmy)$ by
-\refeq{raf}--\refeq{rak}.
+where $ p(\lambda \cond n)$ is given by \refeq{pms} and
+$ p( \mu, \sigma^2 \cond \bmy)$ by Eqs.~(\ref{raf})--(\ref{rak}).
 
 \subsection{Numerical implementation}\label{sec:asympt-numeric}
 
-Unfortunately we could not integrate \refeq{ral} analytically but
-since the integrand is unimodal and strongly peaked the Laplace or
+While the integral in \refeq{ral} cannot be integrated analytically,
+the integrand is unimodal and strongly peaked, so that the Laplace or
 saddle-point approximation~\cite[Ch. 27]{mackay2003information} can be
-applied in two ways. First, if only the value
-$p(\Lumtot=\lumtot \cond \bmy)$ for some particular $q$ is sought,
-then one can approximate it directly. Second, we can compute the
-moments of $\Lumtot$ through the \emph{moment-generating
-  function}\fredmargin{ref}
+applied. If only the value $p(\Lumtot{=}\lumtot \cond n,m_1,m_2)$ at the
+total data luminosity $q$ is sought, then one can approximate it
+directly. In addition, we can compute the moments of $\Lumtot$ through
+the \emph{moment generating function} \cite{stuart1994kendall}
 \begin{align}
   \lleq{rap}
   M(t \cond \bmy) = \int_0^{\infty} \rmdx{\Lumtot} p(\Lumtot \cond \bmy) e^{-t \Lumtot} \,
@@ -861,7 +900,6 @@ from which the moments are accessible by differentiation
   \lleq{raq}
   \expect{\Lumtot^k} = (-1)^k \eval{\dv[k]{M(t \cond \bmy)}{t}}_{t=0}
 \end{align}
-
 Assuming all involved integrals are absolutely convergent, we can
 exchange the order of integration and find
 \begin{align}
@@ -873,8 +911,8 @@ exchange the order of integration and find
 This implies that the mean and variance of $\Lumtot$ require an integral over the three parameters
 \begin{align}
   \lleq{ras}
-  \expect{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond \bmy) p( \mu, \sigma^2 \cond \bmy) \qty(-\eval{\dv{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0})\\
-  \variance{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond \bmy) p( \mu, \sigma^2 \cond \bmy) \qty(\eval{\dv[2]{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0}) - \expect{\Lumtot}^2
+  \expect{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond n) p( \mu, \sigma^2 \cond \bmy) \qty(-\eval{\dv{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0})\\
+  \variance{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond n) p( \mu, \sigma^2 \cond \bmy) \qty(\eval{\dv[2]{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0}) - \expect{\Lumtot}^2
 \end{align}
 We implemented the above formulae in the julia language~\cite{julia14}
 and used Newton's method from the \texttt{Optim.jl} package in
@@ -886,16 +924,22 @@ optimizer cannot improve on the initial guess and found convergence
 within $\order{10}$ steps:
 \begin{align}
   \lleq{rat}
-  \qty(\lambda, \mu, \sigma^2) = 1.0005 (n, \expectest{\lum}, \widehat{\variance{\lum}}).
+  \qty(\lambda, \mu, \sigma^2) = 1.0005 (n, \langle\lum\rangle, \langle\lum^2\rangle{-}\langle\lum\rangle^2).
 \end{align}
-\fred{Did we define expectation value and variance? Should be in notation or intro section}
-\fred{At least for us, I should do a comparison plot to evaluate $p(\Lumtot \cond \bmy)$ with both methods }
-\fred{We need a plot, the one to compare predictions and 250 real replicas or 100 virtual replicas?}
+\hans{H: If threefold integrals must be carried out for the expectation values, why not do so
+for Eq (ral) directly rather than just the expectation values?} %
+\fred{Did we define expectation value and variance? Should be in notation or intro section. Hans: see footnote 2.} %
+\fred{At least for us, I should do a comparison plot to evaluate $p(\Lumtot \cond \bmy)$ with both methods } %
+\fred{We need a plot, the one to compare predictions and 250 real replicas or 100 virtual replicas?} %
 \fred{Advantage of this approach: no need to store all packets anymore, sum and sum of squares can be accumulated online $\Rightarrow$ reduced computation and storage requirements}
 
 \section{Conclusion} \label{sec:conclusion}
 
+TODO
+
 \section{Appendix} \label{sec:appendix}
+
+\fred{Will be removed later}
 
 We use the shorthand $\alpha_n \equiv \alpha(\nu_n \cond
 \bmphi), \beta_n \equiv \beta(\nu_n \cond \bmphi), \alpha \equiv
