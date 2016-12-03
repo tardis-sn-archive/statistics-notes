@@ -256,7 +256,7 @@ frequencies $\nu_i$ by the approximate bin frequency $\nu_b$. The
 total luminosity in bin $b$ is
 \begin{align}
   \lleq{sdc}
-  \lumtot_b 
+  \lumtot_b
   &= \sum_{j=1}^{n_b} \lum_{b,j}.
 \end{align}
 Within a given model $\hypo$, the data $\bmy$ is only one of many
@@ -294,8 +294,8 @@ Various physical processes such as absorption result in luminosity
 spectra with strong features. The model we develop below takes into
 account the variability introduced by these features in a two-step
 process termed a \textit{compound process} in the statistics
-literature. 
-% 
+literature.
+%
 In the first step, the number of packets $N$ is modelled by means of a
 separate Poisson distribution $p(N\cond\lambda)$ for each bin, where
 the magnitude of $\lambda$ will capture most of the variability of the
@@ -306,14 +306,14 @@ packet parameter posterior. The single-packet distribution contains
 the crucial information which allows us to extend previous methods to
 cases where the number of packets in a bin is small.
 %%%%%%%%%%%%%%%%%%%
-\fred{Refs: Zech, maybe others, too} 
+\fred{Refs: Zech, maybe others, too}
 
 
 We derive in this section the generic equations of the compound
 process, and then proceed to show in Sections \ref{sec:example} and
 \ref{sec:asymptotic} how these equations can be used in two different
 ways.
-% 
+%
 We consider for the moment quantities in one bin $b$ only, and hence
 drop the $b$-subscripts, e.g.\
 $Q_b \to Q, n_b \to n, N_b\to N, \bml_b\to\bml, L_{b,j} \to L_j$ etc.
@@ -329,7 +329,7 @@ variable $V$, the marginal probability for $U$ is %
 $p(U) = \int dV\,p(U,V) = \int dV\,p(U\cond V)\,p(V)$ for continuous
 $V$ and $p(U) = \sum_V p(U,V) = \sum_V p(U\cond V)\,p(V)$ for discrete
 $V$ respectively.
-% 
+%
 The uninteresting variables $V$ in the present case are the number of
 packets $N$, the set of luminosities $\bmL$ of the $N$ packets
 whose likelihood is modelled by a distribution determined by
@@ -364,7 +364,7 @@ parameters $\bmphi$ and does not depend on the data $n,\bml$.  The
 bounds of $\int \rmdx{\bmL}$ and $\int \rmdx{\bmphi}$ are determined by the
 specific model and data for which $p(Q\cond n,\bml)$ is to be
 calculated.
-% 
+%
 We note that a part of Eq.~(\ref{sll}) can be seen as a convolution
 since $p(Q\cond N,\bmL)$ can be written as a Dirac delta function,
 \begin{align}
@@ -381,12 +381,12 @@ functional form of each probability. In Section \ref{sec:example}, we
 shall therefore set out a specific example
 
 
-\section{Example A: modelling single-packet luminosity distributions} 
+\section{Example A: modelling single-packet luminosity distributions}
 \label{sec:example}
 
 In this section, we show by example how information on the
 single-packet luminosity distributions can be utilised to find exact
-expressions for Eq.~(\ref{sll}). 
+expressions for Eq.~(\ref{sll}).
 
 \subsection{Multiplicity prediction}
 
@@ -412,7 +412,7 @@ Theorem,
   \ =\ \frac{p(n\cond\lambda)\,p(\lambda)} %
   {\int \rmdx{\lambda} p(n\cond\lambda)\,p(\lambda)} \,.
 \end{align}
-We use an improper prior 
+We use an improper prior
 \begin{align}
   \lleq{pmf}
   p(\lambda) = c \lambda^{-a},
@@ -430,22 +430,22 @@ bin.\footnote{For a uniform prior, the case $a{=}0$, we require of
 posterior is
 \begin{align}
   \lleq{pms}
-  p(\lambda\cond n) 
+  p(\lambda\cond n)
   &= \GammaDist(\lambda \cond \alpha = n{-}a{+}1 \,,\, \beta = 1)\,,
 \end{align}
 where the $\GammaDist$ distribution with shape parameter $\alpha > 0$ and
 rate parameter $\beta > 0$ is defined as
 \begin{align}
   \lleq{gma}
-  \GammaDist(x\cond \alpha, \beta) 
+  \GammaDist(x\cond \alpha, \beta)
   &= \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x}\,,
   \quad 0 \leq x < \infty.
 \end{align}
-The evidence is 
+The evidence is
 $p(n) =  \int_0^\infty \rmdx{\lambda}\, p(n\cond\lambda)\,p(\lambda) = c\,(n-a)!/n!$
 % \begin{align}
 %   \lleq{pmg}
-%   p(n) 
+%   p(n)
 %   &=  \int_0^\infty \rmdx{\lambda}\, p(n\cond\lambda)\,p(\lambda)
 %     \ =\ c\frac{(n-a)!}{n!} \,, \\
 % \end{align}
@@ -477,7 +477,7 @@ Next, we consider detailed modelling of $p(\bmL\cond N,\bmphi)$ which
 was written in Eq.~(\ref{slk}) as a product single-packet
 distributions $p(L_j\cond \bmphi)$, meaning that single packets are
 assumed to be mutually independent and to follow the same distribution
-independent of $N$. 
+independent of $N$.
 
 Which specific probability function to choose for $p(L\cond\bmtheta)$
 depends, of course, on the specific simulation data. In this section,
@@ -504,7 +504,7 @@ and so (\ref{gmh}) becomes in this example
     \GammaDist(Q\cond N\alpha, \beta)\;
     p(\alpha,\beta\cond n,\bml).
 \end{align}
-The posterior for the parameters is calculated by yet another 
+The posterior for the parameters is calculated by yet another
 application of Bayes' Theorem,
 \begin{align}
   \lleq{spf}
@@ -515,7 +515,7 @@ where the data $(n,\bml)$ must naturally follow the same
 Gamma-distribution likelihood as $(N,\bmL)$, i.e.\
 \begin{align}
   \lleq{spg}
-  p(n,\bml\cond \alpha,\beta) 
+  p(n,\bml\cond \alpha,\beta)
   & = \prod_{j=1}^n \GammaDist(\ell_j\cond\alpha,\beta)
     \ =\ \frac{\beta^{n\alpha} p^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}
 \end{align}
@@ -524,13 +524,13 @@ $q = \sum_{j=1}^n \ell_j$ and $r = \prod_{j=1}^n \ell_j$.
 
 
 The only missing piece to explicitly evaluate \refeq{spf} is the prior
-$p(\alpha,\beta)$. 
+$p(\alpha,\beta)$.
 % To gain some insight, consider the standard $\GammaDist$ model with
 % $\Kalpha = \Kbeta = 0$.
 % There is a conjugate prior but
 % unfortunately the normalization constant cannot be evaluated in closed
 % form, so it is thus of no use for us.
-% How about a noninformative prior? 
+% How about a noninformative prior?
 The authors of \cite{moala2013bayesian} present an overview of
 possible choices and conclude that the point estimate given by the
 mode of the posterior is nearly insensitive to the prior choice
@@ -543,7 +543,7 @@ requiring that $\alpha$ must be larger than 1.  For $\beta$, we
 likewise choose a uniform prior
 \begin{align}
   \lleq{sph}
-  p(\alpha,\beta) 
+  p(\alpha,\beta)
   &= \frac{1}{(\alpha_{\rm max}{-}1)\beta_{\rm max}}
   \qquad 1 < \alpha < \alpha_{\rm max},\; 0 < \beta < \beta_{\rm max}.
 \end{align}
@@ -561,7 +561,7 @@ and hence
 \begin{align}
   \lleq{spk}
   p(Q\cond n,\bml)
-  &= \frac{1}{C} 
+  &= \frac{1}{C}
     \sum_{N=0}^\infty \;
     p(N\cond n)\;
     \int \rmdx{\alpha}\,\rmdx{\beta}\;
@@ -578,7 +578,7 @@ In our numerical implementation, the constants
 $(\alpha_{\rm max}, \beta_{\rm max})$ are chosen by trial and error to
 be large enough to contain the relevant region of
 $p(\ell\cond \alpha,\beta)$.
-% 
+%
 To perform the integrals over $(\alpha,\beta)$ to find $C$ and the
 Gamma-weighted numerator in (\ref{spe}), we used the fact that the
 posterior $p(\alpha,\beta \cond n,\bml)$ is approximately Gaussian in
@@ -632,7 +632,7 @@ the total number of samples across all bins is large, hence the effect
 of considering $\lmax$ a constant independent of the data is
 negligible. We checked that leaving $\lmax$ as a free parameter in a
 fit gave equivalent results.
-% 
+%
 Numerically, we take the largest luminosity of all \tardis{} packets
 across the entire frequency range and increase it slightly to avoid
 numerical difficulties at the end point
@@ -640,25 +640,25 @@ numerical difficulties at the end point
   \lleq{gme}
   \lmax \equiv (1+\epsilon) \times \max_i \ell_i,
 \end{align}
-where $ \epsilon=10^{-6}$.  
+where $ \epsilon=10^{-6}$.
 
 We infer $P(X \cond n,\bml)$ and only in the end transform back to a
 probability density in $\Lumtot$ via
 \begin{align}
   \lleq{gmg}
-  p(\Lumtot  \cond n, \bml) 
+  p(\Lumtot  \cond n, \bml)
   &= p(X  \cond n, \bmx) \frac{1}{\lmax} \,.
 \end{align}
 To simplify the numerics, we also rescale the frequencies by a
 constant from $\mathcal{O}(10^{15})$ to $\mathcal{O}(1)$.  %
 
 
- 
+
 A major numerical simplification arises because of the $\Lumtot \to X$
 transformation. Rewriting the \refeq{sll} formally as
 \begin{align}
   \lleq{gmhb}
-  p(Q  \cond n,\bml) 
+  p(Q  \cond n,\bml)
   & = \sum_{N} p(N \cond n)\; p(Q \cond N, n, \bml),
 \end{align}
 we see that the right-hand side is a mixture density. In our
@@ -697,7 +697,7 @@ $\bmphi$, we set
   p(\bmx \cond \bmphi, \npack, \bmnu) &= \prod_{i=1}^{\npack} \GammaDist(x_i \cond \alpha_i, \beta_i).
 \end{align}
 where $\alpha_i \equiv \alpha(\nu_i \cond \bmphi), \beta_i \equiv
-\beta(\nu_i \cond \bmphi)$. 
+\beta(\nu_i \cond \bmphi)$.
 
 \subsection{Linear model}
 
@@ -711,7 +711,7 @@ $\alpha(\nu_i \cond \bmphi) > 1$ only at each packet frequency
 $\nu_i$. In the evaluation of $p(\bmx \cond \bmphi, \npack, \bmnu)$,
 one has to loop over all packets and compute $\alpha$ and $\beta$
 anyways, so the constraint imposes essentially no computational
-overhead.  
+overhead.
 
 
 In the absence of a physical model to determine
@@ -737,16 +737,16 @@ We return to the general formulation of \refeq{sll} and re-arrange its
 factors into
 \begin{align}
   \lleq{asc}
-  p(Q\cond n,\bml) 
-  &= \int \rmdx{\lambda}\; \rmdx{\bmphi}\; 
+  p(Q\cond n,\bml)
+  &= \int \rmdx{\lambda}\; \rmdx{\bmphi}\;
     p(\lambda\cond n)\;
     p(\bmphi\cond n,\bml)\;
     p(Q\cond \lambda,\bmphi) \\
   \lleq{asd}
   p(Q\cond \lambda,\bmphi)
-  &= \sum_N 
+  &= \sum_N
     p(N\cond \lambda)\;
-    \int \rmdx{\bmL}\; 
+    \int \rmdx{\bmL}\;
     p(Q\cond N,\bmL)\;
     p(\bmL\cond n,\bmphi)
 \end{align}
@@ -757,9 +757,9 @@ Writing the moments and variance of $L$ as\footnote{The $k$-th moment
   \expect{x^k} = \int \rmdx{x}\,x^k\,p(x),\; k = 0,1,2,\ldots$.} %
 \begin{align}
   \lleq{ram}
-  \mu =  \mu_1 &\equiv \expect{\Lum}, \qquad 
+  \mu =  \mu_1 &\equiv \expect{\Lum}, \qquad
   \mu_2 \equiv \expect{\Lum^2}, \\
-  \sigma^2 &\equiv \variance{\Lum} 
+  \sigma^2 &\equiv \variance{\Lum}
   = \expect{\Lum^2} - \expect{\Lum}^2,
 \end{align}
 it is easy to show that, for the Poissonian compound process
@@ -770,7 +770,7 @@ of $L$ by
 %%%%%%%%%%%%%%%
 \begin{align}
   \lleq{raa}
-  \expect{Q} = \lambda \mu, \qquad 
+  \expect{Q} = \lambda \mu, \qquad
   \variance{Q} = \lambda \mu_2 = \lambda (\mu^2 + \sigma^2) \,.
 \end{align}
 for any probability $p(L\cond\bmphi)$.
@@ -792,17 +792,17 @@ $\lambda \to \infty$, given the first and second moment of $\Lum$, is
 a gaussian or normal distribution,
 \begin{align}
   \lleq{rab}
-  P(\Lumtot \cond \lambda,\bmphi) 
+  P(\Lumtot \cond \lambda,\bmphi)
   &= \GaussianDist \left( \Lumtot \cond \expect{Q}, \variance{Q} \right) %
     = \GaussianDist \left( \Lumtot \cond \lambda \mu_1, \lambda (\mu^2 {+} \sigma^2) \right).
 \end{align}
 This drastic simplification eliminates both the sum over $N$ and the
-integral over $\bmL$ in \refeq{asd}. 
+integral over $\bmL$ in \refeq{asd}.
 
 It remains to find the integrals over $\lambda$ and $\bmphi$ in
 \refeq{asc}. As before, the posterior for $\lambda$ is the Gamma
 distribution of \refeq{pms}. %
-% 
+%
 To determine $p(\bmphi\cond n,\bml)$, we note that the result
 (\ref{rab}) also simplifies the calculation of the parameter posterior
 $p(\bmphi\cond n,\bml)$ since, independently of the actual functional
@@ -813,7 +813,7 @@ $\sigma^2$ implies that we can assign a Gaussian distribution to
 $p(L\cond\bmphi)$
 \begin{align}
   \lleq{rae}
-  p(\Lum \cond \bmphi) = 
+  p(\Lum \cond \bmphi) =
   p(\Lum \cond \mu, \sigma^2 ) &= \GaussianDist(\Lum \cond \mu, \sigma^2)
 \end{align}
 even though the actual data histograms may not be Gaussian. The reason
@@ -842,7 +842,7 @@ $\sigma^2$, we use an $n$-independent Inverse Gamma distribution prior
 with hyperparameters $(a_0,b_0)$ which reads
 \begin{align}
   \lleq{rad}
-  p(\sigma^2\cond a_0,b_0) 
+  p(\sigma^2\cond a_0,b_0)
   = \InvGammaDist(\sigma^2\cond a_0,b_0)
   &= \frac{b_0^{a_0}}{\Gamma(a_0)} (\sigma^2)^{-a_0-1} \exp(-b_0/\sigma^2)
 \end{align}
@@ -855,7 +855,7 @@ parameters updated by the data,
   p(\mu,\sigma^2\cond n,\bml,a_0,b_0)
   &= \GaussianDist(\mu\cond \mu_n,\sigma_n^2)
   \cdot
-  \InvGammaDist(\sigma^2\cond a_n,b_n) \\ 
+  \InvGammaDist(\sigma^2\cond a_n,b_n) \\
   \mu_n &= \langle\ell\rangle\\
   \sigma_n^2 &= \sigma^2/n \\
   a_n &= a_0 + \tfrac{1}{2}n \\
@@ -863,11 +863,11 @@ parameters updated by the data,
 \end{align}
 with data sample moments $\langle\lum^k\rangle$ defined as $(1/n)
 \sum_{j=1}^n \lum_j^k$.
-% 
+%
 Inserting Eqs.~(\ref{pms}) and (\ref{rbd}) into \refeq{asc}, we obtain
 \begin{align}
   \lleq{ral}
-  p(\Lumtot \cond n,\bml) 
+  p(\Lumtot \cond n,\bml)
   &= \int \rmdx{\lambda}\; \rmdx{\mu}\; \rmdx{\sigma^2}\;
   \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\sigma^2{+}\mu^2) \right)
   \times\\
@@ -881,7 +881,7 @@ While the integral cannot be carried out analytically, the integrand
 is unimodal and strongly peaked, so that the Laplace or saddle-point
 approximation~\cite[Ch. 27]{mackay2003information} can be applied.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-\hans{Some comments on the numerical values of hyperparameters $a$ in Poisson, $a,b$ 
+\hans{Some comments on the numerical values of hyperparameters $a$ in Poisson, $a,b$
   in inverse gamma needed.} %
 \hans{I would omit the text and calculations below. Apart from the
   extra parameters, the main reason is that the Gaussian prior in
@@ -902,9 +902,9 @@ $\mu$ and $\sigma^2$. The standard result for the posterior is a
 Gaussian for $\mu$ and an Inverse Gamma distribution for $\sigma^2$,
 \begin{align}
   \lleq{raf}
-  p(\mu, \sigma^2 \cond \bmy) 
+  p(\mu, \sigma^2 \cond \bmy)
   &= \GaussianDist\left(\mu \cond \mu_0^\prime, \sigma^2/n_0^\prime\right) %
-    \InvGammaDist\left( \sigma^2 \,\Bigl|\, \tfrac{1}{2}\nu_0^\prime, 
+    \InvGammaDist\left( \sigma^2 \,\Bigl|\, \tfrac{1}{2}\nu_0^\prime,
     \tfrac{1}{2}\nu_0^\prime \sigma_0^{\prime 2} \right)
 \end{align}
 where the hyperparameters $(n_0',\mu_0',\nu_0')$ are updated from
@@ -912,16 +912,16 @@ prior to posterior based on $\bmy$ with the sample mean
 $\langle\lum\rangle = (1/n) \sum_{j=1}^n \lum_j$,
 \begin{align}
   %\lleq{rag}
-  \lleq{rah}  n_0^\prime 
+  \lleq{rah}  n_0^\prime
   &= n_0 + n,\\
-  \lleq{rai}    \mu_0^\prime 
+  \lleq{rai}    \mu_0^\prime
   &= \frac{n_0 \mu_0 + n \langle\lum\rangle}{n_0^\prime},\\
-  \lleq{raj}    \nu_0^\prime 
+  \lleq{raj}    \nu_0^\prime
   &= \nu_0 + n,\\
-  \lleq{rak}    
-  \nu_0^\prime \sigma_0^{\prime 2} 
-  &= \nu_0 \sigma_0^{ 2} 
-    + \sum_{j=1}^n \left(\lum_j - \langle\lum\rangle\right)^2 
+  \lleq{rak}
+  \nu_0^\prime \sigma_0^{\prime 2}
+  &= \nu_0 \sigma_0^{ 2}
+    + \sum_{j=1}^n \left(\lum_j - \langle\lum\rangle\right)^2
     + \frac{n_0 n}{n_0^\prime} \left(\mu_0 - \langle\lum\rangle\right)^2\,.
 \end{align}
 By default, we take a noninformative prior and set $n_0 = \mu_0 =
@@ -936,8 +936,8 @@ form of $n$ and the first two sample moments
 $m_1 = \langle\ell\rangle$ and $m_2 = \langle\ell^2\rangle$.
 Inserting all these ingredients into Eq.~(\ref{asc}), we obtain
 \begin{align}
-  \lleq{ralb}
-  p(\Lumtot \cond \bmy) 
+  \lleq{ral}
+  p(\Lumtot \cond \bmy)
   &= \int \rmdx{\lambda}\; \rmdx{\mu}\; \rmdx{\sigma^2}\;
     p(\lambda \cond n)\; p( \mu, \sigma^2 \cond \bmy)\;
     \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\sigma^2{+}\mu^2) \right)

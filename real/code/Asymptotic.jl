@@ -19,6 +19,7 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64
     (xmean > 0) || error("nonpositive xmean $xmean")
     (xsumsq > 0) || error("nonpositive xsumsq $xsumsq")
 
+    """ with X (or Q) dependence, only contains λ, μ, σSq posterior"""
     function logposterior(x::Vector)
         λ, μ, σSq = x
 
@@ -40,6 +41,8 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64
     """log(-d/dt f(target=0|x))"""
     function logfirst(x::Vector)
         λ, μ, σSq = x
+        # bug fix
+        σSq += μ^2
         exponent = λ*μ^2 / (2*σSq)
         tmp = exp(-exponent) * sqrt(λ * σSq / (2 * π)) + 1/2 * λ * μ * (1 + erf(sqrt(exponent)))
         log(tmp)
@@ -48,6 +51,8 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64
     """log(d²/dt² f(target=0|x))"""
     function logsecond(x::Vector)
         λ, μ, σSq = x
+        # bug fix
+        σSq += μ^2
         exponent = λ*μ^2 / (2*σSq)
         tmp = exp(-exponent) * sqrt(2 / π * λ^3 * σSq) * μ + λ*(λ*μ^2 + σSq)*(1 + erf(sqrt(exponent)))
         log(1/2 * tmp)
@@ -56,6 +61,8 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64
     """log(-d^3/dt^3 f(target=0|x))"""
     function logthird(x::Vector)
         λ, μ, σSq = x
+        # bug fix
+        σSq += μ^2
         exponent = λ*μ^2 / (2*σSq)
         tmp = exp(-exponent) / sqrt(2π) * λ^(3/2) * sqrt(σSq) * (λ*μ^2 + 2σSq)
         tmp += 1/2 * λ * μ * (λ*μ^2 + 3σSq)*(1 + erf(sqrt(exponent)))
@@ -65,6 +72,8 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64
     """log(d^4/dt^4 f(target=0|x))"""
     function logfourth(x::Vector)
         λ, μ, σSq = x
+        # bug fix
+        σSq += μ^2
         exponent = λ*μ^2 / (2*σSq)
         tmp = exp(-exponent) / sqrt(2π) * λ^(5/2) * μ * sqrt(σSq) * (λ*μ^2 + 5σSq)
         tmp += 1/2 * λ^2 * (λ^2*μ^4 + 6λ*μ^2 + 3σSq)*(1 + erf(sqrt(exponent)))
