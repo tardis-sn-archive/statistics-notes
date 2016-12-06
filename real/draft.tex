@@ -23,7 +23,7 @@
     \begin{minipage}{\textwidth} #2\end{minipage}}} %
 
 %% CHANGE THIS DATE AS YOU MODIFY THE FILE
-\newcommand{\vdate}{161203}
+\newcommand{\vdate}{161206}
 \pagestyle{myheadings}
 \markboth{Version \vdate} {Version \vdate}
 
@@ -201,14 +201,14 @@ to the likelihood by Bayes' Theorem,
   &= \frac{p(\bmy\cond\bmtheta)\;p(\bmtheta)}
     {p(\bmy)}
     %= \frac{p(\bmy\cond\bmtheta)\;p(\bmtheta)}
-    %{\int d\bmtheta'\, p(\bmy\cond\bmtheta')\;p(\bmtheta')}
+    %{\int \rmdx{\bmtheta}'\, p(\bmy\cond\bmtheta')\;p(\bmtheta')}
 \end{align}
 where $p(\bmtheta)$, the so-called \textit{prior}, is the probability
 assigned to the values of the parameters before any data was taken
 into account and the \textit{evidence}
 \begin{align}
   \lleq{bti}
-  p(\bmy) &= \int d\bmtheta'\, p(\bmy\cond\bmtheta')\;p(\bmtheta'),
+  p(\bmy) &= \int \rmdx{\bmtheta}'\, p(\bmy\cond\bmtheta')\;p(\bmtheta'),
 \end{align}
 is fully determined by the likelihood and prior.
 %
@@ -219,7 +219,7 @@ integrating over all possible values of the likelihood, weighted by
 the posterior,
 \begin{align}
   \lleq{btj}
-  p(Y\cond \bmy) &= \int d\bmtheta\,p(Y\cond\bmtheta)\,p(\bmtheta\cond \bmy).
+  p(Y\cond \bmy) &= \int \rmdx{\bmtheta}\,p(Y\cond\bmtheta)\,p(\bmtheta\cond \bmy).
 \end{align}
 The above relations are true for any type of data and can be applied
 to actual experimental data and the pertinent physical parameters. The
@@ -345,12 +345,12 @@ on $p(Q\cond n,\bml)$ results in
 \begin{align}
   \lleq{sll}
   p(Q\cond n,\bml)
-  &= \sum_{N=0}^\infty \;\int_0^\infty d\lambda\;
+  &= \sum_{N=0}^\infty \;\int_0^\infty \rmdx{\lambda}\;
     p(N\cond\lambda)\;
     p(\lambda\cond n)
-    \int d\bmL\;
+    \int \rmdx{\bmL}\;
     p(Q\cond N,\bmL)\;
-    \int d\bmphi\;
+    \int \rmdx{\bmphi}\;
     p(\bmL\cond N,\bmphi)\,
     p(\bmphi\cond n,\bml),
 \end{align}
@@ -361,16 +361,16 @@ $Q$ is fully determined by $N$ and $\bmL$ and so we can shorten
 $p(Q\cond N,\bmL,\lambda,\bmphi,n,\bml)$ to $p(Q\cond N,\bmL)$. %
 Likewise the probability for $\bmL$ is fully determined by $N$ and the
 parameters $\bmphi$ and does not depend on the data $n,\bml$.  The
-bounds of $\int d\bmL$ and $\int d\bmphi$ are determined by the
+bounds of $\int \rmdx{\bmL}$ and $\int \rmdx{\bmphi}$ are determined by the
 specific model and data for which $p(Q\cond n,\bml)$ is to be
 calculated.
 % 
 We note that a part of Eq.~(\ref{sll}) can be seen as a convolution
 since $p(Q\cond N,\bmL)$ can be written as a Dirac delta function,
 \begin{align}
-  \lleq{ddf}
-  \int d\bmL\; p(Q\cond N,\bmL)\; p(\bmL\cond N,\bmphi)
-  &= \int d\bmL\;\delta(Q - \textstyle\sum_{j=1}^N L_j)\; \prod_j p(L_j\cond \bmphi).
+  \lleq{slm}
+  \int \rmdx{\bmL}\; p(Q\cond N,\bmL)\; p(\bmL\cond N,\bmphi)
+  &= \int \rmdx{\bmL}\;\delta(Q - \textstyle\sum_{j=1}^N L_j)\; \prod_j p(L_j\cond \bmphi).
 \end{align}
 Eq.~(\ref{sll}) is exact, and in principle all that remains is to make
 specific choices for the various probabilities which are judged best
@@ -393,7 +393,7 @@ expressions for Eq.~(\ref{sll}).
 First, the parameter $\lambda$ is eliminated as follows. The number of
 packets $N$ is Poisson-distributed
 \begin{align}
-  \lleq{caa}
+  \lleq{pmb}
   p(N\cond\lambda) &= \frac{e^{-\lambda}\lambda^{N}}{N!}
   \quad N = 0,1,\ldots,\infty.
 \end{align}
@@ -406,7 +406,7 @@ e^{-\lambda}\lambda^{n}/n!$. %
 The posterior for $\lambda$ is found from the data $n$ via Bayes'
 Theorem,
 \begin{align}
-  \lleq{cab}
+  \lleq{pmc}
   p(\lambda\cond n) %
   &= \frac{p(n\cond\lambda)\,p(\lambda)} {p(n)}
   \ =\ \frac{p(n\cond\lambda)\,p(\lambda)} %
@@ -417,7 +417,7 @@ We use an improper prior
   \lleq{pmf}
   p(\lambda) = c \lambda^{-a},
 \end{align}
-meaning that $\int_0^\infty d\lambda\,p(\lambda)$ is known only up to
+meaning that $\int_0^\infty \rmdx{\lambda}\,p(\lambda)$ is known only up to
 a constant $c$. A hyperparameter choice $a=0$ yields the uniform
 prior, $a=1/2$ gives the Jeffreys and reference prior, and $a=1$ is
 the transformation-group result advocated by
@@ -442,20 +442,21 @@ rate parameter $\beta > 0$ is defined as
   \quad 0 \leq x < \infty.
 \end{align}
 The evidence is 
-$p(n) =  \int_0^\infty d\lambda\, p(n\cond\lambda)\,p(\lambda) = c\,(n-a)!/n!$
+$p(n) =  \int_0^\infty \rmdx{\lambda}\, p(n\cond\lambda)\,p(\lambda) = c\,(n-a)!/n!$
 % \begin{align}
 %   \lleq{pmg}
 %   p(n) 
-%   &=  \int_0^\infty d\lambda\, p(n\cond\lambda)\,p(\lambda)
+%   &=  \int_0^\infty \rmdx{\lambda}\, p(n\cond\lambda)\,p(\lambda)
 %     \ =\ c\frac{(n-a)!}{n!} \,, \\
 % \end{align}
-and inserting Eqs.~(\ref{caa}) and (\ref{cab}), the prediction for $N$
+and inserting Eqs.~(\ref{pmb}) and (\ref{pmc}), the prediction for $N$
 given $n$ is
 \begin{align}
   \lleq{pmh}
   p(N\cond n) %
-  &= \int_0^\infty d\lambda\, p(N\cond\lambda)\,p(\lambda\cond n)
-  \ =\ \frac{(N+n-a)!}{N!\,(n-a)!\,2^{N+n+1-a}} \, .
+  &= \int_0^\infty \rmdx{\lambda}\, p(N\cond\lambda)\,p(\lambda\cond n)
+  \ =\ \binom{N{+}n{-}a}{N} \left(\frac{1}{2}\right)^{N+n-a+1}
+    %\ =\ \frac{(N+n-a)!}{N!\,(n-a)!\,2^{N+n+1-a}} \, .
 \end{align}
 so that Eq.~(\ref{sll}) simplifies to
 \begin{align}
@@ -463,9 +464,9 @@ so that Eq.~(\ref{sll}) simplifies to
   p(Q\cond n,\bml)
   &= \sum_{N=0}^\infty \;
     p(N\cond n)\;
-    \int d\bmL\;
+    \int \rmdx{\bmL}\;
     p(Q\cond N,\bmL)\;
-    \int d\bmphi\;
+    \int \rmdx{\bmphi}\;
     p(\bmL\cond N,\bmphi)\,
     p(\bmphi\cond n,\bml),
 \end{align}
@@ -486,11 +487,11 @@ with parameters $\bmphi = (\alpha,\beta)$,
   \lleq{spc}
   p(L_j\cond \bmphi) &\sim \GammaDist(L_j\cond \alpha,\beta)
 \end{align}
-which has the nice property that the convolution (\ref{ddf}) results
+which has the nice property that the convolution (\ref{slm}) results
 in yet another Gamma distribution,
 \begin{align}
   \lleq{spd}
-  \int d\bmL\; p(Q\cond N,\bmL)\; p(\bmL\cond N,\bmphi)
+  \int \rmdx{\bmL}\; p(Q\cond N,\bmL)\; p(\bmL\cond N,\bmphi)
   &= \GammaDist(Q\cond N\alpha, \beta).
 \end{align}
 and so (\ref{gmh}) becomes in this example
@@ -499,7 +500,7 @@ and so (\ref{gmh}) becomes in this example
   p(Q\cond n,\bml)
   &= \sum_{N=0}^\infty \;
     p(N\cond n)\;
-    \int d\alpha\,d\beta\;
+    \int \rmdx{\alpha}\,\rmdx{\beta}\;
     \GammaDist(Q\cond N\alpha, \beta)\;
     p(\alpha,\beta\cond n,\bml).
 \end{align}
@@ -558,12 +559,12 @@ The posterior is
 \end{align}
 and hence
 \begin{align}
-  \lleq{spj}
+  \lleq{spk}
   p(Q\cond n,\bml)
   &= \frac{1}{C} 
     \sum_{N=0}^\infty \;
     p(N\cond n)\;
-    \int d\alpha\,d\beta\;
+    \int \rmdx{\alpha}\,\rmdx{\beta}\;
     \GammaDist(Q\cond N\alpha, \beta)\;
     \frac{\beta^{n\alpha} p^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}
 \end{align}
@@ -737,7 +738,7 @@ factors into
 \begin{align}
   \lleq{asc}
   p(Q\cond n,\bml) 
-  &= \int d\lambda\; d\bmphi\; 
+  &= \int \rmdx{\lambda}\; \rmdx{\bmphi}\; 
     p(\lambda\cond n)\;
     p(\bmphi\cond n,\bml)\;
     p(Q\cond \lambda,\bmphi) \\
@@ -745,14 +746,15 @@ factors into
   p(Q\cond \lambda,\bmphi)
   &= \sum_N 
     p(N\cond \lambda)\;
-    \int d\bmL\; 
+    \int \rmdx{\bmL}\; 
     p(Q\cond N,\bmL)\;
     p(\bmL\cond n,\bmphi)
 \end{align}
 with $p(\bmL\cond n,\bmphi) = \prod_{j=1}^n p(L_j\cond\bmphi)$ as
-before. Writing the moments and variance of $L$ as\footnote{The $k$-th
-  moment of variable $x$ is defined as the expectation value
-  $\mu_k = \expect{x^k} = \int dx\,x^k\,p(x),\; k = 0,1,2,\ldots$.} %
+before. Again all quantities are related to a single bin in frequency.
+Writing the moments and variance of $L$ as\footnote{The $k$-th moment
+  of variable $x$ is defined as the expectation value $\mu_k =
+  \expect{x^k} = \int \rmdx{x}\,x^k\,p(x),\; k = 0,1,2,\ldots$.} %
 \begin{align}
   \lleq{ram}
   \mu =  \mu_1 &\equiv \expect{\Lum}, \qquad 
@@ -773,7 +775,7 @@ of $L$ by
 \end{align}
 for any probability $p(L\cond\bmphi)$.
 %
-Furthermore, higher-order quantities such as the skewness and kurtosis
+Higher-order quantities such as the skewness and kurtosis
 are suppressed by powers of $\lambda^{-1/2}$.
 %%%%%%%%%%%
 \hans{The variance is the second so-called \textit{cumulant}. The
@@ -795,43 +797,109 @@ a gaussian or normal distribution,
     = \GaussianDist \left( \Lumtot \cond \lambda \mu_1, \lambda (\mu^2 {+} \sigma^2) \right).
 \end{align}
 This drastic simplification eliminates both the sum over $N$ and the
-integral over $\bmL$ in \refeq{asd} and allows us to model $\Lumtot$
-in each bin without having to make concrete assumptions about the
-functional form of $P(\Lum \cond \bmphi)$. Correspondingly, we may now
-redefine $\bmphi$ as the moment $\mu$ and variance $\sigma^2$ of
-$p(L\cond\bmphi)$,
-\begin{align}
-  \lleq{rac}
-  \bmphi =  (\mu, \sigma^2).
-\end{align}
-The price for this flexibility is that $\bmphi$ may now contain many
-parameters, and each one is determined only from the samples in a
-single bin. The joint posterior is
-\begin{align}
-  \lleq{rad}
-  p(\bmphi \cond \bmy ) = \prod_{b=1}^B p\left(\lambda_b, \mu_b, \sigma^2_b \cond \bmy\right),
-\end{align}
-Focussing on a single bin, we omit the subscript $b$. As before, we
-further assume that
-\begin{align}
-  \lleq{rao}
-p(\lambda, \mu, \sigma^2 \cond \bmy) = p(\lambda \cond \bmy) p(\mu,
-\sigma \cond \bmy).
-\end{align}
-The posterior for $\lambda$ is given by \refeq{pms}.  To learn mean
-and variance of $\Lum$ from $\bmy$, we follow
-Jaynes~\cite[Ch. 7.10]{jaynes2003probability} and assign a Gaussian
-sampling distribution
+integral over $\bmL$ in \refeq{asd}. 
+
+It remains to find the integrals over $\lambda$ and $\bmphi$ in
+\refeq{asc}. As before, the posterior for $\lambda$ is the Gamma
+distribution of \refeq{pms}. %
+% 
+To determine $p(\bmphi\cond n,\bml)$, we note that the result
+(\ref{rab}) also simplifies the calculation of the parameter posterior
+$p(\bmphi\cond n,\bml)$ since, independently of the actual functional
+model for $p(L\cond\bmphi)$ the only relevant information is contained
+in the first moment $\mu$ and variance $\sigma^2$.  As set out in
+Jaynes~\cite[Ch. 7.10]{jaynes2003probability}, knowledge of $\mu$ and
+$\sigma^2$ implies that we can assign a Gaussian distribution to
+$p(L\cond\bmphi)$
 \begin{align}
   \lleq{rae}
+  p(\Lum \cond \bmphi) = 
   p(\Lum \cond \mu, \sigma^2 ) &= \GaussianDist(\Lum \cond \mu, \sigma^2)
 \end{align}
-although the actual data histograms may be quite different from a
-Gaussian. Our motivation is that this Gaussian represents our state of
-knowledge \emph{before} data $\bmy$ is observed. To simplify the
-calculations, we assume a conjugate prior for unknown $\mu$ and
-$\sigma^2$. The standard result for the posterior is a Gaussian for
-$\mu$ and an Inverse Gamma distribution for $\sigma^2$,
+even though the actual data histograms may not be Gaussian. The reason
+is that a Gaussian represents our state of knowledge \emph{before}
+data $\bmy$ is observed. With this assignment, the definition of
+$\bmphi$ reduces to $(\mu,\sigma^2)$ and the posterior becomes, using
+Bayes' Theorem,
+\begin{align}
+  \lleq{rac}
+  p(\mu,\sigma^2\cond n,\bml)
+  &= \frac{
+    \GaussianDist(\bml\cond\mu,\sigma^2)\;
+    p(\mu\cond n)\;
+    p(\sigma^2\cond n)}
+  {p(\bml\cond n)}
+\end{align}
+\hans{I have inserted a uniform prior for $\mu$ here; see comments
+  below. The original Gaussian prior has been retained below but I
+  would suggest that the compliations introduced by it are
+  unnecessary.}  %
+In keeping with prior information that luminositites are always
+positive, we assign an improper uniform prior
+$p(\mu\cond\mu_{\rm max}) = 1/\mu_{\rm max}$ independent of $n$; as
+always, the posterior is independent of $\mu_{\rm max}$. For
+$\sigma^2$, we use an $n$-independent Inverse Gamma distribution prior
+with hyperparameters $(a_0,b_0)$ which reads
+\begin{align}
+  \lleq{rad}
+  p(\sigma^2\cond a_0,b_0) 
+  = \InvGammaDist(\sigma^2\cond a_0,b_0)
+  &= \frac{b_0^{a_0}}{\Gamma(a_0)} (\sigma^2)^{-a_0-1} \exp(-b_0/\sigma^2)
+\end{align}
+and is ``conjugate'' to the normal distribution likelihood of
+\refeq{rae} in that the posterior for $(\mu,\sigma^2)$ is also a
+Gaussian in $\mu$ and an Inverse Gamma in $\sigma^2$, but with
+parameters updated by the data,
+\begin{align}
+  \lleq{rbd}
+  p(\mu,\sigma^2\cond n,\bml,a_0,b_0)
+  &= \GaussianDist(\mu\cond \mu_n,\sigma_n^2)
+  \cdot
+  \InvGammaDist(\sigma^2\cond a_n,b_n) \\ 
+  \mu_n &= \langle\ell\rangle\\
+  \sigma_n^2 &= \sigma^2/n \\
+  a_n &= a_0 + \tfrac{1}{2}n \\
+  b_n &= b_0 + \tfrac{1}{2} n\left( \langle\ell^2\rangle - \langle\ell\rangle^2\right)
+\end{align}
+with data sample moments $\langle\lum^k\rangle$ defined as $(1/n)
+\sum_{j=1}^n \lum_j^k$.
+% 
+Inserting Eqs.~(\ref{pms}) and (\ref{rbd}) into \refeq{asc}, we obtain
+\begin{align}
+  \lleq{ral}
+  p(\Lumtot \cond n,\bml) 
+  &= \int \rmdx{\lambda}\; \rmdx{\mu}\; \rmdx{\sigma^2}\;
+  \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\sigma^2{+}\mu^2) \right)
+  \times\\
+  &\quad\times
+  \GammaDist(\lambda \cond n{-}a{+}1 , 1) \cdot
+  \GaussianDist(\mu\cond \mu_n,\sigma_n^2) \cdot
+  \InvGammaDist(\sigma^2\cond a_n,b_n) \;
+  \nonumber
+\end{align}
+While the integral cannot be carried out analytically, the integrand
+is unimodal and strongly peaked, so that the Laplace or saddle-point
+approximation~\cite[Ch. 27]{mackay2003information} can be applied.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\hans{Some comments on the numerical values of hyperparameters $a$ in Poisson, $a,b$ 
+  in inverse gamma needed.} %
+\hans{I would omit the text and calculations below. Apart from the
+  extra parameters, the main reason is that the Gaussian prior in
+  $\mu$ is not consistent with the fact that all luminosities are
+  positive, while the gaussian permits negative $\mu$. This may not be
+  important numerically, but the uniform prior in $\mu$ does
+  circumvent this problem and is moreover less informative than the
+  Gaussian prior. } %
+\hans{Note also that letting $\mu_0{=}0$ and $ n_0\to 0$ below implies
+  a prior gaussian of infinite width centered on zero, i.e.\ half of
+  the values of $\mu$ will be negative. Could this be the reason why
+  the numerics pick up a factor two?}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+To simplify the calculations, we assume a conjugate prior for unknown
+$\mu$ and $\sigma^2$. The standard result for the posterior is a
+Gaussian for $\mu$ and an Inverse Gamma distribution for $\sigma^2$,
 \begin{align}
   \lleq{raf}
   p(\mu, \sigma^2 \cond \bmy) 
@@ -856,12 +924,8 @@ $\langle\lum\rangle = (1/n) \sum_{j=1}^n \lum_j$,
     + \sum_{j=1}^n \left(\lum_j - \langle\lum\rangle\right)^2 
     + \frac{n_0 n}{n_0^\prime} \left(\mu_0 - \langle\lum\rangle\right)^2\,.
 \end{align}
-\hans{H: The last term in (\ref{rak}) was missing a square. Even so, I
-  have not yet been able to verify that equation (rak) from
-  Wikipedia's Normal Distribution entry agrees with Eq.(200) of
-  Murphy's 2007 paper.} %
-By default, we take a noninformative prior and set
-$n_0 = \mu_0 = \nu_0 = 0$, so the value $\sigma_0^2>0$ is irrelevant.
+By default, we take a noninformative prior and set $n_0 = \mu_0 =
+\nu_0 = 0$, so the value $\sigma_0^2>0$ is irrelevant. %
   % The posterior
   % $ p(\expect{\Lum}, \expect{\Lum^2} \cond \bmy)$ is given by
   % \refeq{raf} with $\mu, \sigma^2$ replaced by
@@ -872,9 +936,9 @@ form of $n$ and the first two sample moments
 $m_1 = \langle\ell\rangle$ and $m_2 = \langle\ell^2\rangle$.
 Inserting all these ingredients into Eq.~(\ref{asc}), we obtain
 \begin{align}
-  \lleq{ral}
+  \lleq{ralb}
   p(\Lumtot \cond \bmy) 
-  &= \int d\lambda\; d\mu\; d\sigma^2\;
+  &= \int \rmdx{\lambda}\; \rmdx{\mu}\; \rmdx{\sigma^2}\;
     p(\lambda \cond n)\; p( \mu, \sigma^2 \cond \bmy)\;
     \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\sigma^2{+}\mu^2) \right)
     \,,
@@ -883,6 +947,10 @@ where $ p(\lambda \cond n)$ is given by \refeq{pms} and
 $ p( \mu, \sigma^2 \cond \bmy)$ by Eqs.~(\ref{raf})--(\ref{rak}).
 
 \subsection{Numerical implementation}\label{sec:asympt-numeric}
+
+\hans{H: If threefold integrals must be carried out for the
+  expectation values, why not do so for Eq (ral) directly rather than
+  just the expectation values?} %
 
 While the integral in \refeq{ral} cannot be integrated analytically,
 the integrand is unimodal and strongly peaked, so that the Laplace or
@@ -926,8 +994,6 @@ within $\order{10}$ steps:
   \lleq{rat}
   \qty(\lambda, \mu, \sigma^2) = 1.0005 (n, \langle\lum\rangle, \langle\lum^2\rangle{-}\langle\lum\rangle^2).
 \end{align}
-\hans{H: If threefold integrals must be carried out for the expectation values, why not do so
-for Eq (ral) directly rather than just the expectation values?} %
 \fred{Did we define expectation value and variance? Should be in notation or intro section. Hans: see footnote 2.} %
 \fred{At least for us, I should do a comparison plot to evaluate $p(\Lumtot \cond \bmy)$ with both methods } %
 \fred{We need a plot, the one to compare predictions and 250 real replicas or 100 virtual replicas?} %
@@ -1018,142 +1084,3 @@ We use the shorthand $\alpha_n \equiv \alpha(\nu_n \cond
 
 
 \end{document}
-\subsection{Old}
-%old text
-The joint distribution then is
-\begin{align}
-  \lleq{cac}
-  % Q, N \sim P(Q, N \cond \bmphi, )
-  (N,\bmL) &\ \sim\ p(N,\bmL\cond \bmphi,\lambda, \nu)
-  = p(\bmL\cond N,\bmphi, \nu)\; p(N\cond \lambda) = \prod_{j=1}^N p(\Lum_j\cond \bmphi, \nu) \; p(N\cond \lambda),
-\end{align}
-\fred{Do we need this equation?}
-where we used that the Poisson term does not depend on $\nu$
-explicitly. In general, the distribution of $\Lum_j$ could be a of a
-different functional form in each bin. For simplicity, we assume it is
-identical but may depend on parameters that differ from bin to bin. In
-practice, the distribution of packets usually does not change abruptly
-with frequency. We therefore assume that any parameter needed to fully
-specify $p(\Lum_j)$ is given explicitly as a continuous function of $\nu$
-and the unknown parameters $\bmphi$. This allows us to use a small
-number of parameters to describe $p(\Lumtot)$ across the entire frequency
-range instead of having a few parameters per bin which could lead to
-tens of thousands of parameters for the applications we have in
-mind. So we determine $\bmphi$ from fitting all simulated packets
-simultaneously whereas $\lambda$ is a per-bin quantity.
-\fred{Reformulate when asymptotic approx. included: it has thousands of parameters}
-
-Our goal of predicting $\Lumtot$ in some bin given the simulation output
-$(\npack,\bmnu, \bml)$ is captured in the probability density
-$p(\Lumtot\cond \nu, \npack,\bmnu, \bml)$ with all relevant parameters
-integrated out. To simplify the treatment, we assume that the
-frequency bins are narrow or equivalently that $p(\Lumtot \cond \nu, \npack,
-\bmnu, \bml)$ does not vary within a bin. This implies that every
-sample $\Lum_j$ in the bin follows the same distribution.  As the
-reference frequency, we choose the bin center.
-
-% From \refeq{caa}, $N$ does not depend on $\bml$ at all and only
-% indirectly depends on $\bmnu$ through $n$.
-Since $\Lumtot$ is fully determined by $(N,\bmL)$, it does not depend on
-$(\npack,\bml,\bmnu)$, i.e.
-\begin{align}
-  \lleq{pmi}
-  p(\Lumtot\cond N,\bmL,\nu,\npack,\bmnu, \bml)
-  = p(\Lumtot\cond N, \bmL)
-  &= \delta(\Lumtot - \textstyle\sum_{j=1}^N \Lum_j),
-\end{align}
-\fred{Uniform order: $\nu$ first, then $\ell$, compare to $S$} where
-each $\Lum_j$ is assumed to occur at $\nu$.  Using the law of total
-probability repeatedly, we can write the desired distribution as
-\fred{Discuss $N=0$ case somewhere}
-\begin{align}
-  \lleq{pmj}
-  p(\Lumtot\cond \nu, \npack,\bmnu, \bml)
-  &= \sum_N p(N\cond \nu, \npack,\bmnu, \bml) \, p(\Lumtot\cond N,\nu, \npack,\bmnu, \bml) \\
-  \lleq{pmjb}
-  &= \sum_N p(N\cond n)\,\int \rmdx{\bmL} p(\Lumtot\cond N,\bmL,\nu, \npack,\bmnu, \bml)\, p(\bmL\cond N,\nu, \npack,\bmnu, \bml)
-  \\
-  \lleq{pmjc}
-  &= \sum_N p(N\cond n)\,\int \rmdx{\bmL} \delta(\Lumtot - \textstyle\sum_{j=1}^N \Lum_j)
-  \, p(\bmL\cond N,\nu, \npack,\bmnu, \bml).
-\end{align}
-The dependence on the simulation output $(\npack,\bmnu, \bml)$ enters
-through $p(\bmL\cond N,\npack,\bmnu, \bml)$ in terms of the parameters
-$\bmphi$ of $p(\bmL\cond N,\bmphi)$,
-\begin{align}
-  p(\bmL\cond N,\nu, \npack,\bmnu, \bml)
-  &= \int \rmdx{\bmphi} p(\bmL\cond \bmphi,N, \nu, \npack,\bmnu, \bml)\,p(\bmphi\cond N,\nu, \npack,\bmnu, \bml) \\
-  \lleq{pmk}
-  &= \int \rmdx{\bmphi} p(\bmL\cond \bmphi, N, \nu)\,p(\bmphi\cond N,\nu, \npack,\bmnu, \bml).
-\end{align}
-because $\bmL$ is fully determined by $N,\bmphi, \nu$ and hence
-independent of $\npack,\bmnu, \bml$.  With Bayes' theorem we learn about
-$\bmphi$ from the simulation output
-\begin{align}
-  \lleq{pmkb}
-  p(\bmphi\cond N,\nu, \npack,\bmnu, \bml) &=
-  \frac{p(\bml\cond \bmphi, N,\nu, \npack,\bmnu)\,p(\bmphi\cond N,\nu, \npack,\bmnu)} %
-  {\int \rmdx{\bmphi} p(\bml\cond \bmphi,N,\nu, \npack,\bmnu)\,p(\bmphi\cond N,\nu, \npack,\bmnu)}.
-\end{align}
-By using a multiplicity- and frequency-independent prior for $\bmphi$,
-\begin{align}
-  \lleq{pml}
-  p(\bmphi\cond N,\nu, \npack,\bmnu) &= p(\bmphi),
-\end{align}
-and by recognizing that $\bml$ is independent of $N$ and $\nu$
-\begin{align}
-  \lleq{pmla}
-  p(\bml\cond \bmphi,N,\nu, \npack,\bmnu) = p(\bml\cond \bmphi,\npack,\bmnu)
-\end{align}
-we can write \refeq{pmk} as
-\begin{align}
-  \lleq{pmn}
-  p(\bmL\cond N,\nu, \npack,\bmnu, \bml)
-  &= \int \rmdx{\bmphi} p(\bmL\cond N,\bmphi)\, %
-  \frac{p(\bml\cond \bmphi, \npack, \bmnu)\,p(\bmphi)} %
-  {\int \rmdx{\bmphi} p(\bml\cond \bmphi,\npack,\bmnu)\,p(\bmphi)} \\
-  \lleq{pmo}
-  &= \frac{1}  {p(\bml\cond \npack, \bmnu)} %
-  \int \rmdx{\bmphi} p(\bmL\cond \bmphi, N)\, %
-  p(\bml\cond \bmphi, \npack,\bmnu)\,p(\bmphi)
-\end{align}
-where $p(\bml\cond \npack, \bmnu) = \int \rmdx{\bmphi} p(\bml\cond
-\bmphi, \npack,\bmnu)\,p(\bmphi)$ is the evidence.  Inserting \refeq{pmo}
-into \refeq{pmjc}, we obtain the desired master equation:
-\begin{equation}
-  \lleq{pmp}
-  \boxed{
-  p(\Lumtot\cond \nu, \npack,\bmnu, \bml)
-  = \frac{1}{p(\bml\cond \npack, \bmnu)}
-  \sum_N p(N\cond n)\,\int \rmdx{\bmL} \delta(\Lumtot - \textstyle\sum_j \Lum_j)
-  \displaystyle\int \rmdx{\bmphi} p(\bmL\cond \bmphi, N, \nu) \, p(\bml\cond \bmphi,\npack,\bmnu)
-  \, p(\bmphi)
-  }
-\end{equation}
-with
-\begin{align}
-  \lleq{pmq}
-  p(\bmL\cond \bmphi, N, \nu) &= \prod_{j=1}^N p(\Lum_j\cond \bmphi, \nu), \\
-  \lleq{pmr}
-  p(\bml\cond \bmphi,\npack,\bmnu) &= \prod_{i=1}^{\npack} p(\ell_i\cond \bmphi, \nu_i)
-\end{align}
-and $p(\cdot \cond \bmphi, \cdot)$ is the same function in both
-equations.  In the next section, we compute the general result for
-$P(N \cond n)$. Equation \refeq{pmp} then implies that once we specify
-the prior $p(\bmphi)$ and the likelihood $p(\Lum_j\cond \bmphi, \nu)$, we
-have a prediction for $\Lumtot$ which takes into account all possible $N$,
-$\lambda$ and $\bmphi$. Both likelihood and prior depend on the
-simulation under consideration but a general requirement to render our
-approach tractable is that the distribution of a single packet
-luminosity $P(\Lum_j \cond \bmphi, \nu)$ should be such that the integral
-over $\bmL$ has a closed-form solution. In other words, for a given
-distribution of $\Lum_j$, the distribution of $\Lumtot = \sum_N \Lum_j$ should be
-known.
-%  An important special case is the class of \emph{stable}
-% distributions.
-
-We use Bayes' theorem to find the posterior distribution for
-
-% Local Variables:
-% compile-command:"rubber --pdf -W refs -S draft"
-% End:
