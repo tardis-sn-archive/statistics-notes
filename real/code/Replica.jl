@@ -3,7 +3,6 @@ module Replica
 using tardis
 using Asymptotic
 using Base.Test
-import ConjugatePriors
 import Distributions
 using DataFrames
 using HDF5
