@@ -119,7 +119,7 @@ function test()
     n, sums, means, sumsqdiff = read_real(10)
     i = 10
     a = 1.0
-    target = targetfactory(Posterior, n[i], means[i], sumsqdiff[i], a)
+    target = targetfactory(tardis.Posterior, n[i], means[i], sumsqdiff[i], a)
     # target(x) = -logposterior(x)
     x = [501.0,1.406,0.001]
     res = optimize(target, x, Newton(), OptimizationOptions(autodiff = true))

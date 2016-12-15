@@ -81,7 +81,7 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64
         var = σSq + μ^2
         exponent = λ*μ^2 / (2*var)
         tmp = exp(-exponent) * sqrt(λ * var / (2 * π)) + 1/2 * λ * μ * (1 + erf(sqrt(exponent)))
-        tmp > 0.0 || error( λ, μ, σSq )
+        tmp > 0.0 || error(λ, μ, σSq )
         log(tmp)
     end
 
