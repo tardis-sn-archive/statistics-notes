@@ -1,4 +1,4 @@
-module tardis
+module Tardis
 
 using DataFrames, HDF5, Optim, Polynomials
 import PyCall

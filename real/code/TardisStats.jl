@@ -2,9 +2,9 @@ __precompile__(false)
 
 module TardisStats
 
-include("Asymptotic.jl")
+include("tardis.jl")
 include("optim.jl")
 include("Replica.jl")
-include("tardis.jl")
+include("Asymptotic.jl")
 
 end # module

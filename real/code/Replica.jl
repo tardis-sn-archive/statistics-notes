@@ -1,6 +1,6 @@
 module Replica
 
-using tardis
+using ..Tardis
 using Asymptotic
 using Base.Test
 import Distributions

@@ -1,12 +1,12 @@
 module optim
 
-using tardis
+using ..Tardis
 using DataFrames
 using MaxPlugin
 using MinPoly
 using NLopt
 using Optim
-using Plots; gr() #pyplot()
+using Plots
 using Polynomials
 
 function problem(;run=11, npackets=typemax(Int64), αOrder=2, βOrder=1)

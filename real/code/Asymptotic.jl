@@ -1,10 +1,9 @@
 module Asymptotic
 
-using tardis, Optim
+using ..Tardis
+using Optim
 import ForwardDiff
-chunk = ForwardDiff.Chunk{3}()
-
-
+# chunk = ForwardDiff.Chunk{3}()
 """
 Enumeration to specify which target function to create
 * PosteriorParam p(\lambda, \mu, \sigma^2 | data)
@@ -133,7 +132,6 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64
     return x -> -f(x)
 end
 
-# TODO safe Hessian in buffer passed by user
 function uncertainty(n::Int64, xmean::Float64, xsumsq::Float64;
                      a::Float64=1.0, Q::Float64=-1.0)
     # initial guess for optimization: slightly off to avoid
@@ -146,7 +144,7 @@ function uncertainty(n::Int64, xmean::Float64, xsumsq::Float64;
         target = targetfactory(moment, n, xmean, xsumsq; a=a, Q=Q)
         res = optimize(target, init, Newton(), OptimizationOptions(autodiff=true))
         print(Optim.minimizer(res))
-        ForwardDiff.hessian!(H, target, Optim.minimizer(res), chunk)
+        ForwardDiff.hessian!(H, target, Optim.minimizer(res))
         exp(tardis.laplace(-Optim.minimum(res), H))
     end
 
@@ -158,10 +156,6 @@ function uncertainty(n::Int64, xmean::Float64, xsumsq::Float64;
     μ = integrate(FirstMoment)
 
     # second moment
-    # target = targetfactory(SecondMoment, n, xmean, xsumsq, a)
-    # res = optimize(target, init, Newton(), OptimizationOptions(autodiff=true))
-    # ForwardDiff.hessian!(H, target, Optim.minimizer(res), chunk)
-    # logsecond = tardis.laplace(-Optim.minimum(res), H)
     second = integrate(SecondMoment)
     σ = sqrt(second - μ^2)
 

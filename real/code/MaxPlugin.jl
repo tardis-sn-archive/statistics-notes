@@ -4,9 +4,8 @@ Find the mode of NegativeBinomial(N|n-a+1, 1/2)*Gamma(X|Nα, β) using Brent's m
 Use the plug-in values of α and β to avoid costly integration.
 """
 module MaxPlugin
-using tardis
+using ..Tardis, ..Optim
 using Distributions
-using Optim
 
 """
 Collect data that the target density needs
