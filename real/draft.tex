@@ -512,16 +512,15 @@ application of Bayes' Theorem,
   &= \frac{p(n,\bml\cond \alpha,\beta)\,p(\alpha,\beta)}{p(n,\bml)}
 \end{align}
 where the data $(n,\bml)$ must naturally follow the same
-Gamma-distribution likelihood as $(N,\bmL)$, i.e.\
+Gamma likelihood as $(N,\bmL)$, i.e.\
 \begin{align}
   \lleq{spg}
   p(n,\bml\cond \alpha,\beta)
   & = \prod_{j=1}^n \GammaDist(\ell_j\cond\alpha,\beta)
-    \ =\ \frac{\beta^{n\alpha} p^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}
+    \ =\ \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}
 \end{align}
-with compact representation of the data in terms of
-$q = \sum_{j=1}^n \ell_j$ and $r = \prod_{j=1}^n \ell_j$.
-
+with the data summarized by the sufficient statistics $n$,
+$q \equiv \sum_{j=1}^n \ell_j$, and $r \equiv \prod_{j=1}^n \ell_j$.
 
 The only missing piece to explicitly evaluate \refeq{spf} is the prior
 $p(\alpha,\beta)$.
@@ -537,10 +536,16 @@ mode of the posterior is nearly insensitive to the prior choice
 starting from around $n = 30$. This requirement is nearly always
 satisfied and so the functional form of $p(\alpha,\beta)$ is not
 important. There is, however, some explicit prior information which we
-want to build into our analysis. The distribution
-$p(\ell \cond \alpha, \beta)$ should always vanish at the origin,
-requiring that $\alpha$ must be larger than 1.  For $\beta$, we
-likewise choose a uniform prior
+want to build into our analysis.
+The distribution $p(\ell \cond \alpha, \beta)$ should always vanish at
+the origin, requiring that $\alpha$ must be larger than 1.  For
+$\beta$, we likewise choose a uniform prior
+%
+\fred{This paragraph is from the old TARDIS section. In general, we
+  don't impose the constraint on $\alpha$. Only for TARDIS it seemed
+  to match and prevented the fitting from running away if very few
+  samples were present}
+%
 \begin{align}
   \lleq{sph}
   p(\alpha,\beta)
@@ -1082,5 +1087,8 @@ We use the shorthand $\alpha_n \equiv \alpha(\nu_n \cond
 \bibliographystyle{plain}
 \bibliography{references}
 
-
 \end{document}
+
+% Local Variables:
+% compile-command:"rubber --pdf -W refs --synctex draft"
+% End:
