@@ -108,12 +108,12 @@ function run_nlopt(frame, f,  ∇f!, Hf!, αOrder, βOrder; init=nothing, xtol_r
     return res
 end
 
-# """
+"""
 
-# Compute contribution to `res` for `N`. Return updated `res` and bool
-# if search should continue in this direction.
+Compute contribution to `res` for `N`. Return updated `res` and bool
+if search should continue in this direction.
 
-# """
+"""
 function search_step!(frame::DataFrame, Pmean, ∇Pmean!, HPmean!, Hres::Matrix, pm::PosteriorMean,
                       αOrder::Integer, βOrder::Integer, nb::NegBinom, res::Real, θ::Vector, ε::Real;
                       xtol_rel=1e-5, optimize=true)
