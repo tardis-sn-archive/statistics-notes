@@ -4,14 +4,14 @@ module GammaIntegrand
 export log_gamma, log_gamma_predict, log_poisson_predict, log_posterior, make_log_posterior
 
 import ..Integrate
-using Base.Test, Distributions, Optim
+using Base.Test, DiffBase, Distributions, ForwardDiff, Optim
 
 """ posterior p(α, β | n, q, r) for the parameters of the Gamma
 distribution given the sufficient statistics of the samples."""
 log_posterior(α::Real, β::Real, n::Real, q::Real, logr::Real) = n*(α*log(β)-lgamma(α)) + (α-1)*logr - β*q
 function make_log_posterior(n::Real, q::Real, logr::Real)
     function (θ::Vector)
-        α::Real, β::Real = θ
+        α, β = θ
         log_posterior(α, β, n, q, logr)
     end
 end
@@ -21,13 +21,18 @@ function optimize_log_posterior(n::Real, q::Real, logr::Real;
                                 αmin=1.0, αmax=Inf, βmin=0, βmax=Inf,
                                 αinit=1.5, βinit=50)
     opt_target = make_log_posterior(n, q, logr)
-    min_target = x -> -opt_target(x)
+    min_target = x -> (println(x); -opt_target(x))
 
     lower = [αmin, βmin]
     upper = [αmax, βmax]
     initial_θ = [αinit, βinit]
-    optimize(DifferentiableFunction(min_target), initial_θ,
-             lower, upper, Fminbox(), optimizer=LBFGS)
+    res = optimize(DifferentiableFunction(min_target), initial_θ,
+                   lower, upper, Fminbox(), optimizer=LBFGS,
+                   optimizer_o=OptimizationOptions(autodiff=true))
+    # get gradient and Hessian into one result
+    storage = DiffBase.HessianResult(initial_θ)
+    ForwardDiff.hessian!(storage, min_target, Optim.minimizer(res))
+    res, storage
 end
 
 """ Gamma(x | α, β) """
@@ -124,8 +129,10 @@ function test()
     q = sum(samples)
     logr = sum(log(samples))
 
-    res = optimize_log_posterior(length(samples), q, logr)
+    res, diffstore = optimize_log_posterior(length(samples), q, logr)
     # println(res)
+    println(diffstore)
+
 
     # only finite accuracy in max-likelihood
     @test isapprox(Optim.minimizer(res)[1], α; rtol=1e-3)
