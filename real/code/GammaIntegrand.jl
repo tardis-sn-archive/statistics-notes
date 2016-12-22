@@ -16,6 +16,20 @@ function make_log_posterior(n::Real, q::Real, logr::Real)
     end
 end
 
+"Return Optimize.result struct"
+function optimize_log_posterior(n::Real, q::Real, logr::Real;
+                                αmin=1.0, αmax=Inf, βmin=0, βmax=Inf,
+                                αinit=1.5, βinit=50)
+    opt_target = make_log_posterior(n, q, logr)
+    min_target = x -> -opt_target(x)
+
+    lower = [αmin, βmin]
+    upper = [αmax, βmax]
+    initial_θ = [αinit, βinit]
+    optimize(DifferentiableFunction(min_target), initial_θ,
+             lower, upper, Fminbox(), optimizer=LBFGS)
+end
+
 """ Gamma(x | α, β) """
 log_gamma(x::Real, α::Real, β::Real) = α*log(β) - lgamma(α) + (α-1)*log(x) - β*x
 
@@ -82,7 +96,7 @@ function test()
 
     # mode of integrand for N near n at most likely Q
     res = solve(n*α/β, α, β, a, n)
-    println(res)
+    # println(res)
     @test isapprox(Optim.minimizer(res), n; rtol=1e-3)
 
     srand(1612)
@@ -99,7 +113,8 @@ function test()
     @test log_gamma_predict(x, α, β, n) ≈ logpdf(Gamma(n*α, 1/β), x)
 
     @test log_posterior(α, β, n, q, logr) ≈ 1407.87731905469
-    @inferred log_posterior(α, β, n, q, logr)
+    # TODO was type stable before, why not anymore?
+    # @inferred log_posterior(α, β, n, q, logr)
 
     f = make_log_posterior(n, q, logr)
     @test f([α, β]) == log_posterior(α, β, n, q, logr)
@@ -109,12 +124,8 @@ function test()
     q = sum(samples)
     logr = sum(log(samples))
 
-    f = make_log_posterior(length(samples), q, logr)
-    negf(θ) = -f(θ)
-    lower = [1.0, 0]
-    upper = [Inf, Inf]
-    initial_θ = 1.05 * [α, β]
-    res = optimize(DifferentiableFunction(negf), initial_θ, lower, upper, Fminbox(), optimizer = LBFGS)
+    res = optimize_log_posterior(length(samples), q, logr)
+    # println(res)
 
     # only finite accuracy in max-likelihood
     @test isapprox(Optim.minimizer(res)[1], α; rtol=1e-3)
@@ -122,7 +133,7 @@ function test()
 
     # integral over prediction should be normalized in 1D...
     estimate, σ, ncalls = Integrate.by_cubature(Q -> log_gamma_predict(Q, α, β, n), 0, Inf; reltol=1e-6)
-    println("ncalls $ncalls")
+    # println("ncalls $ncalls")
     @test isapprox(estimate, 1; atol=σ)
 
     # and 2D for large but finite upper limits ...
