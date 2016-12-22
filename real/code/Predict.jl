@@ -88,12 +88,18 @@ function test()
     n = 5
     a = 1/2
     Q = n*α/β
-    ε = 1e-4
+    ε = 1e-6
 
-    res, Ndown, Nup = by_sum(Q, α, β, a, n, ε)
+    res, Ndown, Nup = by_sum(Q, α, β, a, n; ε=ε)
 
     target = 0.0
-    for N in 1:20
+    for N in Ndown:Nup
+        target += exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
+    end
+    @test res == target
+
+    # adding more terms shouldn't change much
+    for N in Nup+1:Nup+10
         target += exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
     end
     @test isapprox(res, target; rtol=ε)
