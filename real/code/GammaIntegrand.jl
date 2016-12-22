@@ -53,7 +53,7 @@ Create the target with data embedded via a closure. Negate for minimization
 """
 function factory(Q::Real, α::Real, β::Real, a::Real, n::Integer)
     popt = OptData(Q, α, β, a, n)
-    f(N::Real) = (popt.count += 1; -log_poisson_predict(N, popt.n, popt.a) - log_gamma_predict(popt.Q, N, popt.α, popt.β))
+    f(N::Real) = (popt.count += 1; -log_poisson_predict(N, popt.n, popt.a) - log_gamma_predict(popt.Q, popt.α, popt.β, N))
     return popt, f
 end
 
@@ -79,6 +79,12 @@ function test()
     β = 60
     n = 500
     a = 1/2
+
+    # mode of integrand for N near n at most likely Q
+    res = solve(n*α/β, α, β, a, n)
+    println(res)
+    @test isapprox(Optim.minimizer(res), n; rtol=1e-3)
+
     srand(1612)
     dist = Gamma(α, 1/β)
     samples = rand(dist, n)
@@ -113,10 +119,6 @@ function test()
     # only finite accuracy in max-likelihood
     @test isapprox(Optim.minimizer(res)[1], α; rtol=1e-3)
     @test isapprox(Optim.minimizer(res)[2], β; rtol=5e-2)
-
-    # mode of integrand for N near n at most likely Q
-    res = solve(n*α/β, α, β, a, n)
-    @test isapprox(Optim.minimizer(res), n; rtol=1e-3)
 
     # integral over prediction should be normalized in 1D...
     estimate, σ, ncalls = Integrate.by_cubature(Q -> log_gamma_predict(Q, α, β, n), 0, Inf; reltol=1e-6)

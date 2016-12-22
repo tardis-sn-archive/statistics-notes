@@ -2,6 +2,7 @@ module Predict
 
 using ..GammaIntegrand
 import Optim
+using Base.Test
 
 # """
 
@@ -36,6 +37,8 @@ function by_sum(Q::Real, α::Real, β::Real, a::Real, n::Real; Ninit::Real=0, ε
         # largest contribution. It's only approximate but should be a
         # good starting value
         res = GammaIntegrand.solve(Q, α, β, a, n)
+        # println(res)
+        # println((Q, α, β, a, n))
         Ninit = convert(Integer, ceil(Optim.minimizer(res)))
     end
 
@@ -57,14 +60,14 @@ function by_sum(Q::Real, α::Real, β::Real, a::Real, n::Real; Ninit::Real=0, ε
         # have to leave the log scale now
         latest = exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
         res += latest
-        # println("$(pm): latest=$latest, res=$res")
+        # println("$N: latest=$latest, res=$res")
 
         return (latest / res) > ε
     end
 
     # start at initial N, then go up and down until contribution negligible
     _ = search(Ninit)
-    print("$res from Ninit=$Ninit")
+    # println("$res from Ninit=$Ninit")
     goup, godown = true, true
     while goup || godown
         if goup
@@ -82,10 +85,18 @@ end
 function test()
     α = 1.5
     β = 60.
-    n = 500
+    n = 5
     a = 1/2
+    Q = n*α/β
+    ε = 1e-4
 
-    res, Ndown, Nup = by_sum(n*α/β, α, β, a, n)
+    res, Ndown, Nup = by_sum(Q, α, β, a, n, ε)
+
+    target = 0.0
+    for N in 1:20
+        target += exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
+    end
+    @test isapprox(res, target; rtol=ε)
 end
 
 end #Predict
