@@ -7,7 +7,7 @@ using Base.Test
 """
 (gmhb), just sum and consider α, β fixed.
 """
-function by_sum(Q::Real, α::Real, β::Real, a::Real, n::Real; Ninit::Real=0, ε::Real=1e-3)
+function by_sum(Q::Real, α::Real, β::Real, a::Real, n::Real; Ninit::Real=0, ε::Real=1e-3, verbose=false)
     if Ninit == 0
         # perform optimization, optim only does minimization but we
         # actually optimize to find the N that will likely give the
@@ -37,7 +37,7 @@ function by_sum(Q::Real, α::Real, β::Real, a::Real, n::Real; Ninit::Real=0, ε
         # have to leave the log scale now
         latest = exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
         res += latest
-        # println("$N: latest=$latest, res=$res")
+        verbose && println("N=$N: now=$latest, res=$res")
 
         return (latest / res) > ε
     end
@@ -60,16 +60,15 @@ function by_sum(Q::Real, α::Real, β::Real, a::Real, n::Real; Ninit::Real=0, ε
     return res, Ndown, Nup
 end
 
-function test()
+function test_alpha_fixed()
     α = 1.5
     β = 60.
     n = 5
     a = 1/2
     Q = n*α/β
-    ε = 1e-6
+    ε = 1e-3
 
-    res, Ndown, Nup = by_sum(Q, α, β, a, n; ε=ε)
-
+    res, Ndown, Nup = by_sum(Q, α, β, a, n; ε=ε, verbose=true)
     target = 0.0
     for N in Ndown:Nup
         target += exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
@@ -81,6 +80,15 @@ function test()
         target += exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
     end
     @test isapprox(res, target; rtol=ε)
+end
+
+"""
+(spk), α, β integrated out with Laplace
+
+TODO find elegant generic programming technique to not rewrite the structure of by_sum. We only need to replace the search function but it is a closure.
+"""
+function by_laplace(Q::Real, a::Real, n::Real; Ninit::Real=0, ε::Real=1e-3, verbose=false)
+
 end
 
 end #Predict

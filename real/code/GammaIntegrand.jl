@@ -24,13 +24,13 @@ log_gamma_predict(Q::Real, α::Real, β::Real, N::Real) = log_gamma(Q, N*α, β)
 
 """(pmh) p(N | n)"""
 function log_poisson_predict(N::Real, n::Integer, a::Real)
-    tmp = N + n -a + 1
+    tmp = N+n-a+1
     lgamma(tmp) - lgamma(N+1) - lgamma(n-a+1) - tmp * log(2)
 end
 
 "Return Optimize.result struct"
 function optimize_integrand(target; αmin=1.0, αmax=Inf, βmin=0, βmax=Inf, αinit=1.5, βinit=50)
-    min_target = x -> (println(x); -target(x))
+    min_target = x -> -target(x)
 
     lower = [αmin, βmin]
     upper = [αmax, βmax]
@@ -144,8 +144,7 @@ function test()
 
     res, diffstore = optimize_log_posterior(length(samples), q, logr)
     # println(res)
-    println(diffstore)
-
+    # println(diffstore)
 
     # only finite accuracy in max-likelihood
     @test isapprox(Optim.minimizer(res)[1], α; rtol=1e-3)
