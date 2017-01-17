@@ -16,25 +16,6 @@ function make_log_posterior(n::Real, q::Real, logr::Real)
     end
 end
 
-"Return Optimize.result struct"
-function optimize_log_posterior(n::Real, q::Real, logr::Real;
-                                αmin=1.0, αmax=Inf, βmin=0, βmax=Inf,
-                                αinit=1.5, βinit=50)
-    opt_target = make_log_posterior(n, q, logr)
-    min_target = x -> (println(x); -opt_target(x))
-
-    lower = [αmin, βmin]
-    upper = [αmax, βmax]
-    initial_θ = [αinit, βinit]
-    res = optimize(DifferentiableFunction(min_target), initial_θ,
-                   lower, upper, Fminbox(), optimizer=LBFGS,
-                   optimizer_o=OptimizationOptions(autodiff=true))
-    # get gradient and Hessian into one result
-    storage = DiffBase.HessianResult(initial_θ)
-    ForwardDiff.hessian!(storage, min_target, Optim.minimizer(res))
-    res, storage
-end
-
 """ Gamma(x | α, β) """
 log_gamma(x::Real, α::Real, β::Real) = α*log(β) - lgamma(α) + (α-1)*log(x) - β*x
 
@@ -45,6 +26,38 @@ log_gamma_predict(Q::Real, α::Real, β::Real, N::Real) = log_gamma(Q, N*α, β)
 function log_poisson_predict(N::Real, n::Integer, a::Real)
     tmp = N + n -a + 1
     lgamma(tmp) - lgamma(N+1) - lgamma(n-a+1) - tmp * log(2)
+end
+
+"Return Optimize.result struct"
+function optimize_integrand(target; αmin=1.0, αmax=Inf, βmin=0, βmax=Inf, αinit=1.5, βinit=50)
+    min_target = x -> (println(x); -target(x))
+
+    lower = [αmin, βmin]
+    upper = [αmax, βmax]
+    initial_θ = [αinit, βinit]
+    # TODO couldn't get autodiff to work here
+    res = optimize(DifferentiableFunction(min_target), initial_θ,
+                   lower, upper, Fminbox(), optimizer=LBFGS)
+                   # optimizer_o=OptimizationOptions(autodiff=true))
+    # get gradient and Hessian into one result
+    storage = DiffBase.HessianResult(initial_θ)
+    ForwardDiff.hessian!(storage, min_target, Optim.minimizer(res))
+    res, storage
+end
+
+function optimize_log_posterior(n::Real, q::Real, logr::Real; kwargs...)
+    optimize_integrand(make_log_posterior(n, q, logr; kwargs...))
+end
+
+function make_log_posterior_predict(n, q, logr, Q, N)
+    function (θ::Vector)
+        α, β = θ
+        log_posterior(α, β, n, q, logr) + log_gamma_predict(Q, α, β, N)
+    end
+end
+
+function optimize_log_posterior_predict(n, q, logr, Q, N; kwargs...)
+    optimize_integrand(make_log_posterior(n, q, logr; kwargs...))
 end
 
 """
