@@ -4,60 +4,74 @@ using ..GammaIntegrand
 import Optim
 using Base.Test
 
+""" Find initial value of N that will likely give the largest
+contribution to (gmhb). It's only approximate but should be a good
+starting value
+
+For N>=1, the value is just returned. Else it is inferred by a
+heuristic.
+
 """
-(gmhb), just sum and consider α, β fixed.
-"""
-function by_sum(Q::Real, α::Real, β::Real, a::Real, n::Real; Ninit::Real=0, ε::Real=1e-3, verbose=false)
-    if Ninit == 0
-        # perform optimization, optim only does minimization but we
-        # actually optimize to find the N that will likely give the
-        # largest contribution. It's only approximate but should be a
-        # good starting value
+function initialize_N(Q, α, β, a, n, N=0)
+    if N == 0
+        # perform optimization
         res = GammaIntegrand.solve(Q, α, β, a, n)
-        # println(res)
-        # println((Q, α, β, a, n))
-        Ninit = convert(Integer, ceil(Optim.minimizer(res)))
+        N = convert(Integer, ceil(Optim.minimizer(res)))
     end
 
-    @assert(Ninit >= 1)
-    info("initial N=$Ninit")
+    @assert(N >= 1)
+    info("initial N=$N")
+    return N
+end
 
+"""Add contribution `f(N)` to `res`.
+
+TODO type of function for type stability?
+"""
+function search(res, N, f, ε)
+    # N>0 required to call f
+    N > 0 || return false, 0
+    latest = f(N)
+    println("N=$N: now=$latest, res=$res")
+    return (latest / res) > ε, latest
+end
+
+"Iteratively update `N` from `Ninit` until contribution of `f` is negligible"
+function iterate(Ninit, f, ε)
     # initialization
     Nup = Ninit
     Ndown = Ninit
     res = 0.0
 
-    """Add contribution at `N` to `res`."""
-    function search(N::Real)
-        # N>0 required to search
-        if N <= 0
-            return false
-        end
-
-        # have to leave the log scale now
-        latest = exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
-        res += latest
-        verbose && println("N=$N: now=$latest, res=$res")
-
-        return (latest / res) > ε
-    end
-
     # start at initial N, and update res
-    _ = search(Ninit)
-    res > 0 || error("Got exactly zero at initial N $Ninit")
+    _, res = search(res, Ninit, f, ε)
+    res > 0.0 || error("Got exactly zero at initial N $Ninit")
+
     # then go up and down until contribution negligible
     goup, godown = true, true
+    latest = 0.0
     while goup || godown
         if goup
             Nup += 1
-            goup = search(Nup)
+            goup, latest = search(res, Nup, f, ε)
+            res += latest
         end
         if godown
             Ndown -= 1
-            godown = search(Ndown)
+            godown, latest = search(res, Ndown, f, ε)
+            res += latest
         end
     end
     return res, Ndown, Nup
+end
+
+"""
+(gmhb), just sum and consider α, β fixed.
+"""
+function by_sum(Q::Real, α::Real, β::Real, a::Real, n::Real; Ninit::Real=0, ε::Real=1e-3)
+    Ninit = initialize_N(Q, α, β, a, n, Ninit)
+    f = N -> exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
+    iterate(Ninit, f, ε)
 end
 
 function test_alpha_fixed()
@@ -68,7 +82,7 @@ function test_alpha_fixed()
     Q = n*α/β
     ε = 1e-3
 
-    res, Ndown, Nup = by_sum(Q, α, β, a, n; ε=ε, verbose=true)
+    res, Ndown, Nup = by_sum(Q, α, β, a, n; ε=ε)
     target = 0.0
     for N in Ndown:Nup
         target += exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
@@ -87,7 +101,7 @@ end
 
 TODO find elegant generic programming technique to not rewrite the structure of by_sum. We only need to replace the search function but it is a closure.
 """
-function by_laplace(Q::Real, a::Real, n::Real; Ninit::Real=0, ε::Real=1e-3, verbose=false)
+function by_laplace(Q::Real, a::Real, n::Real; Ninit::Real=0, ε::Real=1e-3)
 
 end
 
