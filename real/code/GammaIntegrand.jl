@@ -90,7 +90,7 @@ function factory(Q::Real, α::Real, β::Real, a::Real, n::Integer)
 end
 
 """
-Find the arg max_N NegativeBinomial(N|n-a+1, 1/2)*Gamma(X|Nα, β) using Brent's method.
+Find the arg max_N NegativeBinomial(N|n-a+1, 1/2)*Gamma(Q|Nα, β) using Brent's method.
 
 Use the plug-in values of α and β to avoid costly integration.
 """
@@ -100,6 +100,14 @@ function solve(Q::Real, α::Real, β::Real, a::Real, n::Integer;
     if (max <= 0.0) max = 10n end
     optimize(f, min, max, rel_tol=ε, show_trace=trace, extended_trace=trace)
 end
+
+function evidence(stats::Distributions.GammaStats)
+    d = fit_mle(Gamma, stats)
+    estimate = 0.0
+    d, estimate
+end
+
+evidence(samples::Vector) = evidence(suffstats(Gamma, samples))
 
 function test()
     N=7; n=11; a=0;
@@ -151,9 +159,11 @@ function test()
     @test isapprox(Optim.minimizer(res)[2], β; rtol=5e-2)
 
     # integral over prediction should be normalized in 1D...
-    estimate, σ, ncalls = Integrate.by_cubature(Q -> log_gamma_predict(Q, α, β, n), 0, Inf; reltol=1e-6)
-    # println("ncalls $ncalls")
+    target = Q -> log_gamma_predict(Q, α, β, n)
+    estimate, σ, ncalls = Integrate.by_cubature(target, 0, Inf; reltol=1e-6)
     @test isapprox(estimate, 1; atol=σ)
+    res, estimate = Integrate.by_laplace(target, x)
+    @test isapprox(estimate, 1)
 
     # and 2D for large but finite upper limits ...
     estimate, σ, ncalls = Integrate.by_cubature(x -> log_gamma_predict(x[1], α, β, n) + log_gamma_predict(x[2], α, β, n),

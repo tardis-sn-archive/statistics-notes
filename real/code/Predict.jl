@@ -1,3 +1,4 @@
+"Predictive distribution of Q with various methods"
 module Predict
 
 using ..GammaIntegrand
@@ -66,11 +67,29 @@ function iterate(Ninit, f, ε)
 end
 
 """
-(gmhb), just sum and consider α, β fixed.
+Predict Q by summing over N and considering α, β fixed.
+(gmhb)
 """
 function by_sum(Q::Real, α::Real, β::Real, a::Real, n::Real; Ninit::Real=0, ε::Real=1e-3)
     Ninit = initialize_N(Q, α, β, a, n, Ninit)
     f = N -> exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
+    iterate(Ninit, f, ε)
+end
+
+"""
+Predict Q by summing over N and integrating over α, β  with the Laplace approximation.
+(spk)
+"""
+function by_laplace(Q, a, n, stats; Ninit=0, ε=1e-3)
+    # TODO max. likelihood values for α, β? ∃ closed-form solution?
+    d = GammaIntegrand.Distributions.Gamma(1, 1)
+    ss = suffstats(typeof(d), samples)
+
+    # α, β = 1.5, 60
+    Ninit = initialize_N(Q, α, β, a, n, Ninit)
+    f = N -> begin
+        exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
+    end
     iterate(Ninit, f, ε)
 end
 
@@ -94,15 +113,6 @@ function test_alpha_fixed()
         target += exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
     end
     @test isapprox(res, target; rtol=ε)
-end
-
-"""
-(spk), α, β integrated out with Laplace
-
-TODO find elegant generic programming technique to not rewrite the structure of by_sum. We only need to replace the search function but it is a closure.
-"""
-function by_laplace(Q::Real, a::Real, n::Real; Ninit::Real=0, ε::Real=1e-3)
-
 end
 
 end #Predict
