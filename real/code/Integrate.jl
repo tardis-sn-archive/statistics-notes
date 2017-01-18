@@ -85,24 +85,7 @@ end
 
 "Laplace approximation to the log(integral) over f using the Hessian
 at the mode, -Hf(θ). Both f and Hf are on the log scale."
-laplace(logf::Real, log_det_H::Real, dim::Integer) = logf + dim/2 * log(2pi) - 1/2*log_det_H
-laplace(logf::Real, H::Matrix) = laplace(logf, log(det(H)), size(H)[1])
-
-"""
-Integrate f by Laplace.
-
-Use Newton's method with autodiff. Return the optimization result and
-the integral estimate. The Hessian is stored in H. If it passed in, it
-is modified """
-
-function by_laplace!(logf::Function, xinit::Vector, H = zeros(length(xinit), length(xinit)))
-    # negate minimization
-    target = x -> -logf(x)
-    res = optimize(target, xinit, Newton(), OptimizationOptions(autodiff=true))
-    ForwardDiff.hessian!(H, target, Optim.minimizer(res))
-    res, laplace(-Optim.minimum(res), H)
-end
-
-
+by_laplace(logf::Real, log_det_H::Real, dim::Integer) = logf + dim/2 * log(2pi) - 1/2*log_det_H
+by_laplace(logf::Real, H::Matrix) = by_laplace(logf, log(det(H)), size(H)[1])
 
 end # Integrate

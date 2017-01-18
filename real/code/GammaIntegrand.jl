@@ -8,11 +8,14 @@ using Base.Test, DiffBase, Distributions, ForwardDiff, Optim
 
 """ posterior p(α, β | n, q, r) for the parameters of the Gamma
 distribution given the sufficient statistics of the samples."""
-log_posterior(α::Real, β::Real, n::Real, q::Real, logr::Real) = n*(α*log(β)-lgamma(α)) + (α-1)*logr - β*q
-function make_log_posterior(n::Real, q::Real, logr::Real)
+log_posterior(α::Real, β::Real, n::Real, q::Real, logr::Real, evidence=0.0) = n*(α*log(β)-lgamma(α)) + (α-1)*logr - β*q - evidence
+function make_log_posterior(n::Real, q::Real, logr::Real, evidence=0.0)
     function (θ::Vector)
         α, β = θ
-        log_posterior(α, β, n, q, logr)
+        res = log_posterior(α, β, n, q, logr, evidence)
+        # println("got $res for $α $β")
+        isnan(res) && error("Got NaN for $a $b")
+        res
     end
 end
 
@@ -35,7 +38,7 @@ function optimize_integrand(target; αmin=1.0, αmax=Inf, βmin=0, βmax=Inf, α
     lower = [αmin, βmin]
     upper = [αmax, βmax]
     initial_θ = [αinit, βinit]
-    # TODO couldn't get autodiff to work here
+    # TODO couldn't get autodiff to work here. Probably because of the box constraints
     res = optimize(DifferentiableFunction(min_target), initial_θ,
                    lower, upper, Fminbox(), optimizer=LBFGS)
                    # optimizer_o=OptimizationOptions(autodiff=true))
@@ -49,15 +52,15 @@ function optimize_log_posterior(n::Real, q::Real, logr::Real; kwargs...)
     optimize_integrand(make_log_posterior(n, q, logr; kwargs...))
 end
 
-function make_log_posterior_predict(n, q, logr, Q, N)
+function make_log_posterior_predict(n, q, logr, Q, N, evidence=0.0)
     function (θ::Vector)
         α, β = θ
-        log_posterior(α, β, n, q, logr) + log_gamma_predict(Q, α, β, N)
+        log_posterior(α, β, n, q, logr, evidence) + log_gamma_predict(Q, α, β, N)
     end
 end
 
-function optimize_log_posterior_predict(n, q, logr, Q, N; kwargs...)
-    optimize_integrand(make_log_posterior(n, q, logr; kwargs...))
+function optimize_log_posterior_predict(n, q, logr, Q, N, evidence=0.0; kwargs...)
+    optimize_integrand(make_log_posterior_predict(n, q, logr, Q, N, evidence; kwargs...))
 end
 
 """
@@ -151,19 +154,34 @@ function test()
     logr = sum(log(samples))
 
     res, diffstore = optimize_log_posterior(length(samples), q, logr)
-    # println(res)
-    # println(diffstore)
 
     # only finite accuracy in max-likelihood
-    @test isapprox(Optim.minimizer(res)[1], α; rtol=1e-3)
-    @test isapprox(Optim.minimizer(res)[2], β; rtol=5e-2)
+    @test_approx_eq_eps(Optim.minimizer(res)[1], α, 1e-3)
+    @test_approx_eq_eps(Optim.minimizer(res)[2], β, 1)
+
+    # but numerical optimizer should find same result as semi-analytic MLE
+    dist_fit = Distributions.fit_mle(Gamma, samples)
+    @test Optim.minimizer(res)[1] ≈ shape(dist_fit)
+    @test Optim.minimizer(res)[2] ≈ 1/scale(dist_fit)
+
+    ###
+    # compute the evidence
+    ###
+    Z_lap = Integrate.by_laplace(-Optim.minimum(res), DiffBase.hessian(diffstore))
+
+    # cubature needs rescaling as it works on linear scale, and exp(-log(Z))=0 to machine precision
+    normalized_f = make_log_posterior(length(samples), q, logr, Z_lap)
+
+    ε = 1e-3
+    Z_cub, σ, ncalls = Integrate.by_cubature(normalized_f, [1.2, 50], [2, 70]; reltol=ε)
+    println("After $ncalls calls: $(Z_cub) ± $σ")
+    # if both agree, cubature should find a normalized posterior
+    @test_approx_eq_eps(Z_cub, 1.0, 3ε)
 
     # integral over prediction should be normalized in 1D...
     target = Q -> log_gamma_predict(Q, α, β, n)
     estimate, σ, ncalls = Integrate.by_cubature(target, 0, Inf; reltol=1e-6)
     @test isapprox(estimate, 1; atol=σ)
-    res, estimate = Integrate.by_laplace(target, x)
-    @test isapprox(estimate, 1)
 
     # and 2D for large but finite upper limits ...
     estimate, σ, ncalls = Integrate.by_cubature(x -> log_gamma_predict(x[1], α, β, n) + log_gamma_predict(x[2], α, β, n),
