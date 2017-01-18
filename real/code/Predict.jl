@@ -1,9 +1,8 @@
 "Predictive distribution of Q with various methods"
 module Predict
 
-using ..GammaIntegrand
-import Optim
-using Base.Test
+using ..GammaIntegrand, ..Integrate
+import DiffBase, Optim
 
 """ Find initial value of N that will likely give the largest
 contribution to (gmhb). It's only approximate but should be a good
@@ -16,7 +15,7 @@ heuristic.
 function initialize_N(Q, α, β, a, n, N=0)
     if N == 0
         # perform optimization
-        res = GammaIntegrand.solve(Q, α, β, a, n)
+        res = GammaIntegrand.heuristicN(Q, α, β, a, n)
         N = convert(Integer, ceil(Optim.minimizer(res)))
     end
 
@@ -80,39 +79,27 @@ end
 Predict Q by summing over N and integrating over α, β  with the Laplace approximation.
 (spk)
 """
-function by_laplace(Q, a, n, stats; Ninit=0, ε=1e-3)
-    # TODO max. likelihood values for α, β? ∃ closed-form solution?
-    d = GammaIntegrand.Distributions.Gamma(1, 1)
-    ss = suffstats(typeof(d), samples)
+function by_laplace(Q, a, n, q, logr; Ninit=0, ε=1e-3)
+    # TODO max. likelihood values for α, β? ∃ closed-form solution? Could use Distribution.fit_mle
+    # d = GammaIntegrand.Distributions.Gamma(1, 1)
+    # ss = suffstats(typeof(d), samples)
 
-    # α, β = 1.5, 60
+    # need evidence for normalized posterior
+    res, diffstore = GammaIntegrand.optimize_log_posterior(n, q, logr)
+    Z = Integrate.by_laplace(-Optim.minimum(res), DiffBase.hessian(diffstore))
+
+    # find initial N at posterior mode of α, β
+    α, β = Optim.minimizer(res)
     Ninit = initialize_N(Q, α, β, a, n, Ninit)
+
+    # integrate by Laplace on log scale
     f = N -> begin
-        exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
+        kwargs = Dict(:αinit=>α, :βinit=>β)
+        res, diffstore = optimize_log_posterior_predict(n, q, logr, Q, N, Z; kwargs...)
+        integral = Integrate.by_laplace(-Optim.minimum(res), DiffBase.hessian(diffstore))
+        exp(log_poisson_predict(N, n, a) + integral)
     end
     iterate(Ninit, f, ε)
-end
-
-function test_alpha_fixed()
-    α = 1.5
-    β = 60.
-    n = 5
-    a = 1/2
-    Q = n*α/β
-    ε = 1e-3
-
-    res, Ndown, Nup = by_sum(Q, α, β, a, n; ε=ε)
-    target = 0.0
-    for N in Ndown:Nup
-        target += exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
-    end
-    @test res == target
-
-    # adding more terms shouldn't change much
-    for N in Nup+1:Nup+10
-        target += exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
-    end
-    @test isapprox(res, target; rtol=ε)
 end
 
 end #Predict

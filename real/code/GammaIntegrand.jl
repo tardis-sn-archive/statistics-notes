@@ -1,10 +1,12 @@
 """reload("TardisPaper"); TardisPaper.GammaIntegrand.test()"""
 module GammaIntegrand
 
-export log_gamma, log_gamma_predict, log_poisson_predict, log_posterior, make_log_posterior
+export heuristicN, log_gamma, log_gamma_predict, log_poisson_predict, log_posterior, make_log_posterior
+export optimize_log_posterior, optimize_log_posterior_predict
 
 import ..Integrate
-using Base.Test, DiffBase, Distributions, ForwardDiff, Optim
+
+using DiffBase, ForwardDiff, Optim
 
 """ posterior p(α, β | n, q, r) for the parameters of the Gamma
 distribution given the sufficient statistics of the samples."""
@@ -49,7 +51,7 @@ function optimize_integrand(target; αmin=1.0, αmax=Inf, βmin=0, βmax=Inf, α
 end
 
 function optimize_log_posterior(n::Real, q::Real, logr::Real; kwargs...)
-    optimize_integrand(make_log_posterior(n, q, logr; kwargs...))
+    optimize_integrand(make_log_posterior(n, q, logr); kwargs...)
 end
 
 function make_log_posterior_predict(n, q, logr, Q, N, evidence=0.0)
@@ -60,7 +62,7 @@ function make_log_posterior_predict(n, q, logr, Q, N, evidence=0.0)
 end
 
 function optimize_log_posterior_predict(n, q, logr, Q, N, evidence=0.0; kwargs...)
-    optimize_integrand(make_log_posterior_predict(n, q, logr, Q, N, evidence; kwargs...))
+    optimize_integrand(make_log_posterior_predict(n, q, logr, Q, N, evidence); kwargs...)
 end
 
 """
@@ -97,103 +99,11 @@ Find the arg max_N NegativeBinomial(N|n-a+1, 1/2)*Gamma(Q|Nα, β) using Brent's
 
 Use the plug-in values of α and β to avoid costly integration.
 """
-function solve(Q::Real, α::Real, β::Real, a::Real, n::Integer;
-               ε=1e-2, min=0.0, max=0.0, trace=false)
+function heuristicN(Q::Real, α::Real, β::Real, a::Real, n::Integer;
+                    ε=1e-2, min=0.0, max=0.0, trace=false)
     popt, f = factory(Q, α, β, a, n)
     if (max <= 0.0) max = 10n end
     optimize(f, min, max, rel_tol=ε, show_trace=trace, extended_trace=trace)
-end
-
-function evidence(stats::Distributions.GammaStats)
-    d = fit_mle(Gamma, stats)
-    estimate = 0.0
-    d, estimate
-end
-
-evidence(samples::Vector) = evidence(suffstats(Gamma, samples))
-
-function test()
-    N=7; n=11; a=0;
-
-    @test log_poisson_predict(N, n, a) ≈ log(binomial(N+n-a, N)) - (N+n-a+1)*log(2)
-
-    # draw samples from a Gamma distribution
-    α = 1.5
-    β = 60
-    n = 500
-    a = 1/2
-
-    # mode of integrand for N near n at most likely Q
-    res = solve(n*α/β, α, β, a, n)
-    # println(res)
-    @test isapprox(Optim.minimizer(res), n; rtol=1e-3)
-
-    srand(1612)
-    dist = Gamma(α, 1/β)
-    samples = rand(dist, n)
-    q = sum(samples)
-    logr = sum(log(samples))
-
-    # compare to Distributions
-    x = 0.04
-    dist = Gamma(α, 1/β)
-    @test log_gamma(x, α, β) ≈ log(pdf(dist, x))
-    @test log_gamma(x, α, β) ≈ logpdf(dist, x)
-    @test log_gamma_predict(x, α, β, n) ≈ logpdf(Gamma(n*α, 1/β), x)
-
-    @test log_posterior(α, β, n, q, logr) ≈ 1407.87731905469
-    # TODO was type stable before, why not anymore?
-    # @inferred log_posterior(α, β, n, q, logr)
-
-    f = make_log_posterior(n, q, logr)
-    @test f([α, β]) == log_posterior(α, β, n, q, logr)
-
-    # box minimization with more samples
-    samples = rand(dist, n*50)
-    q = sum(samples)
-    logr = sum(log(samples))
-
-    res, diffstore = optimize_log_posterior(length(samples), q, logr)
-
-    # only finite accuracy in max-likelihood
-    @test_approx_eq_eps(Optim.minimizer(res)[1], α, 1e-3)
-    @test_approx_eq_eps(Optim.minimizer(res)[2], β, 1)
-
-    # but numerical optimizer should find same result as semi-analytic MLE
-    dist_fit = Distributions.fit_mle(Gamma, samples)
-    @test Optim.minimizer(res)[1] ≈ shape(dist_fit)
-    @test Optim.minimizer(res)[2] ≈ 1/scale(dist_fit)
-
-    ###
-    # compute the evidence
-    ###
-    Z_lap = Integrate.by_laplace(-Optim.minimum(res), DiffBase.hessian(diffstore))
-
-    # cubature needs rescaling as it works on linear scale, and exp(-log(Z))=0 to machine precision
-    normalized_f = make_log_posterior(length(samples), q, logr, Z_lap)
-
-    ε = 1e-3
-    Z_cub, σ, ncalls = Integrate.by_cubature(normalized_f, [1.2, 50], [2, 70]; reltol=ε)
-    println("After $ncalls calls: $(Z_cub) ± $σ")
-    # if both agree, cubature should find a normalized posterior
-    @test_approx_eq_eps(Z_cub, 1.0, 3ε)
-
-    # integral over prediction should be normalized in 1D...
-    target = Q -> log_gamma_predict(Q, α, β, n)
-    estimate, σ, ncalls = Integrate.by_cubature(target, 0, Inf; reltol=1e-6)
-    @test isapprox(estimate, 1; atol=σ)
-
-    # and 2D for large but finite upper limits ...
-    estimate, σ, ncalls = Integrate.by_cubature(x -> log_gamma_predict(x[1], α, β, n) + log_gamma_predict(x[2], α, β, n),
-                                                [0.0, 0.0], [500.0, 500.0]; reltol=1e-6)
-    println("After $ncalls calls: $estimate ± $σ")
-    @test isapprox(estimate, 1; atol=σ)
-
-    # and infinite upper limits.
-    estimate, σ, ncalls = Integrate.by_cubature(x -> log_gamma_predict(x[1], α, β, n) + log_gamma_predict(x[2], α, β, n),
-                                                [0.0, 0.0], [Inf, Inf]; reltol=1e-6)
-    println("After $ncalls calls: $estimate ± $σ")
-    @test isapprox(estimate, 1; atol=σ)
 end
 
 end # GammaIntegrand
