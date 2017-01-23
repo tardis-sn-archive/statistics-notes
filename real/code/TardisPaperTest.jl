@@ -10,10 +10,10 @@ function integrate_by_cubature()
     @test_approx_eq_eps(res, 1/3, 1e-15)
 end
 
-function predict_laplace()
+function predict()
     α = 1.5
     β = 60.
-    n = 500
+    n = 350
     a = 1/2
     Q = n*α/β
     ε = 1e-3
@@ -24,7 +24,19 @@ function predict_laplace()
     q = sum(samples)
     logr = sum(log(samples))
 
-    res, Ndown, Nup = Predict.by_laplace(Q, a, n, q, logr)
+    hello(res, alg) = println("$alg: P($Q|$n, $a, x) = $(res[1]) for N=$(res[2])...$(res[3])")
+
+    res_cuba = Predict.by_cubature(Q, 0.5, n, q, logr)
+    hello(res_cuba, "cubature")
+    res_laplace = Predict.by_laplace(Q, a, n, q, logr)
+    hello(res_laplace, "Laplace")
+    # min. and max. N should agree within 1
+    for i in 2:3
+        @test_approx_eq_eps(res_cuba[i], res_laplace[i], 1)
+    end
+
+    # P(Q|...)
+    @test_approx_eq_eps(res_cuba[1], res_laplace[1], 1e-2)
 end
 
 function predict_alpha_fixed()
@@ -134,7 +146,7 @@ end
 function run()
     @testset "all tests" begin
         integrate_by_cubature()
-        predict_laplace()
+        predict()
         predict_alpha_fixed()
         gamma_integrand()
     end

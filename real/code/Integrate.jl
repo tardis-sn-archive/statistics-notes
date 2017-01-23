@@ -3,17 +3,17 @@ module Integrate
 using Cubature, Optim, PyCall
 
 """
-            by_cubature(logf, xmin, xmax;<keyword arguments>)
+    by_cubature(logf, xmin, xmax;<keyword arguments>)
 
-        Integrate the 1D function `f` from `xmin` to `xmax` by quadrature. The
-        upper limit `xmax` may be ∞ but `xmin` must be finite.  Any keyword
-        arguments are passed on to `Cubature.hquadrature`.
+Integrate the 1D function `f` from `xmin` to `xmax` by quadrature. The
+upper limit `xmax` may be ∞ but `xmin` must be finite.  Any keyword
+arguments are passed on to `Cubature.hquadrature`.
 
-        # Examples
-        ```jldoctest
-        julia> by_cubature()
-        ```
-        """
+# Examples
+```jldoctest
+julia> by_cubature()
+```
+"""
 function by_cubature(logf::Function, xmin::Real, xmax::Real; kwargs...)
     # count function evaluations
     counter = 0
