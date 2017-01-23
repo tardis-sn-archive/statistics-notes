@@ -5,7 +5,9 @@ using TardisPaper.GammaIntegrand
 using Base.Test, DiffBase, Distributions, ForwardDiff, Optim # Compat
 
 function integrate_by_cubature()
-    @test_approx_eq(Integrate.by_cubature(x -> log(x^2), 0,1), 1/3)
+    res, σ, ncalls = Integrate.by_cubature(x -> log(x^2), 0, 1)
+    println(res, " ", σ, " ", ncalls)
+    @test_approx_eq_eps(res, 1/3, 1e-15)
 end
 
 function predict_laplace()
@@ -131,6 +133,7 @@ end
 
 function run()
     @testset "all tests" begin
+        integrate_by_cubature()
         predict_laplace()
         predict_alpha_fixed()
         gamma_integrand()
