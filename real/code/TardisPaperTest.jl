@@ -13,7 +13,7 @@ end
 function predict()
     α = 1.5
     β = 60.
-    n = 350
+    n = 1000
     a = 1/2
     Q = n*α/β
     ε = 1e-3

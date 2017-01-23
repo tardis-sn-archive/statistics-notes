@@ -34,7 +34,7 @@ function log_poisson_predict(N::Real, n::Integer, a::Real)
 end
 
 "Return Optimize.result struct"
-function optimize_integrand(target; αmin=1.0, αmax=Inf, βmin=0, βmax=Inf, αinit=1.5, βinit=50)
+function optimize_integrand(target; αmin=1.0, αmax=Inf, βmin=0.0, βmax=Inf, αinit=1.5, βinit=50.0)
     min_target = x -> -target(x)
 
     lower = [αmin, βmin]

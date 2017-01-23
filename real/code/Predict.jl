@@ -5,7 +5,7 @@ using ..GammaIntegrand, ..Integrate
 import DiffBase, Distributions, Optim
 
 using Logging
-@Logging.configure(level=DEBUG)
+@Logging.configure(level=INFO)
 
 """ Find initial value of N that will likely give the largest
 contribution to (gmhb). It's only approximate but should be a good
@@ -83,13 +83,16 @@ Predict Q by summing over N and integrating over α, β  with the Laplace approx
 (spk)
 """
 function by_laplace(Q, a, n, q, logr; Ninit=0, ε=1e-3)
-    # TODO max. likelihood values for α, β? ∃ closed-form solution? Could use Distribution.fit_mle
-    # d = GammaIntegrand.Distributions.Gamma(1, 1)
-    # ss = suffstats(typeof(d), samples)
+    # TODO max. likelihood values for α, β as initial point
 
     # need evidence for normalized posterior
     res, diffstore = GammaIntegrand.optimize_log_posterior(n, q, logr)
-    Z = Integrate.by_laplace(-Optim.minimum(res), DiffBase.hessian(diffstore))
+    H = DiffBase.hessian(diffstore)
+    Z = Integrate.by_laplace(-Optim.minimum(res), H)
+
+    mode = Optim.minimizer(res)
+    invH = inv(H)
+    info("mode ± std. err: α=" , mode[1], "±", invH[1,1], ", β=", mode[2], "±", invH[2,2])
 
     # find initial N at posterior mode of α, β
     α, β = Optim.minimizer(res)
@@ -123,9 +126,13 @@ function by_cubature(Q, a, n, q, logr; αmin=1.3, αmax=1.8, βmin=40, βmax=100
     α, β = Distributions.params(fit_dist)
     # from scale to rate parameter
     β = 1/β
-    debug("MLE estimates $α, $β")
+    info("MLE estimates $α, $β")
     logf_mode = log_posterior(α, β, n, q, logr)
 
+    # TODO take limits like 5*std. err. from Gaussian approximation
+    # problem: est. uncertainty in β is ok but way too small in α
+    # truth: 1.5, 60. With 1000 samples
+    # mode ± std. err: α=1.589259406326531±0.004222449140609555, β=65.64769067441536±9.916379800578136
     lower = [αmin, βmin]
     upper = [αmax, βmax]
 
