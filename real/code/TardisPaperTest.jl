@@ -13,11 +13,11 @@ end
 function predict()
     α = 1.5
     β = 60.
-    n = 1000
+    n = 400
     a = 1/2
     Q = n*α/β
-    ε = 1e-3
-    srand(1612)
+    # ε = 1e-3
+    srand(11289)
 
     dist = Gamma(α, 1/β)
     samples = rand(dist, n)
@@ -38,8 +38,8 @@ function predict()
     # P(Q|...)
     @test_approx_eq_eps(res_cuba[1], res_laplace[1], 3e-2)
 
-    first = α/β
-    second = α/β^2 * (1+α)
+    first = q/n
+    second = mapreduce(x->x^2, +, samples)/n
     res_asym_laplace = Predict.asymptotic_by_laplace(Q, a, n, first, second)
     hello((res_asym_laplace, 0, 0), "asympt. Laplace")
     @test_approx_eq_eps(res_asym_laplace, res_laplace[1], 3e-2)

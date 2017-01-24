@@ -109,8 +109,8 @@ function by_laplace(Q, a, n, q, logr; Ninit=0, ε=1e-3)
 end
 
 """
-Predict Q by summing over N and integrating over α, β  with cubature rules
-(spk)
+Predict Q by summing over N and integrating over α, β with cubature rules
+(spk).
 
 Arguments
 ---------
