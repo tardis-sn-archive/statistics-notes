@@ -115,10 +115,11 @@ Predict Q by summing over N and integrating over α, β  with cubature rules
 Arguments
 ---------
 
+`ε`: tolerance for truncating the sum over N
 `reltol`: tolerance for cubature integration
 """
 
-function by_cubature(Q, a, n, q, logr; αmin=1.3, αmax=1.8, βmin=40, βmax=100,
+function by_cubature(Q, a, n, q, logr; αmin=1.0, αmax=2, βmin=10, βmax=100,
                      Ninit=0, ε=1e-3, reltol=1e-3)
     # to avoid overflow in Cubature, evaluate target at mode and subtract it. The
     # value within a few order of magnitude of
