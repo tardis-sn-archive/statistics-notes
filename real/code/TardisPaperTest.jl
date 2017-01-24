@@ -36,7 +36,13 @@ function predict()
     end
 
     # P(Q|...)
-    @test_approx_eq_eps(res_cuba[1], res_laplace[1], 1e-2)
+    @test_approx_eq_eps(res_cuba[1], res_laplace[1], 3e-2)
+
+    first = α/β
+    second = α/β^2 * (1+α)
+    res_asym_laplace = Predict.asymptotic_by_laplace(Q, a, n, first, second)
+    hello((res_asym_laplace, 0, 0), "asympt. Laplace")
+    @test_approx_eq_eps(res_asym_laplace, res_laplace[1], 3e-2)
 end
 
 function predict_alpha_fixed()
@@ -143,12 +149,45 @@ function gamma_integrand()
     @test isapprox(estimate, 1; atol=σ)
 end
 
+function asymptotic()
+    μ = 1.3
+    σ = 1.44
+    x = 2.011
+    normal = Distributions.Normal(μ, σ)
+
+    @test_approx_eq(log_normal(x, μ, σ^2), logpdf(normal, x))
+
+    a = 1.5
+    b = 0.013
+    invgamma = Distributions.InverseGamma(a, b)
+    @test_approx_eq(log_inv_gamma(x, a, b), logpdf(invgamma, x))
+
+    λ = 24.4
+    Q = λ*μ
+    n = 15
+    a = 0.5
+
+    first = 1.02*μ
+    second = 1.01*σ^2
+    f = make_asymptotic(Q, n, a, first, second)
+    normalQ = Distributions.Normal(λ*μ, sqrt(λ*(σ^2 + μ^2)))
+    normalμ = Distributions.Normal(first, sqrt(σ^2/n))
+    # second arg: rate vs. scale. Irrelevant if =1
+    gamma = Distributions.Gamma(n-a+1, 1)
+    invgamma = Distributions.InverseGamma(n/2, n/2 * (second - first^2))
+
+    @test_approx_eq(+f([λ, μ, σ^2]), logpdf(normalQ, Q) + logpdf(gamma, λ) + logpdf(normalμ, μ) + logpdf(invgamma, σ^2))
+
+    Predict.asymptotic_by_laplace(Q, a, n, first, second)
+end
+
 function run()
     @testset "all tests" begin
         integrate_by_cubature()
         predict()
         predict_alpha_fixed()
         gamma_integrand()
+        asymptotic()
     end
 end
 

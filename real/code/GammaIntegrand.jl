@@ -1,8 +1,9 @@
 """reload("TardisPaper"); TardisPaper.GammaIntegrand.test()"""
 module GammaIntegrand
 
-export heuristicN, log_gamma, log_gamma_predict, log_poisson_predict, log_posterior, make_log_posterior
-export optimize_log_posterior, optimize_log_posterior_predict
+export heuristicN, log_gamma, log_gamma_predict, log_inv_gamma, log_normal, log_poisson_predict, log_posterior
+export make_asymptotic, make_log_posterior
+export optimize_log_posterior, optimize_log_posterior_predict, optimize_integrand_λμσ²
 
 import ..Integrate
 
@@ -34,24 +35,37 @@ function log_poisson_predict(N::Real, n::Integer, a::Real)
 end
 
 "Return Optimize.result struct"
-function optimize_integrand(target; αmin=1.0, αmax=Inf, βmin=0.0, βmax=Inf, αinit=1.5, βinit=50.0)
+function optimize_integrand(target, lower, upper, initial)
     min_target = x -> -target(x)
-
-    lower = [αmin, βmin]
-    upper = [αmax, βmax]
-    initial_θ = [αinit, βinit]
     # TODO couldn't get autodiff to work here. Probably because of the box constraints
-    res = optimize(DifferentiableFunction(min_target), initial_θ,
+    res = optimize(DifferentiableFunction(min_target), initial,
                    lower, upper, Fminbox(), optimizer=LBFGS)
                    # optimizer_o=OptimizationOptions(autodiff=true))
     # get gradient and Hessian into one result
-    storage = DiffBase.HessianResult(initial_θ)
+    storage = DiffBase.HessianResult(initial)
     ForwardDiff.hessian!(storage, min_target, Optim.minimizer(res))
     res, storage
 end
 
+function optimize_integrand_αβ(target; αmin=1.0, αmax=Inf, βmin=0.0, βmax=Inf, αinit=1.5, βinit=50.0)
+    lower = [αmin, βmin]
+    upper = [αmax, βmax]
+    initial = [αinit, βinit]
+    optimize_integrand(target, lower, upper, initial)
+end
+
+function optimize_integrand_λμσ²(target;
+                                λmin=0.0, λmax=Inf, λinit=50.0,
+                                μmin=0.0, μmax=Inf, μinit=1.5/50,
+                                σ²min=1e-6, σ²max=Inf, σ²init=1.5/50^2)
+    lower = [λmin, μmin, σ²min]
+    upper = [λmax, μmax, σ²max]
+    initial = [λinit, μinit, σ²init]
+    optimize_integrand(target, lower, upper, initial)
+end
+
 function optimize_log_posterior(n::Real, q::Real, logr::Real; kwargs...)
-    optimize_integrand(make_log_posterior(n, q, logr); kwargs...)
+    optimize_integrand_αβ(make_log_posterior(n, q, logr); kwargs...)
 end
 
 function make_log_posterior_predict(n, q, logr, Q, N, evidence=0.0)
@@ -62,12 +76,13 @@ function make_log_posterior_predict(n, q, logr, Q, N, evidence=0.0)
 end
 
 function optimize_log_posterior_predict(n, q, logr, Q, N, evidence=0.0; kwargs...)
-    optimize_integrand(make_log_posterior_predict(n, q, logr, Q, N, evidence); kwargs...)
+    optimize_integrand_αβ(make_log_posterior_predict(n, q, logr, Q, N, evidence); kwargs...)
 end
 
 """
 Collect data that the target density needs
 """
+# TODO not type stable, use parametric type
 type OptData
     Q::Real
     α::Real
@@ -86,7 +101,7 @@ type OptData
 end
 
 """
-Create the target with data embedded via a closure. Negate for minimization
+Create the target for optimization of the integrand of (spk) as a function of N. Negate for minimization
 """
 function factory(Q::Real, α::Real, β::Real, a::Real, n::Integer)
     popt = OptData(Q, α, β, a, n)
@@ -104,6 +119,35 @@ function heuristicN(Q::Real, α::Real, β::Real, a::Real, n::Integer;
     popt, f = factory(Q, α, β, a, n)
     if (max <= 0.0) max = 10n end
     optimize(f, min, max, rel_tol=ε, show_trace=trace, extended_trace=trace)
+end
+
+log_normal(x, μ, σ²) = σ²<=0 ? -Inf : -0.5(log(2π*σ²) + (x-μ)^2/σ²)
+
+"Log pdf of InverseGamma distribution with shape parameter `a` and scale parameter `b`."
+log_inv_gamma(x, a, b) = x <= 0? -Inf : a*log(b) - lgamma(a) - (a+1)*log(x) - b/x
+
+"""
+Integrand of (ral), negated for minimization.
+
+# Arguments
+
+* `first`: first sample moment
+* `second`: first sample moment
+* `a₀`: hyperprior for inverse Gamma shape
+* `b₀`: hyperprior for inverse Gamma rate
+"""
+function make_asymptotic(Q, n, a, first, second; a₀=0, b₀=0)
+    # (rbd)
+    μₙ = first
+    aₙ = a₀+n/2
+    bₙ = b₀+n/2*(second-first^2)
+    function(x)
+        λ, μ, σ² = x
+        # (rbd)
+        σₙ² = σ²/n
+        # (ral)
+        log_normal(Q, λ*μ, λ*(σ²+μ^2)) + log_gamma(λ,n-a+1,1) + log_normal(μ, μₙ, σₙ²) + log_inv_gamma(σ², aₙ, bₙ)
+    end
 end
 
 end # GammaIntegrand

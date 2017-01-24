@@ -159,4 +159,30 @@ function by_cubature(Q, a, n, q, logr; αmin=1.0, αmax=2, βmin=10, βmax=100,
     iterate(Ninit, f, ε)
 end
 
+"""
+Predict Q by the asymptotic expression (ral) integrating over λ, μ, and σ² with Laplace.
+
+Arguments
+---------
+
+`a₀`: hyperprior for inverse Gamma shape
+`b₀`: hyperprior for inverse Gamma rate
+"""
+function asymptotic_by_laplace(Q, a, n, first, second; a₀=0, b₀=0)
+    # create integrand
+    f = make_asymptotic(Q, n, a, first, second; a₀=a₀, b₀=b₀)
+
+    # optimize integrand
+    res, diffstore = optimize_integrand_λμσ²(f; λinit=1.05*(n-a+1), μinit=1.05*first, σ²init=1.05*n/2*(second-first^2))
+
+    # Hessian at mode
+    H = DiffBase.hessian(diffstore)
+    invH = inv(H)
+    mode = Optim.minimizer(res)
+    info("mode ± std. err: λ=", mode[1], "±", invH[1,1], ", μ=" , mode[2], "±", invH[2,2], ", σ²=", mode[3], "±", invH[3,3])
+
+    # Laplace approximation on log, go back to linear
+    exp(Integrate.by_laplace(-Optim.minimum(res), H))
+end
+
 end #Predict
