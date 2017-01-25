@@ -26,7 +26,7 @@ function predict()
 
     hello(res, alg) = println("$alg: P($Q|$n, $a, x) = $(res[1]) for N=$(res[2])...$(res[3])")
 
-    res_cuba = Predict.by_cubature(Q, 0.5, n, q, logr)
+    res_cuba = Predict.by_cubature(Q, 0.5, n, q, logr; reltol=1e-8)
     hello(res_cuba, "cubature")
     res_laplace = Predict.by_laplace(Q, a, n, q, logr)
     hello(res_laplace, "Laplace")

@@ -47,7 +47,7 @@ function optimize_integrand(target, lower, upper, initial)
     res, storage
 end
 
-function optimize_integrand_αβ(target; αmin=1.0, αmax=Inf, βmin=0.0, βmax=Inf, αinit=1.5, βinit=50.0)
+function optimize_integrand_αβ(target; αmin=0.0, αmax=Inf, βmin=0.0, βmax=Inf, αinit=1.5, βinit=50.0)
     lower = [αmin, βmin]
     upper = [αmax, βmax]
     initial = [αinit, βinit]
@@ -93,8 +93,8 @@ type OptData
 
     function OptData(Q::Real, α::Real, β::Real, a::Real, n::Integer)
         if Q < 0 Error("Invalid Q < 0: $Q") end
-        if α < 1 Error("Invalid α < 1: $α") end
-        if β < 0 Error("Invalid β < 0: $β") end
+        if α <= 0 Error("Invalid α <= 0: $α") end
+        if β <= 0 Error("Invalid β <= 0: $β") end
         if a < 0 Error("Invalid a < 0: $a") end
         new(Q, α, β, a, n, 0)
     end

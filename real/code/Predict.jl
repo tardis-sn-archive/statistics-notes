@@ -5,7 +5,6 @@ using ..GammaIntegrand, ..Integrate
 import DiffBase, Distributions, Optim
 
 using Logging
-@Logging.configure(level=INFO)
 
 """ Find initial value of N that will likely give the largest
 contribution to (gmhb). It's only approximate but should be a good
@@ -23,7 +22,7 @@ function initialize_N(Q, α, β, a, n, N=0)
     end
 
     @assert(N >= 1)
-    info("initial N=$N")
+    debug("initial N=$N")
     return N
 end
 
@@ -119,7 +118,7 @@ Arguments
 `reltol`: tolerance for cubature integration
 """
 
-function by_cubature(Q, a, n, q, logr; αmin=1.0, αmax=2, βmin=10, βmax=100,
+function by_cubature(Q, a, n, q, logr; αmin=1e-2, αmax=5, βmin=1e-5, βmax=100,
                      Ninit=0, ε=1e-3, reltol=1e-3)
     # to avoid overflow in Cubature, evaluate target at mode and subtract it. The
     # value within a few order of magnitude of
@@ -127,7 +126,7 @@ function by_cubature(Q, a, n, q, logr; αmin=1.0, αmax=2, βmin=10, βmax=100,
     α, β = Distributions.params(fit_dist)
     # from scale to rate parameter
     β = 1/β
-    info("MLE estimates $α, $β")
+    debug("MLE estimates $α, $β")
     logf_mode = log_posterior(α, β, n, q, logr)
 
     # TODO take limits like 5*std. err. from Gaussian approximation
@@ -149,11 +148,9 @@ function by_cubature(Q, a, n, q, logr; αmin=1.0, αmax=2, βmin=10, βmax=100,
 
     # integrate by Cubature on linear scale
     f = N -> begin
-        # res, diffstore = optimize_log_posterior_predict(n, q, logr, Q, N, Z; kwargs...)
-        # integral = Integrate.by_laplace(-Optim.minimum(res), DiffBase.hessian(diffstore))
         integrand = GammaIntegrand.make_log_posterior_predict(n, q, logr, Q, N, logZ)
         integral, σ, ncalls = Integrate.by_cubature(integrand, lower, upper; reltol=reltol)
-        debug(integral, σ, ncalls)
+        debug("integrand: $integral  $σ after $ncalls calls")
         exp(log_poisson_predict(N, n, a)) * integral
     end
     iterate(Ninit, f, ε)
@@ -179,7 +176,7 @@ function asymptotic_by_laplace(Q, a, n, first, second; a₀=0, b₀=0)
     H = DiffBase.hessian(diffstore)
     invH = inv(H)
     mode = Optim.minimizer(res)
-    info("mode ± std. err: λ=", mode[1], "±", invH[1,1], ", μ=" , mode[2], "±", invH[2,2], ", σ²=", mode[3], "±", invH[3,3])
+    debug("mode ± std. err: λ=", mode[1], "±", invH[1,1], ", μ=" , mode[2], "±", invH[2,2], ", σ²=", mode[3], "±", invH[3,3])
 
     # Laplace approximation on log, go back to linear
     exp(Integrate.by_laplace(-Optim.minimum(res), H))
