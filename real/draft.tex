@@ -31,6 +31,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \usepackage{bm,amssymb,amsfonts,amsmath}  % bold math symbols, AMStex
 \usepackage{graphicx}    % standard graphics
+\graphicspath{
+  {./figures/}
+}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newcommand{\lleq}[1]{\label{#1} }
 % TO REMOVE THE LABEL LETTERS FROM THE EQUATION DISPLAY, COMMENT OUT THIS LINE:
@@ -676,18 +679,7 @@ mode from each $N$ and all modes are clearly separated. The
 transformation $\Lumtot \to X$ effects a strong overlap between the
 distributions $p(X \cond N, n, \bmx)$ with similar $N$, so
 $p(X \cond n, \bmx)$ can be well approximated by a unimodal
-distribution; see \reffig{hedgehog}.
-
-\begin{figure}[ht]
-  \centering
-  % \includegraphics[width=0.48\textwidth]{hedgehog}
-  \caption{Left: Prediction $p(\Lumtot \cond  \nu,  \npack, \bmnu, \bml)$, right: $p(x \cond  \nu,  \npack, \bmnu, \bmx)$. I sum over $N$ in both cases. }
-  \fred{I still need to pretty this up. I used the old binned approach
-    with 50 samples in a bin from which I computed the mean and
-    variance to plug into \refeq{gmr} but I computed the sum over $N$
-    instead of the integral.}
-\label{fig:hedgehog}
-\end{figure}
+distribution.
 
 We chose the Gamma distribution because it is \emph{stable}; i.e.,
 the sum of $N$ Gamma variates is again a Gamma variate
@@ -890,6 +882,38 @@ Inserting Eqs.~(\ref{pms}) and (\ref{rbd}) into \refeq{asc}, we obtain
 While the integral cannot be carried out analytically, the integrand
 is unimodal and strongly peaked, so that the Laplace or saddle-point
 approximation~\cite[Ch. 27]{mackay2003information} can be applied.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.48\textwidth]{asymptotic}
+  \caption{Numerical prediction of $\Lumtot$ with the sum over $N$
+    from \refeq{spk} or the asymptotic expression from \refeq{ral} for $n$
+    samples from $\GammaDist(\alpha=1.5, \beta=60)$}
+\label{fig:asymptotic}
+\end{figure}
+
+\fred{In \reffig{asymptotic}, we contrast the asymptotic expression
+  with the ``exact'' expression \refeq{spk} where the integrals over
+  $\bmphi$ are done numerically to a requested relative accuracy of
+  $10^{-5}$ through the Cubature
+  package\cite{cubature,genz1980remarks,berntsen1991adaptive}. We
+  computed $P(\Lumtot \cond n, \bml)$ on a grid of $\Lumtot$ values
+  and checked if the probability integrates to one using Simpson's
+  rule. With the exact expression, we obtain 0.997 ($n=10$) and 0.996
+  ($n=80$), and 0.698 and 0.953 for the asymptotic expression. For
+  $n=10$, the large discrepancy arises mostly because the constraint
+  $P(Q \leq 0 \cond n, \bml) = 0$ is not respected in \refeq{ral}
+  whereas it is satisfied by
+  \refeq{spk}. Following~\cite{tierney_accurate_1986}, we renormalized
+  the results to exactly integrate to one for ease of comparison in
+  \reffig{asymptotic}. Note that the lack of normalization may not be
+  relevant; e.g. if \refeq{ral} is used as the likelihood for a single
+  bin in Bayesian parameter inference.
+
+  We verified that for $n>80$, the two methods agree even better than
+  shown there and that the normalization of the asymptotic result
+  approaches one. }
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 \hans{Some comments on the numerical values of hyperparameters $a$ in
   Poisson, $a,b$ in inverse gamma needed.} %
@@ -912,57 +936,8 @@ approximation~\cite[Ch. 27]{mackay2003information} can be applied.
   contribute so it doesn't matter if you include them or not. That
   means I can't pick up a factor of two there, it would only change
   the normalization but not the \emph{shape} of $p(Q)$}
+\fred{The error is fixed and I remove the next sections as Hans suggested.}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-To simplify the calculations, we assume a conjugate prior for unknown
-$\mu$ and $\sigma^2$. The standard result for the posterior is a
-Gaussian for $\mu$ and an Inverse Gamma distribution for $\sigma^2$,
-\begin{align}
-  \lleq{raf}
-  p(\mu, \sigma^2 \cond \bmy)
-  &= \GaussianDist\left(\mu \cond \mu_0^\prime, \sigma^2/n_0^\prime\right) %
-    \InvGammaDist\left( \sigma^2 \,\Bigl|\, \tfrac{1}{2}\nu_0^\prime,
-    \tfrac{1}{2}\nu_0^\prime \sigma_0^{\prime 2} \right)
-\end{align}
-where the hyperparameters $(n_0',\mu_0',\nu_0')$ are updated from
-prior to posterior based on $\bmy$ with the sample mean
-$\langle\lum\rangle = (1/n) \sum_{j=1}^n \lum_j$,
-\begin{align}
-  %\lleq{rag}
-  \lleq{rah}  n_0^\prime
-  &= n_0 + n,\\
-  \lleq{rai}    \mu_0^\prime
-  &= \frac{n_0 \mu_0 + n \langle\lum\rangle}{n_0^\prime},\\
-  \lleq{raj}    \nu_0^\prime
-  &= \nu_0 + n,\\
-  \lleq{rak}
-  \nu_0^\prime \sigma_0^{\prime 2}
-  &= \nu_0 \sigma_0^{ 2}
-    + \sum_{j=1}^n \left(\lum_j - \langle\lum\rangle\right)^2
-    + \frac{n_0 n}{n_0^\prime} \left(\mu_0 - \langle\lum\rangle\right)^2\,.
-\end{align}
-By default, we take a noninformative prior and set $n_0 = \mu_0 =
-\nu_0 = 0$, so the value $\sigma_0^2>0$ is irrelevant. %
-  % The posterior
-  % $ p(\expect{\Lum}, \expect{\Lum^2} \cond \bmy)$ is given by
-  % \refeq{raf} with $\mu, \sigma^2$ replaced by
-  % $\expect{\Lum}, \expect{\Lum^2}$ as indicated in \refeq{rae} because
-  % the Jacobian determinant is one.
-The above equations also show that the data $\bmy$ appear only in the
-form of $n$ and the first two sample moments
-$m_1 = \langle\ell\rangle$ and $m_2 = \langle\ell^2\rangle$.
-Inserting all these ingredients into Eq.~(\ref{asc}), we obtain
-\begin{align}
-  \lleq{ral}
-  p(\Lumtot \cond \bmy)
-  &= \int \rmdx{\lambda}\; \rmdx{\mu}\; \rmdx{\sigma^2}\;
-    p(\lambda \cond n)\; p( \mu, \sigma^2 \cond \bmy)\;
-    \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\sigma^2{+}\mu^2) \right)
-    \,,
-\end{align}
-where $ p(\lambda \cond n)$ is given by \refeq{pms} and
-$ p( \mu, \sigma^2 \cond \bmy)$ by Eqs.~(\ref{raf})--(\ref{rak}).
 
 \subsection{Numerical implementation}\label{sec:asympt-numeric}
 
