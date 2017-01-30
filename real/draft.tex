@@ -52,7 +52,7 @@
 \newcommand{\refeq}[1]{Eq.~(\ref{#1})}
 \newcommand{\reffig}[1]{Fig.~\ref{fig:#1}}
 \newcommand{\refsec}[1]{Sec.~\ref{sec:#1}}
-
+\DeclareMathOperator{\erfc}{erfc}
 \DeclareMathOperator{\Expect}{\mathbb{E}}
 \newcommand{\expect}[1]{\Expect\left[#1\right]}
 \newcommand{\expectest}[1]{\widehat{\Expect\left[#1\right]}}
@@ -967,7 +967,8 @@ exchange the order of integration and find
   \lleq{rar}
   M(t \cond \bmy) &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond \bmy) p( \mu, \sigma^2 \cond \bmy)  f(t \cond \lambda, \mu, \sigma^2),
   \intertext{where }
-  f\left(t \cond  \lambda, \mu, \sigma^2\right) &\equiv \int \rmdx{\Lumtot} \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda \sigma^2 \right) e^{-t \Lumtot}= \frac{1}{2} e^{t \lambda (t \sigma^2/2 - \mu)} \left[ 1 + \erf\qty( \frac{\sqrt{\lambda}(\mu - t \sigma^2)}{\sqrt{2 \sigma^2}}) \right].
+  f\left(t \cond  \lambda, \mu, \sigma^2\right) &\equiv \int \rmdx{\Lumtot} \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\mu^2 + \sigma^2) \right) e^{-t \Lumtot}\\
+  &= \frac{1}{2} \exp \qty(t/2 \lambda (t (\mu^2 + \sigma^2)- 2\mu)) \erfc \qty( \frac{\sqrt{\lambda}(t \qty(\mu^2 + \sigma^2) - \mu)}{\sqrt{2 \qty(\mu^2 + \sigma^2)}}).
 \end{align}
 This implies that the mean and variance of $\Lumtot$ require an integral over the three parameters
 \begin{align}
@@ -987,7 +988,6 @@ within $\order{10}$ steps:
   \lleq{rat}
   \qty(\lambda, \mu, \sigma^2) = 1.0005 (n, \langle\lum\rangle, \langle\lum^2\rangle{-}\langle\lum\rangle^2).
 \end{align}
-\fred{Did we define expectation value and variance? Should be in notation or intro section. Hans: see footnote 2.} %
 \fred{At least for us, I should do a comparison plot to evaluate $p(\Lumtot \cond \bmy)$ with both methods } %
 \fred{We need a plot, the one to compare predictions and 250 real replicas or 100 virtual replicas?} %
 \fred{Advantage of this approach: no need to store all packets anymore, sum and sum of squares can be accumulated online $\Rightarrow$ reduced computation and storage requirements}

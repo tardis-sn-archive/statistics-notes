@@ -79,7 +79,7 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64
         λ, μ, σSq = x
         var = σSq + μ^2
         exponent = λ*μ^2 / (2*var)
-        tmp = exp(-exponent) * sqrt(λ * var / (2 * π)) + 1/2 * λ * μ * (1 + erf(sqrt(exponent)))
+        tmp = exp(-exponent) * sqrt(λ * var / (2π)) + 1/2 * λ * μ * (1 + erf(sqrt(exponent)))
         tmp > 0.0 || error("Negative input ", λ, μ, σSq )
         log(tmp)
     end
@@ -89,15 +89,15 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64
         λ, μ, σSq = x
         var = σSq + μ^2
         exponent = λ*μ^2 / (2*var)
-        tmp = exp(-exponent) * sqrt(2 / π * λ^3 * var) * μ + 1/2 * λ*(λ*μ^2 + var)*(1 + erf(sqrt(exponent)))
-        log(1/2 * tmp)
+        tmp = exp(-exponent) * sqrt(λ^3 * var / (2π)) * μ + 1/2 * λ*(λ*μ^2 + var)*(1 + erf(sqrt(exponent)))
+        log(tmp)
     end
 
     """log(-d^3/dt^3 f(target=0|x))"""
     function logthird(x::Vector)
         λ, μ, σSq = x
         var = σSq + μ^2
-        exponent = λ*μ^2 / 2var
+        exponent = λ*μ^2 / (2var)
         tmp = exp(-exponent) / sqrt(2π) * λ^(3/2) * sqrt(var) * (λ*μ^2 + 2var)
         tmp += 1/2 * λ^2 * μ * (λ*μ^2 + 3var)*(1 + erf(sqrt(exponent)))
         log(tmp)
@@ -109,7 +109,7 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsumsq::Float64
         var = σSq + μ^2
         exponent = λ*μ^2 / (2*var)
         tmp = exp(-exponent) / sqrt(2π) * λ^(5/2) * μ * sqrt(var) * (λ*μ^2 + 5var)
-        tmp += 1/2 * λ^2 * (λ^2*μ^4 + 6λ*μ^2 + 3var)*(1 + erf(sqrt(exponent)))
+        tmp += 1/2 * λ^2 * (λ^2*μ^4 + 6var*λ*μ^2 + 3var^2)*(1 + erf(sqrt(exponent)))
         log(tmp)
      end
 
