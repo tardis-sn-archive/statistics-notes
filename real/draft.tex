@@ -793,7 +793,7 @@ a Gaussian or normal distribution,
   \lleq{rab}
   P(\Lumtot \cond \lambda,\bmphi)
   &= \GaussianDist \left( \Lumtot \cond \expect{Q}, \variance{Q} \right) %
-    = \GaussianDist \left( \Lumtot \cond \lambda \mu_1, \lambda (\mu^2 {+} \sigma^2) \right).
+    = \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\mu^2 {+} \sigma^2) \right).
 \end{align}
 This drastic simplification eliminates both the sum over $N$ and the
 integral over $\bmL$ in \refeq{asd}.
@@ -892,27 +892,39 @@ approximation~\cite[Ch. 27]{mackay2003information} can be applied.
 \label{fig:asymptotic}
 \end{figure}
 
-\fred{In \reffig{asymptotic}, we contrast the asymptotic expression
-  with the ``exact'' expression \refeq{spk} where the integrals over
-  $\bmphi$ are done numerically to a requested relative accuracy of
-  $10^{-5}$ through the Cubature
-  package\cite{cubature,genz1980remarks,berntsen1991adaptive}. We
-  computed $P(\Lumtot \cond n, \bml)$ on a grid of $\Lumtot$ values
-  and checked if the probability integrates to one using Simpson's
-  rule. With the exact expression, we obtain 0.997 ($n=10$) and 0.996
-  ($n=80$), and 0.698 and 0.953 for the asymptotic expression. For
-  $n=10$, the large discrepancy arises mostly because the constraint
-  $P(Q \leq 0 \cond n, \bml) = 0$ is not respected in \refeq{ral}
-  whereas it is satisfied by
-  \refeq{spk}. Following~\cite{tierney_accurate_1986}, we renormalized
-  the results to exactly integrate to one for ease of comparison in
-  \reffig{asymptotic}. Note that the lack of normalization may not be
-  relevant; e.g. if \refeq{ral} is used as the likelihood for a single
-  bin in Bayesian parameter inference.
+In \reffig{asymptotic}, we contrast the asymptotic expression with the
+``exact'' expression \refeq{spk} where the integrals over $\bmphi$ are
+done numerically to a requested relative accuracy of $10^{-5}$ through
+the Cubature
+package\cite{cubature,genz1980remarks,berntsen1991adaptive}. We
+computed $P(\Lumtot \cond n, \bml)$ on a grid of $\Lumtot$ values and
+checked if the probability integrates to one using Simpson's
+rule. With the exact expression, we obtain 0.997 ($n=10$) and 0.996
+($n=80$), and 0.698 and 0.953 for the asymptotic expression. For
+$n=10$, the large discrepancy arises mostly because the positivity
+constraint $P(Q \leq 0 \cond n, \bml) = 0$ is not respected in
+\refeq{ral} since the Gaussian approximation \refeq{rae} allows
+negative $\lambda$ and $\Lumtot$, whereas the results \refeq{spk}
+based on the $\GammaDist$ model imply $\lambda \geq 0$ and $Q \geq 0$.
 
-  We verified that for $n>80$, the two methods agree even better than
-  shown there and that the normalization of the asymptotic result
-  approaches one. }
+For that reason, we discourage the asymptotic approximation for small
+$n$ but we note that in general, the lack of numerical normalization
+may not be a concern. For example, if \refeq{ral} is used as the
+likelihood for a single bin in Bayesian parameter inference, the
+normalization or evidence is
+irrelevant. Following~\cite{tierney_accurate_1986}, we renormalized
+the results to integrate to one for ease of comparison in
+\reffig{asymptotic}.  We verified that for $n>80$, the two methods
+agree even better than shown there and that the normalization of the
+asymptotic result approaches one.
+
+The main advantage of the approximation is computational efficiency. A
+single evaluation of $P(Q \cond n, \bml)$ takes only about 100 calls
+to the integrand of \refeq{ral} regardless of the value of $n$. In
+contrast, a the numerical integration of a single term for fixed $N$
+in \refeq{spk} requires 1000s of function evaluations, and the number
+of terms grows like $\sqrt{n}$ for a given accuracy of
+$P(Q \cond n, \bml)$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 \hans{Some comments on the numerical values of hyperparameters $a$ in
@@ -935,8 +947,8 @@ approximation~\cite[Ch. 27]{mackay2003information} can be applied.
   the posterior but at the same time large values don't actually
   contribute so it doesn't matter if you include them or not. That
   means I can't pick up a factor of two there, it would only change
-  the normalization but not the \emph{shape} of $p(Q)$}
-\fred{The error is fixed and I remove the next sections as Hans suggested.}
+  the normalization but not the \emph{shape} of $p(Q)$} \fred{The
+  error is fixed and I remove the next sections as Hans suggested.}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection{Numerical implementation}\label{sec:asympt-numeric}
