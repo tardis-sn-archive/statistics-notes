@@ -3,6 +3,9 @@ module TardisPaperTest
 import TardisPaper.Integrate, TardisPaper.Predict
 using TardisPaper.GammaIntegrand
 using Base.Test, DiffBase, Distributions, ForwardDiff, Optim # Compat
+using Base.Test, DiffBase, Distributions, ForwardDiff, Logging, Optim
+
+@Logging.configure(level=INFO)
 
 function integrate_by_cubature()
     res, σ, ncalls = Integrate.by_cubature(x -> log(x^2), 0, 1)
@@ -26,7 +29,7 @@ function predict()
 
     hello(res, alg) = println("$alg: P($Q|$n, $a, x) = $(res[1]) for N=$(res[2])...$(res[3])")
 
-    res_cuba = Predict.by_cubature(Q, 0.5, n, q, logr; reltol=1e-8)
+    res_cuba = Predict.by_cubature(Q, 0.5, n, q, logr; reltol=1e-5)
     hello(res_cuba, "cubature")
     res_laplace = Predict.by_laplace(Q, a, n, q, logr)
     hello(res_laplace, "Laplace")
@@ -43,6 +46,10 @@ function predict()
     res_asym_laplace = Predict.asymptotic_by_laplace(Q, a, n, first, second)
     hello((res_asym_laplace, 0, 0), "asympt. Laplace")
     @test_approx_eq_eps(res_asym_laplace, res_laplace[1], 3e-2)
+
+    res_asym_cubature = Predict.asymptotic_by_cubature(Q, a, n, first, second; reltol=1e-3)
+    hello((res_asym_cubature, 0, 0), "asympt. cubature")
+    @test_approx_eq_eps(res_asym_cubature, res_laplace[1], 3e-2)
 end
 
 function predict_alpha_fixed()

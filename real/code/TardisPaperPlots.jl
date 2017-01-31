@@ -14,7 +14,17 @@ srand(16142)
 "save and replot"
 savepdf(fname) = begin Plots.pdf("../figures/$fname"); plot!() end
 
-function compute_asymptotic(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, β=60.0, a=1/2, ε=1e-3, reltol=1e-3)
+function normalize!(Qs, res, tag)
+    # norm only useful from first call
+    norm, _, _ = Integrate.simpson(Qs, res)
+    res ./= norm
+    # but mean and σ are affected by norm
+    _, mean, stderr = Integrate.simpson(Qs, res)
+    info(tag, ": norm=$norm, Q=$(mean)±$(stderr)")
+end
+
+function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, β=60.0, a=1/2, ε=1e-3, reltol=1e-3)
+    info("Computing for n=$n")
     dist = Gamma(α, 1/β)
     samples = rand(dist, n)
     q = sum(samples)
@@ -25,24 +35,28 @@ function compute_asymptotic(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
         Qs = linspace(Qmin*meanQ, Qmax*meanQ, nQ)
     end
 
-    res_cuba = map(Q->Predict.by_cubature(Q, 0.5, n, q, logr; reltol=reltol, ε=ε)[1], Qs)
+    # res_known = map(Q->Predict.by_sum(Q, α, β, a, n;ε=ε)[1], Qs)
+    # normalize!(Qs, res_known, "known α, β")
 
+    dist_fit = Distributions.fit_mle(Gamma, samples)
+    res_mle = map(Q->Predict.by_sum(Q, shape(dist_fit), 1/scale(dist_fit), a, n;ε=ε)[1], Qs)
+    normalize!(Qs, res_mle, "max. likelihood")
 
     first = q/n
     second = mapreduce(x->x^2, +, samples)/n
     res_asym_laplace = map(Q->Predict.asymptotic_by_laplace(Q, a, n, first, second), Qs)
+    normalize!(Qs, res_asym_laplace, "asympt. Laplace")
 
-    hello(tag, norm, mean, stderr) = info(tag, ": norm=$norm, Q=$(mean)±$(stderr)")
+    res_laplace = map(Q->Predict.by_laplace(Q, a, n, q, logr; ε=ε)[1], Qs)
+    normalize!(Qs, res_laplace, "Laplace")
 
-    norm, mean, stderr = Integrate.simpson(Qs, res_cuba)
-    hello("cubature", norm, mean, stderr)
-    res_cuba ./= norm
+    res_asym_cuba = map(Q->Predict.asymptotic_by_cubature(Q, a, n, first, second; reltol=reltol)[1], Qs)
+    normalize!(Qs, res_asym_cuba, "asympt. cubature")
 
-    norm, mean, stderr = Integrate.simpson(Qs, res_asym_laplace)
-    hello("laplace", norm, mean, stderr)
-    res_asym_laplace ./= norm
+    res_cuba = map(Q->Predict.by_cubature(Q, a, n, q, logr; reltol=reltol, ε=ε)[1], Qs)
+    normalize!(Qs, res_cuba, "cubature")
 
-    Qs, res_cuba, res_asym_laplace
+    Qs, res_cuba, res_laplace, res_asym_cuba, res_asym_laplace, res_mle
 end
 
 function plot_asymptotic_single(Qs, res_cuba, res_asym_laplace; kwargs...)
@@ -53,18 +67,37 @@ function plot_asymptotic_single(Qs, res_cuba, res_asym_laplace; kwargs...)
     ylabel!(L"P(Q|n,\ell)")
 end
 
-function compute_asymptotic_all()
-    Qs = collect(linspace(1e-2, 3.3, 100))
-
+function compute_all_predictions()
     n = 10
-    kwargs = Dict(:n=>n, :reltol=>1e-5, :Qs=>Qs)
-    # n=>((Q, P(Q)), (annotate_x, annotate_y))
-    res = Dict(n=>compute_asymptotic(;kwargs...))
+    kwargs = Dict(:n=>n, :reltol=>1e-4, :Qs=>linspace(1e-2, 3.3, 100))
+    res = Dict(n=>compute_prediction(;kwargs...))
 
     n = 80
     kwargs[:n] = n
-    res[n] = compute_asymptotic(;kwargs...)
-    res
+    kwargs[:Qs] = linspace(0.5, 3.5, 100)
+    res[n] = compute_prediction(;kwargs...)
+
+    n = 200
+    kwargs[:n] = n
+    kwargs[:Qs] = linspace(2.5, 8, 100)
+    res[n] = compute_prediction(;kwargs...)
+
+    # n = 500
+    # kwargs[:n] = n
+    # kwargs[:Qs] = linspace(8, 16, 100)
+    # res[n] = compute_prediction(;kwargs...)
+
+    # n = 1000
+    # kwargs[:n] = n
+    # kwargs[:Qs] = linspace(19, 32, 100)
+    # res[n] = compute_prediction(;kwargs...)
+
+    # n = 2000
+    # kwargs[:n] = n
+    # kwargs[:Qs] = linspace(42, 55, 100)
+    # res[n] = compute_prediction(;kwargs...)
+
+    return res
 end
 
 function plot_asymptotic_all(res)
@@ -82,6 +115,23 @@ function plot_asymptotic_all(res)
     annotate!([(1.8, 1.25, text(L"n=80", :center))])
 
     savepdf("asymptotic")
+end
+
+function cuba_vs_laplace(res)
+    lab = ("cubature", "Laplace", "asympt. cubature", "asympt. Laplace", "MLE")
+    plot()
+    for (k, (n,x)) in enumerate(res)
+        for (i, _) = enumerate(lab)
+            label = (k == 1) ? lab[i] : ""
+            plot!(x[1], x[i+1], leg=true, label=label, color=i)
+        end
+    end
+    annotate!([(0.8, 2.2, text(L"n=10", :center))])
+    annotate!([(1.8, 1.25, text(L"n=80", :center))])
+    annotate!([(5, 0.9, text(L"n=200", :center))])
+    xlabel!(L"Q")
+    ylabel!(L"P(Q)")
+    savepdf("cuba_vs_laplace")
 end
 
 end # module

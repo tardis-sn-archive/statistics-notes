@@ -91,7 +91,7 @@ function by_laplace(Q, a, n, q, logr; Ninit=0, ε=1e-3)
 
     mode = Optim.minimizer(res)
     invH = inv(H)
-    info("mode ± std. err: α=" , mode[1], "±", invH[1,1], ", β=", mode[2], "±", invH[2,2])
+    debug("mode ± std. err: α=" , mode[1], "±", invH[1,1], ", β=", mode[2], "±", invH[2,2])
 
     # find initial N at posterior mode of α, β
     α, β = Optim.minimizer(res)
@@ -176,10 +176,54 @@ function asymptotic_by_laplace(Q, a, n, first, second; a₀=0, b₀=0)
     H = DiffBase.hessian(diffstore)
     invH = inv(H)
     mode = Optim.minimizer(res)
-    debug("mode ± std. err: λ=", mode[1], "±", invH[1,1], ", μ=" , mode[2], "±", invH[2,2], ", σ²=", mode[3], "±", invH[3,3])
+    debug(" asympt. Laplace, mode ± std. err: λ=", mode[1], "±", invH[1,1], ", μ=" , mode[2], "±", invH[2,2], ", σ²=", mode[3], "±", invH[3,3])
 
     # Laplace approximation on log, go back to linear
     exp(Integrate.by_laplace(-Optim.minimum(res), H))
+end
+
+function asymptotic_by_cubature(Q, a, n, first, second;a₀=0, b₀=0, reltol=1e-3,
+                                λmin=0.0, λmax=0.0,
+                                μmin=0.0, μmax=0.0,
+                                σ²min=0.0, σ²max=0.0)
+    # create integrand
+    f = make_asymptotic(Q, n, a, first, second; a₀=a₀, b₀=b₀)
+
+    # to avoid overflow in Cubature, evaluate target at approximate mode and subtract it. The
+    # value within a few order of magnitude of
+    mode = [n, first, second-first^2]
+    logf_mode = f(mode)
+    # logf_mode = 0.0
+    debug("asymptotic_by_cubature logf($mode)=$(logf_mode)")
+    target = x->(res = f(x) - logf_mode; println(res); res)
+    target = x->f(x) - logf_mode
+
+    # get ranges from marginal posterior distributions
+    k = 5
+
+    # Poisson
+    Δ = k*sqrt(n)
+    (λmin == 0.0) && (λmin = max(mode[1] - Δ, 0.0))
+    (λmax == 0.0) && (λmax = mode[1] + Δ)
+
+    # Gaussian
+    Δ = k*sqrt(mode[3]/n)
+    (μmin == 0.0) && (μmin = max(mode[2] - Δ, 0.0))
+    (μmax == 0.0) && (μmax = mode[2] + Δ)
+
+    # InverseGamma
+    Δ = k*sqrt((n/2 * mode[3])^2 / ((n/2 - 1)^2 * (n/2 - 2)))
+    (σ²min == 0.0) && (σ²min = max(mode[3] - Δ, 0.0))
+    (σ²max == 0.0) && (σ²max = mode[3] + Δ)
+
+    lower = [λmin, μmin, σ²min]
+    upper = [λmax, μmax, σ²max]
+    Z, σ, ncalls = Integrate.by_cubature(target, lower, upper; reltol=reltol)
+
+    # now we have to undo max. subtraction
+    Z *= exp(logf_mode)
+    debug("cubature asymptotic: $Z, $σ, $ncalls")
+    Z
 end
 
 end #Predict
