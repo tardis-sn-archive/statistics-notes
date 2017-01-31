@@ -1,8 +1,7 @@
 module TardisPaperTest
 
-import TardisPaper.Integrate, TardisPaper.Predict
+import TardisPaper.Integrate, TardisPaper.Predict, TardisPaper.Moments
 using TardisPaper.GammaIntegrand
-using Base.Test, DiffBase, Distributions, ForwardDiff, Optim # Compat
 using Base.Test, DiffBase, Distributions, ForwardDiff, Logging, Optim
 
 @Logging.configure(level=INFO)
@@ -188,6 +187,11 @@ function asymptotic()
     Predict.asymptotic_by_laplace(Q, a, n, first, second)
 end
 
+# function moments()
+#     Moments.uncertainty(100, )
+#     @test false
+# end
+
 function run()
     @testset "all tests" begin
         integrate_by_cubature()
@@ -195,6 +199,7 @@ function run()
         predict_alpha_fixed()
         gamma_integrand()
         asymptotic()
+        # moments()
     end
 end
 
