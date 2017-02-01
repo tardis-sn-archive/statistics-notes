@@ -3,6 +3,7 @@ using Logging
 @Logging.configure(level=INFO)
 
 import TardisPaper.Predict, TardisPaper.Integrate
+import Tardis
 using Distributions, LaTeXStrings, Plots
 
 const font = Plots.font("TeX Gyre Heros")
@@ -132,6 +133,34 @@ function cuba_vs_laplace(res)
     xlabel!(L"Q")
     ylabel!(L"P(Q)")
     savepdf("cuba_vs_laplace")
+end
+
+function prepare_spectrum()
+    # read in normalized spectrum
+    raw_data = Tardis.readdata()
+    frame = Tardis.filter_positive(raw_data...)
+    Tardis.transform_data!(frame)
+
+    # update energies by drawing from Gamma distribution.
+    # actual samples are only approximately from Gamma
+    dist = Gamma(1.5, 1/60)
+    for i in 1:length(frame[:energies])
+        frame[:energies][i] = rand(dist)
+    end
+    frame
+end
+
+function plot_spectrum(frame)
+    using StatsBase
+    h=fit(Histogram, frame[:nus], weights(frame[:energies]); nbins=200)
+    # off by one
+    # plot(h.edges[1], h.weights)
+
+    # works, but doesn't show the right graph
+    plot(h)
+
+    # manually subtract by one
+    plot(0.01:0.02:4.3, h.weights)
 end
 
 end # module
