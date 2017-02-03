@@ -198,26 +198,14 @@ function asymptotic_by_cubature(Q, a, n, first, second;a₀=0, b₀=0, reltol=1e
     target = x->(res = f(x) - logf_mode; println(res); res)
     target = x->f(x) - logf_mode
 
-    # get ranges from marginal posterior distributions
-    k = 5
+    lower, upper = GammaIntegrand.triple_ranges(n, first, second)
+    (λmin > 0.0) && (lower[1] = λmin)
+    (λmax > λmin && λmax > 0.0) && (upper[1] = λmax)
+    (μmin > 0.0) && (lower[2] = μmin)
+    (μmax > μmin && μmax > 0.0) && (upper[2] = μmax)
+    (σ²min > 0.0) && (lower[3] = σ²min)
+    (σ²max > σ²min && σ²max > 0.0) && (upper[3] = σ²max)
 
-    # Poisson
-    Δ = k*sqrt(n)
-    (λmin == 0.0) && (λmin = max(mode[1] - Δ, 0.0))
-    (λmax == 0.0) && (λmax = mode[1] + Δ)
-
-    # Gaussian
-    Δ = k*sqrt(mode[3]/n)
-    (μmin == 0.0) && (μmin = max(mode[2] - Δ, 0.0))
-    (μmax == 0.0) && (μmax = mode[2] + Δ)
-
-    # InverseGamma
-    Δ = k*sqrt((n/2 * mode[3])^2 / ((n/2 - 1)^2 * (n/2 - 2)))
-    (σ²min == 0.0) && (σ²min = max(mode[3] - Δ, 0.0))
-    (σ²max == 0.0) && (σ²max = mode[3] + Δ)
-
-    lower = [λmin, μmin, σ²min]
-    upper = [λmax, μmax, σ²max]
     Z, σ, ncalls = Integrate.by_cubature(target, lower, upper; reltol=reltol)
 
     # now we have to undo max. subtraction

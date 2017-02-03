@@ -3,7 +3,7 @@ module GammaIntegrand
 
 export heuristicN, log_gamma, log_gamma_predict, log_inv_gamma, log_normal, log_poisson_predict, log_posterior
 export make_asymptotic, make_log_posterior
-export optimize_log_posterior, optimize_log_posterior_predict, optimize_integrand_λμσ²
+export optimize_log_posterior, optimize_log_posterior_predict, optimize_integrand_λμσ², triple_ranges
 
 import ..Integrate
 
@@ -148,6 +148,32 @@ function make_asymptotic(Q, n, a, first, second; a₀=0, b₀=0)
         # (ral)
         log_normal(Q, λ*μ, λ*(σ²+μ^2)) + log_gamma(λ,n-a+1,1) + log_normal(μ, μₙ, σₙ²) + log_inv_gamma(σ², aₙ, bₙ)
     end
-end
+    end
 
+    "Extract decent ranges on [λ, μ, σ²] from marginal posterior distributions. "
+    function triple_ranges(n, first, second; k=5)
+        mode = [n, first, second-first^2]
+
+        lower = zeros(3)
+        upper = zeros(lower)
+
+        # get ranges
+
+        # Poisson λ
+        Δ = k*sqrt(n)
+        lower[1] = max(n - Δ, 0.0)
+        upper[1] = n + Δ
+
+        # Gaussian μ
+        Δ = k*sqrt(mode[3]/n)
+        lower[2] = max(mode[2] - Δ, 0.0)
+        upper[2] = mode[2] + Δ
+
+        # InverseGamma σ²
+        Δ = k*sqrt((n/2 * mode[3])^2 / ((n/2 - 1)^2 * (n/2 - 2)))
+        lower[3] =  max(mode[3] - Δ, 0.0)
+        upper[3] = mode[3] + Δ
+
+        lower, upper
+    end
 end # GammaIntegrand
