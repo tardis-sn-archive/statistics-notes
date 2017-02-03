@@ -187,10 +187,54 @@ function asymptotic()
     Predict.asymptotic_by_laplace(Q, a, n, first, second)
 end
 
-# function moments()
-#     Moments.uncertainty(100, )
-#     @test false
-# end
+function moments()
+    α = 1.5
+    β = 60.
+    first = α/β
+    # E[x²] = V[x]+E[x]²
+    second = α/β^2 * (1+α)
+    for n = [80, 200]
+        info("Checking n=$n")
+        init = [n*1.1, first*1.2, second*1.05]
+
+        # neglect uncertainty on λ, μ, σSq
+        # then we should reproduce known result for compound Poisson
+        target = x -> exp(-Moments.targetfactory(Moments.FirstMomentRaw, n, first, second)(x))
+        @test_approx_eq target([n, first, α/β^2]) n*first
+        target = x -> exp(-Moments.targetfactory(Moments.SecondMomentRaw, n, first, second)(x))
+        # E[x²] = V[x] + E[x]²
+        @test_approx_eq(target([n, first, α/β^2]), n*second + (n*first)^2)
+
+        # now integrate over parameters
+        res = optimize(Moments.targetfactory(Moments.PosteriorParam, n, first, second),
+                       init, Newton(), Optim.Options(autodiff=true))
+
+        mode = Optim.minimizer(res)
+        # mode of inverse Gamma not exactly at variance of true Gamma
+        # and mode of posterior not exactly at marginal mode
+        a = n/2; b = n/2*(second - first^2)
+        @test_approx_eq mode[1:2] [n-1/2, first]
+        @test_approx_eq_eps(mode[3], b/(a+1), 1e-3)
+
+        moments =  Moments.uncertainty(n, first, second)
+        info("Moments output ", moments)
+        @test_approx_eq_eps moments[1] n*first 0.1
+        info(n*first)
+
+        # don't understand why but σ is only 2/3 of what
+        # Simpson's rule gives for mapping out (spk) and (ral)
+        scale = 1.5
+
+        if n == 80
+            @test_approx_eq_eps moments[1] 2.01 1e-1
+            @test_approx_eq_eps moments[2] 0.41 / scale 2e-2
+        end
+        if n == 200
+            @test_approx_eq_eps moments[1] 5.01 1e-1
+            @test_approx_eq_eps moments[2] 0.648 / scale 3e-2
+        end
+    end
+end
 
 function run()
     @testset "all tests" begin
@@ -199,7 +243,7 @@ function run()
         predict_alpha_fixed()
         gamma_integrand()
         asymptotic()
-        # moments()
+        moments()
     end
 end
 
