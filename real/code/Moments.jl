@@ -14,11 +14,11 @@ Enumeration to specify which target function to create
 """
 Create a function for Laplace approximation
 """
-function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsecond::Float64;
+function targetfactory(target::TARGET, n::Int64, Qfirst::Float64, Qsecond::Float64;
                        a::Float64=1/2, Q::Float64=-1.0)
     0 <= a <= 1 || error("need a in [0,1]")
-    (xmean > 0) || error("nonpositive xmean $xmean")
-    (xsecond > 0) || error("nonpositive xsecond $xsecond")
+    (Qfirst > 0) || error("nonpositive Qfirst $Qfirst")
+    (Qsecond > 0) || error("nonpositive Qsecond $Qsecond")
 
     """ p(\lambda | data) p(\mu, \sigma^2 | data)"""
     function logposterior_param(x::Vector)
@@ -31,10 +31,10 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsecond::Float6
         # Eggers: flat prior in μ, InvGamma(σ^2|a0, b0)
         σSqn = σSq / n
         an = 0 + n/2
-        bn = 0 + n/2 * (xsecond - xmean^2)
+        bn = 0 + n/2 * (Qsecond - Qfirst^2)
 
         # λ                  μ|σ²                         σ^2
-        log_gamma(λ, α, 1) + log_normal(μ, xmean, σSqn) + log_inv_gamma(σSq, an, bn)
+        log_gamma(λ, α, 1) + log_normal(μ, Qfirst, σSqn) + log_inv_gamma(σSq, an, bn)
     end
 
     """N(Q | \lambda \mu, \lambda(\mu^2 + \sigma^2))"""
@@ -112,16 +112,16 @@ function targetfactory(target::TARGET, n::Int64, xmean::Float64, xsecond::Float6
     return x -> -f(x)
 end
 
-function uncertainty(n::Int64, xmean::Float64, xsecond::Float64;
+function uncertainty(n::Int64, Qfirst::Float64, Qsecond::Float64;
                      a::Float64=0.5, Q::Float64=-1.0)
     # initial guess for optimization: slightly off to avoid
     # ERROR: Linesearch failed to converge
-    init = [n * 1.0001, xmean * 1.0005, (xsecond - xmean^2) * 1.0005]
+    init = [n * 1.0001, Qfirst * 1.0005, (Qsecond - Qfirst^2) * 1.0005]
     # Hessian
     H = Array{Float64}(3,3)
 
     function integrate(moment::TARGET; Q=-1.0)
-        target = targetfactory(moment, n, xmean, xsecond; a=a, Q=Q)
+        target = targetfactory(moment, n, Qfirst, Qsecond; a=a, Q=Q)
         res = optimize(target, init, Newton(), Optim.Options(autodiff=true))
         info(Optim.minimizer(res))
         ForwardDiff.hessian!(H, target, Optim.minimizer(res))
@@ -141,12 +141,12 @@ function uncertainty(n::Int64, xmean::Float64, xsecond::Float64;
     firstSquared = integrate(FirstMomentSquared)
     σ = sqrt(second - firstSquared)
     return μ, σ
-    # lower, upper = triple_ranges(n, xmean, xsecond; k=5)
-    # target = targetfactory(Variance, n, xmean, xsecond)
+    # lower, upper = triple_ranges(n, Qfirst, Qsecond; k=5)
+    # target = targetfactory(Variance, n, Qfirst, Qsecond)
     # cubavar = Integrate.by_cubature(x->-target(x), lower, upper; reltol=1e-5)
-    # target = targetfactory(SecondMoment, n, xmean, xsecond)
+    # target = targetfactory(SecondMoment, n, Qfirst, Qsecond)
     # cuba2 = Integrate.by_cubature(x->-target(x), lower, upper; reltol=1e-5)
-    # target = targetfactory(FirstMomentSquared, n, xmean, xsecond)
+    # target = targetfactory(FirstMomentSquared, n, Qfirst, Qsecond)
     # cuba1Sq = Integrate.by_cubature(x->-target(x), lower, upper; reltol=1e-5) #, abstol=0.001, maxevals=100000)
     # info("Cuba: $cuba2  $cuba1Sq")
     # info("Laplace: $second  $firstSquared")
