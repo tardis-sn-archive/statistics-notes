@@ -1,6 +1,6 @@
 module TardisPaperTest
 
-import TardisPaper.Integrate, TardisPaper.Predict, TardisPaper.Moments
+import TardisPaper.Integrate, TardisPaper.Predict, TardisPaper.Moments, TardisPaper.SmallestInterval
 using TardisPaper.GammaIntegrand
 using Base.Test, DiffBase, Distributions, ForwardDiff, Logging, Optim
 
@@ -236,6 +236,27 @@ function moments()
     end
 end
 
+function smallest_interval()
+    d = Distributions.Normal(0, 1)
+    Qs = linspace(-3.12, +3.29, 200)
+    ΔQ = Qs[2] - Qs[1]
+    p = pdf(d, Qs)
+
+    # 1σ, 2σ regions
+    for k in 1:2
+        bereich = SmallestInterval.connected(p, k)
+        info(Qs[bereich])
+        # right value within ΔQ but generally underestimates
+        @test_approx_eq_eps Qs[bereich[1]]   -k ΔQ
+        @test_approx_eq_eps Qs[bereich[end]] +k ΔQ
+
+        # check overcovering: interpret Qs as bin center
+        # so right bin edge should be larger than k
+        @test Qs[bereich[1]] - ΔQ/2 < -k
+        @test_broken Qs[bereich[end]] + ΔQ/2 > k
+    end
+end
+
 function run()
     @testset "all tests" begin
         integrate_by_cubature()
@@ -244,6 +265,7 @@ function run()
         gamma_integrand()
         asymptotic()
         moments()
+        smallest_interval()
     end
 end
 
