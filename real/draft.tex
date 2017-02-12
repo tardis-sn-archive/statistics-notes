@@ -23,7 +23,7 @@
     \begin{minipage}{\textwidth} #2\end{minipage}}} %
 
 %% CHANGE THIS DATE AS YOU MODIFY THE FILE
-\newcommand{\vdate}{161206}
+\newcommand{\vdate}{170212}
 \pagestyle{myheadings}
 \markboth{Version \vdate} {Version \vdate}
 
@@ -284,10 +284,10 @@ reserved for the simulated data at hand.
 The goal of this paper is to illustrate how the single-simulation data
 $\bmy$ can be used to predict the distribution of total bin
 luminosities $Q_b, b = 1,\ldots,B$ if many simulations had been
-carried out. At this introductory level, we assume that the different
-luminosities are independent, so that the prediction of the entire
-spectrum (including all its uncertainty) is the product of predictions
-for each frequency bin,
+carried out. At this introductory level, we assume that the
+luminosities at different frequencies are independent, so that the
+prediction of the entire spectrum (including all its uncertainty) is
+the product of predictions for each frequency bin,
 \begin{align}
   \lleq{sdg}
   p(Q_1,Q_2,\ldots,Q_B\cond\bmy) = \prod_{b=1}^B p(Q_b\cond \bmy).
@@ -336,7 +336,7 @@ $V$ and $p(U) = \sum_V p(U,V) = \sum_V p(U\cond V)\,p(V)$ for discrete
 $V$ respectively.
 %
 The uninteresting variables $V$ in the present case are the number of
-packets $N$, the set of luminosities $\bmL$ of the $N$ packets
+packets $N$, the set of individual luminosities $\bmL$ of the $N$ packets
 whose likelihood is modelled by a distribution determined by
 likelihood parameters $\bmphi$,
 \begin{align}
@@ -375,7 +375,7 @@ since $p(Q\cond N,\bmL)$ can be written as a Dirac delta function,
 \begin{align}
   \lleq{slm}
   \int \rmdx{\bmL}\; p(Q\cond N,\bmL)\; p(\bmL\cond N,\bmphi)
-  &= \int \rmdx{\bmL}\;\delta(Q - \textstyle\sum_{j=1}^N L_j)\; \prod_j p(L_j\cond \bmphi).
+  &= \int \rmdx{\bmL}\;\delta(Q - \textstyle\sum_{j=1}^N L_j)\; \prod_{j=1}^N p(L_j\cond \bmphi).
 \end{align}
 Eq.~(\ref{sll}) is exact, and in principle all that remains is to make
 specific choices for the various probabilities which are judged best
@@ -383,10 +383,10 @@ to represent the data at hand, and thence to carry out the sum and
 multiple integrals. In practice, of course, such calculations may be
 time-consuming, and there will often be more than one choice for the
 functional form of each probability. In Section \ref{sec:example}, we
-shall therefore set out a specific example
+shall therefore set out a specific example.
 
 
-\section{Example A: modelling single-packet luminosity distributions}
+\section{Example: modelling single-packet luminosity distributions}
 \label{sec:example}
 
 In this section, we show by example how information on the
@@ -396,7 +396,7 @@ expressions for Eq.~(\ref{sll}).
 \subsection{Multiplicity prediction}
 
 First, the parameter $\lambda$ is eliminated as follows. The number of
-packets $N$ is Poisson-distributed
+packets $N$ is Poisson-distributed,
 \begin{align}
   \lleq{pmb}
   p(N\cond\lambda) &= \frac{e^{-\lambda}\lambda^{N}}{N!}
@@ -431,7 +431,7 @@ a problem because $c$ cancels out when calculating the posterior,
 provided that $n \ge 1$; i.e., at least one packet is observed in the
 bin.\footnote{For a uniform prior, the case $a{=}0$, we require of
   course a parameter $\lambda_{\rm max}$. As long as
-  $\lambda_{\rm max}$ is large enough, it too would cancel.}, The
+  $\lambda_{\rm max}$ is large enough, it would also cancel.}, The
 posterior is
 \begin{align}
   \lleq{pms}
@@ -455,7 +455,7 @@ $p(n) =  \int_0^\infty \rmdx{\lambda}\, p(n\cond\lambda)\,p(\lambda) = c\,(n-a)!
 %     \ =\ c\frac{(n-a)!}{n!} \,, \\
 % \end{align}
 and inserting Eqs.~(\ref{pmb}) and (\ref{pmc}), the prediction for $N$
-given $n$ is
+given $n$ is, for all possible values of $\lambda$,
 \begin{align}
   \lleq{pmh}
   p(N\cond n) %
@@ -463,7 +463,7 @@ given $n$ is
   \ =\ \binom{N{+}n{-}a}{N} \left(\frac{1}{2}\right)^{N+n-a+1}
     %\ =\ \frac{(N+n-a)!}{N!\,(n-a)!\,2^{N+n+1-a}} \, .
 \end{align}
-so that Eq.~(\ref{sll}) simplifies to
+(a negative binomial distribution), so that Eq.~(\ref{sll}) simplifies to
 \begin{align}
   \lleq{gmh}
   p(Q\cond n,\bml)
@@ -473,7 +473,7 @@ so that Eq.~(\ref{sll}) simplifies to
     p(Q\cond N,\bmL)\;
     \int \rmdx{\bmphi}\;
     p(\bmL\cond N,\bmphi)\,
-    p(\bmphi\cond n,\bml),
+    p(\bmphi\cond n,\bml).
 \end{align}
 
 \subsection{Single-packet description}
@@ -484,7 +484,7 @@ distributions $p(L_j\cond \bmphi)$, meaning that single packets are
 assumed to be mutually independent and to follow the same distribution
 independent of $N$.
 
-Which specific probability function to choose for $p(L\cond\bmtheta)$
+Which specific probability function to choose for $p(L_j\cond\bmphi)$
 depends, of course, on the specific simulation data. In this section,
 we choose it to be the same Gamma distribution for all $L_j$,
 with parameters $\bmphi = (\alpha,\beta)$,
@@ -497,9 +497,9 @@ in yet another Gamma distribution,
 \begin{align}
   \lleq{spd}
   \int \rmdx{\bmL}\; p(Q\cond N,\bmL)\; p(\bmL\cond N,\bmphi)
-  &= \GammaDist(Q\cond N\alpha, \beta).
+  &= \GammaDist(Q\cond N\alpha, \beta),
 \end{align}
-and so (\ref{gmh}) becomes in this example
+and so Eq.~(\ref{gmh}) becomes in this example
 \begin{align}
   \lleq{spe}
   p(Q\cond n,\bml)
@@ -558,14 +558,14 @@ $\beta$, we likewise choose a uniform prior
   \qquad 1 < \alpha < \alpha_{\rm max},\; 0 < \beta < \beta_{\rm max}.
 \end{align}
 % since $\alpha_{\rm max}$ and $\beta_{\rm max}$ cancel in (\ref{spf}).
-The posterior is
+With these choices, the posterior is found to be
 \begin{align}
   \lleq{spi}
   p(\alpha,\beta\cond n,\bml)
-  &= \frac{1}{C}\; \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}\\
+  &= \frac{1}{C}\; \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n},\\
   \lleq{spj}
   C &= \int_1^{\alpha_{\rm max}} d\alpha \int_0^{\beta_{\rm max}} d\beta\;
-    \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}
+    \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n},
 \end{align}
 and hence
 \begin{align}
@@ -576,7 +576,7 @@ and hence
     p(N\cond n)\;
     \int \rmdx{\alpha}\,\rmdx{\beta}\;
     \GammaDist(Q\cond N\alpha, \beta)\;
-    \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}
+    \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}.
 \end{align}
 
 
@@ -602,7 +602,7 @@ Regarding the sum over $N$, we start at
 $N = \lfloor n-a+1 \rfloor = \arg \max_N p(N|n)$ %
 \fred{Actually we should say $p(N \cond n, a)$} %
 and continue to larger and smaller values of $N$ until the
-contribution to $P(Q \cond n,\bml)$ becomes negligible. In case the
+contribution to $p(Q \cond n,\bml)$ becomes negligible. In case the
 relevant contribution is from large $N$ and $n$, we interpret $N$ as a
 continuous variable, replace factorials by $\Gamma$ function in
 \refeq{spj}, and apply Laplace's method to integrate over $N$ also.
@@ -652,7 +652,7 @@ numerical difficulties at the end point
 \end{align}
 where $ \epsilon=10^{-6}$.
 
-We infer $P(X \cond n,\bml)$ and only in the end transform back to a
+We infer $p(X \cond n,\bml)$ and only in the end transform back to a
 probability density in $\Lumtot$ via
 \begin{align}
   \lleq{gmg}
@@ -728,7 +728,7 @@ polynomials, $\Kalpha$ and $\Kbeta$. This is outside the scope of this
 paper. Here we choose $\Kalpha = 3$ and $\Kbeta = 1$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Asymptotic approximation} \label{sec:asymptotic}
+\section{Large packet number approximations} \label{sec:asymptotic}
 
 \subsection{Derivation of $p(Q\,|\,n,\boldmath{\ell})$ for large $n$}
 
@@ -740,14 +740,14 @@ factors into
   &= \int \rmdx{\lambda}\; \rmdx{\bmphi}\;
     p(\lambda\cond n)\;
     p(\bmphi\cond n,\bml)\;
-    p(Q\cond \lambda,\bmphi) \\
+    p(Q\cond \lambda,\bmphi), \\
   \lleq{asd}
   p(Q\cond \lambda,\bmphi)
   &= \sum_N
     p(N\cond \lambda)\;
     \int \rmdx{\bmL}\;
     p(Q\cond N,\bmL)\;
-    p(\bmL\cond N,\bmphi)
+    p(\bmL\cond N,\bmphi),
 \end{align}
 with $p(\bmL\cond N,\bmphi) = \prod_{j=1}^N p(L_j\cond\bmphi)$ as
 before. Again all quantities are related to a single bin in frequency.
@@ -774,16 +774,17 @@ of $L$ by
 \end{align}
 for any probability $p(L\cond\bmphi)$.
 %
-Higher-order quantities such as the skewness and kurtosis
-are suppressed by powers of $\lambda^{-1/2}$.
-%%%%%%%%%%%
-\hans{The variance is the second so-called \textit{cumulant}. The
-  relation for all orders is that the $k$-th order cumulant
-  $\kappa_q(Q)$ is equal to $\lambda$ times the $k$-th order moment of
-  $L$, $\mu_k$. The skewness is therefore
+Higher-order quantities such as the skewness and kurtosis are
+suppressed by powers of $\lambda^{-1/2}$.\footnote{ The variance is
+  the second so-called \textit{cumulant}. The relation for all orders
+  is that the $k$-th order cumulant $\kappa_q(Q)$ is equal to
+  $\lambda$ times the $k$-th order moment of $L$, $\mu_k$. The
+  skewness of $p(Q\cond \lambda,\bmphi)$ is therefore
   $\kappa_3(Q)/\kappa_2(Q)^{3/2} = \lambda \mu_3/(\lambda \mu_2)^{3/2}
-  = \lambda^{-1/2} \mu_3/\mu_2^{3/2}$. The magnitude of the correction
-  to (rab) due to $\kappa_3$ and higher orders is unclear.}
+  = \lambda^{-1/2} \mu_3/\mu_2^{3/2}$.}  %
+%%%%%%%%%%%
+\hans{The magnitude of the correction to Eq.~(\ref{rab}) due to
+  $\kappa_3$ and higher orders is unclear.}
 %%%%%%%%%%%
 From Theorem 4.3.1 of Ref.~\cite{bening2002generalized}, we conclude
 that the asymptotic distribution of $\Lumtot$ when
@@ -791,7 +792,7 @@ $\lambda \to \infty$, given the first and second moment of $\Lum$, is
 a Gaussian or normal distribution,
 \begin{align}
   \lleq{rab}
-  P(\Lumtot \cond \lambda,\bmphi)
+  p(\Lumtot \cond \lambda,\bmphi)
   &= \GaussianDist \left( \Lumtot \cond \expect{Q}, \variance{Q} \right) %
     = \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\mu^2 {+} \sigma^2) \right).
 \end{align}
@@ -841,7 +842,13 @@ $\mu_{\rm max}$.
 \fred{only true if $\mu_{\rm max}$ large enough to contain posterior}
 For $\sigma^2$, we use an $n$-independent Inverse Gamma
 distribution prior with hyperparameters $(a_0,b_0)$ which reads
-\fred{Inconsistentcy. Now $b_0$ is a scale parameter but before $\beta$ was a \emph{rate} parameter in definition of $\Gamma$}
+%%%%%%%
+\fred{Inconsistency. Now $b_0$ is a scale parameter but before $\beta$
+  was a \emph{rate} parameter in definition of $\Gamma$} 
+%%%%%%%
+\hans{Not really. This is an inverse gamma distribution, not a gamma
+  distribution.  Transformation from $\sigma$ to gamma variable
+  $v = 1/\sigma_2$ would make $b_0$ a rate variable for the latter.}
 \begin{align}
   \lleq{rad}
   p(\sigma^2\cond a_0,b_0)
