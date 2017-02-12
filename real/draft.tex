@@ -774,17 +774,17 @@ of $L$ by
 \end{align}
 for any probability $p(L\cond\bmphi)$.
 %
-Higher-order quantities such as the skewness and kurtosis are
-suppressed by powers of $\lambda^{-1/2}$.\footnote{ The variance is
-  the second so-called \textit{cumulant}. The relation for all orders
-  is that the $k$-th order cumulant $\kappa_q(Q)$ is equal to
-  $\lambda$ times the $k$-th order moment of $L$, $\mu_k$. The
-  skewness of $p(Q\cond \lambda,\bmphi)$ is therefore
+Higher-order quantities such as the skewness and kurtosis\footnote{
+  The variance is the second so-called \textit{cumulant}. The relation
+  for all orders is that the $k$-th order cumulant $\kappa_q(Q)$ is
+  equal to $\lambda$ times the $k$-th order moment of $L$,
+  $\mu_k$. The skewness of $p(Q\cond \lambda,\bmphi)$ is therefore
   $\kappa_3(Q)/\kappa_2(Q)^{3/2} = \lambda \mu_3/(\lambda \mu_2)^{3/2}
   = \lambda^{-1/2} \mu_3/\mu_2^{3/2}$.}  %
+are suppressed by powers of $\lambda^{-1/2}$.
 %%%%%%%%%%%
-\hans{The magnitude of the correction to Eq.~(\ref{rab}) due to
-  $\kappa_3$ and higher orders is unclear.}
+\hans{H comment (not for text): The magnitude of the correction to
+  Eq.~(\ref{rab}) due to $\kappa_3$ and higher orders is unclear.}
 %%%%%%%%%%%
 From Theorem 4.3.1 of Ref.~\cite{bening2002generalized}, we conclude
 that the asymptotic distribution of $\Lumtot$ when
@@ -890,6 +890,188 @@ While the integral cannot be carried out analytically, the integrand
 is unimodal and strongly peaked, so that the Laplace or saddle-point
 approximation~\cite[Ch. 27]{mackay2003information} can be applied.
 
+\subsection{Poisson-gamma convolution}\label{sec:poisson-gamma}
+
+\hans{H: This subsection is temporary. It is motivated by the question
+  whether the use of a gaussian for the single-packet luminosity
+  $p(L_j\cond\bmphi)$ in (\ref{rae}) is necessary and whether making
+  it a gaussian is a source of bias since $L_j$ cannot be
+  negative. The original choice of a Gamma distribution as in
+  (\ref{spc}) is more appropriate and could eliminate one source of
+  systematic bias. Below, I have derived a closed form for
+  $p(Q\cond \lambda,\bmphi)$ using the gamma-distributed
+  $p(L_j\cond \alpha,\beta)$ of (\ref{spc}). The final result
+  (\ref{ffin}) below could be used to replace the gaussian result
+  (\ref{rab}) for insertion into (\ref{asd}). Inclusion of the entire
+  derivation below is not envisaged; rather, we would include only
+  salient issues and equation in the text itself. For the moment, the
+  question is what Fred has to say about this version ie whether it
+  can be implemented numerically and how it compares to the above
+  results.
+
+  The limit of this section to Gaussian can be investigated later if necessary.
+}
+
+We start again from (\ref{asd}) and use (\ref{spc})
+\begin{align}
+  \lleq{asdd}
+  p(Q\cond \lambda,\bmphi)
+  &= \sum_N
+    p(N\cond \lambda)\;
+    \int \rmdx{\bmL}\;
+    p(Q\cond N,\bmL)\;
+    p(\bmL\cond N,\bmphi)\\
+  \lleq{spcd}
+  p(L_j\cond \alpha,\beta) 
+  &= \frac{\beta^\alpha L_j^{\alpha-1}e^{-\beta L_j}}{\Gamma(\alpha)}.
+\end{align}
+The moment generating function of $p(L_j\cond \alpha,\beta)$ is
+\begin{align}
+  M[t\cond p(L_j\cond \alpha,\beta) ]
+  &= E[e^{tL_j}] = \int_0^\infty dL_j e^{tL_j}\,p(L_j\cond \alpha,\beta) 
+    = (1 - t/\beta)^{-\alpha}
+\end{align}
+The convolution of $N$ Gamma distributions yields the moment generating
+function
+\begin{align}
+  M[t\cond p(Q\cond \alpha,\beta) ]
+  &= (1-t/\beta)^{-N\alpha}
+\end{align}
+and so we obtain the well-known result that the convolved distribution
+is also a Gamma distribution with shape parameter $N\alpha$,
+\begin{align}
+  p(Q\cond \alpha,\beta) 
+  &= \frac{\beta^{N\alpha} Q^{N\alpha-1}e^{-\beta Q}}{\Gamma(N\alpha)}.
+\end{align}
+Inserting this into the $N$-sum, we have
+\begin{equation}
+  \lleq{gms}
+  \boxed{
+  p(Q\cond \lambda,\alpha,\beta) 
+  = \frac{e^{-\lambda - \beta Q}}{Q}
+    \sum_{N=0}^\infty 
+    \frac{[\lambda \beta^\alpha Q^\alpha]^N}{N!\;\Gamma(N\alpha)}.
+    }
+\end{equation}
+This series itself should converge quickly because of the
+$N!\;\Gamma(N\alpha)$ in the denominator. It is possible to find an
+analytic solution for some special cases of $\alpha$.
+\begin{itemize}
+\item For $\alpha=1$ we have
+  \begin{align}
+    p(Q\cond \lambda,\alpha{=}1,\beta) 
+    &= \frac{e^{-\lambda - \beta Q}}{Q}
+      \sum_{N=0}^\infty 
+      \frac{[\lambda \beta Q]^N}{N!\;(N-1)!}.
+  \end{align}
+  Comparing the above to the series definition of the modified Bessel function,
+  \begin{align}
+    I_1(z) &= \sum_{k=0}^\infty \frac{(z/2)^{2k+1}}{k!\;(k+1)!},
+  \end{align}
+  we can identify $z = 2\sqrt{\lambda\beta Q}$ to get
+  \begin{equation}
+    \boxed{
+      p(Q\cond \lambda,\alpha{=}1,\beta) 
+      = \sqrt{\frac{\lambda\beta}{Q}}  e^{-\lambda - \beta Q} 
+      \;I_1\!\left(2\sqrt{\lambda\beta Q}\right)
+      }
+  \end{equation}
+  as derived by Fisher and Cornish (1960). We often prefer to use the 
+  corresponding hypergeometric function formulation, in terms of which
+  \begin{align}
+    p(Q\cond \lambda,\alpha{=}1,\beta) 
+    &= \lambda\beta\; e^{-\lambda - \beta Q} 
+      \;{}_0F_1(2; \lambda\beta Q).
+  \end{align}
+
+\item For integer $\alpha = 2,3,\ldots$, we rely on a paper by Withers and
+  Nadarajah (2011) from which we get an expression for the (p,q) hypergeometric 
+  function, defined as
+  \begin{align}
+    {}_pF_q\left( a_1,a_2,\ldots, a_p\;;\; b_1,b_2,\ldots,b_q\;;\; z \right)
+    &= \sum_{k=0}^\infty \frac{z^k}{k!} \;
+      \frac{(a_1)_k(a_2)_k\cdots (a_p)_k}{(b_1)_k(b_2)_k\cdots (b_q)_k}
+  \end{align}
+  in terms of the Pochhammer symbol $(a)_k = \Gamma(a+k)/\Gamma(a)$. Withers
+  and Nadarajah found that (and I checked)
+  \begin{align}
+    (N\alpha)! 
+    &= (\alpha^\alpha)^N 
+      \left(\frac{1}{\alpha}\right)_k
+      \left(\frac{2}{\alpha}\right)_k
+      \left(\frac{\alpha{-}1}{\alpha}\right)_k
+      \left(\frac{\alpha}{\alpha}\right)_k
+  \end{align}
+  which, when inserted into the appropriate hypergeometric function
+  ${}_0F_\alpha$, yields
+  \begin{align}
+    \lleq{qpfa}
+    {}_0F_\alpha\left[ 0,0,\ldots,0 \;;\;
+    \frac{1}{\alpha},
+    \frac{2}{\alpha},
+    \ldots,
+    \frac{\alpha{-}1}{\alpha},
+    \frac{\alpha}{\alpha}
+    \;;\; z \right]
+    &= \sum_{k=0}^\infty \frac{z^k}{k!} \;\frac{(\alpha^\alpha)^k}{(k\alpha)!}
+  \end{align}
+  and with the general relation (see DLMF website)
+  \begin{align}
+    z\frac{d}{dz} {}_0F_p(\;;\;b_1,b_2,\ldots,b_q\;;\;z)
+    &= \frac{z}{b_1b_2\cdots b_q}
+      {}_0F_p(\;;\;b_1{+}1,b_2{+}1,\ldots,b_q{+}1\;;\;z)
+  \end{align}
+  we obtain, with the assignment
+  \begin{align}
+    z &= \lambda (\beta Q / \alpha)^\alpha \\
+    \lleq{qpfe}
+    p(Q\cond \lambda,\alpha,\beta)
+      &= \frac{\alpha e^{-\lambda - \beta Q} }{Q} 
+        z\frac{d}{dz} \;
+        {}_0F_\alpha\left[ 0,0,\ldots,0 \;;\;
+        \frac{1}{\alpha},
+        \frac{2}{\alpha},
+        \ldots,
+        \frac{\alpha{-}1}{\alpha},
+        \frac{\alpha}{\alpha}
+        \;;\; z \right]
+        \nonumber\\
+      &= \frac{\alpha e^{-\lambda - \beta Q} }{Q} 
+        \frac{z}{(\alpha-1)!\;\alpha^{\alpha-1}} \;
+        {}_0F_\alpha\left[ 0,0,\ldots,0 \;;\;
+        1{+}\frac{1}{\alpha},
+        1{+}\frac{2}{\alpha},
+        \ldots,
+        1{+}\frac{\alpha{-}1}{\alpha},
+        1{+}\frac{\alpha}{\alpha}
+        \;;\; z \right]
+        \nonumber\\
+  \end{align}
+  which on insertion of $z$ and simplification yields for integer $\alpha$
+  \begin{equation}
+    \lleq{qfp}
+    \boxed{
+      p(Q\cond \lambda,\alpha,\beta)
+      = 
+    \frac{\lambda\beta^\alpha Q^{\alpha-1} e^{-\lambda - \beta Q} }{(\alpha-1)!}\;
+    {}_0F_\alpha\left[ \;;\;
+        \frac{\alpha{+}1}{\alpha},
+        \frac{\alpha{+}2}{\alpha},
+        \ldots,
+        \frac{2\alpha{-}1}{\alpha},
+        2
+        \;;\; \lambda\left(\frac{\beta Q}{\alpha}\right)^\alpha \;\right]
+      }
+  \end{equation}
+  which includes the $I_1$ Bessel function for $\alpha=1$. Mathematica
+  has the function ${}_pF_q$ available. Where it is not available, the
+  above result should reduce, of course, to the series (\ref{gms}).
+\end{itemize}
+
+
+\subsection{Numerical implementation}\label{sec:asympt-numeric}
+
+
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.48\textwidth]{asymptotic}
@@ -958,11 +1140,14 @@ $P(Q \cond n, \bml)$.
   error is fixed and I remove the next sections as Hans suggested.}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{Numerical implementation}\label{sec:asympt-numeric}
+
+\subsection{Moments of the luminosity prediction}\label{sec:predict-moments}
 
 \hans{H: If threefold integrals must be carried out for the
   expectation values, why not do so for Eq (ral) directly rather than
   just the expectation values?} %
+
+\hans{H: I would agree to remove this section; I do not see value added.}
 
 While the integral in \refeq{ral} cannot be integrated analytically,
 the integrand is unimodal and strongly peaked, so that the Laplace or
@@ -1010,6 +1195,8 @@ within $\order{10}$ steps:
 \fred{At least for us, I should do a comparison plot to evaluate $p(\Lumtot \cond \bmy)$ with both methods } %
 \fred{We need a plot, the one to compare predictions and 250 real replicas or 100 virtual replicas?} %
 \fred{Advantage of this approach: no need to store all packets anymore, sum and sum of squares can be accumulated online $\Rightarrow$ reduced computation and storage requirements}
+
+
 
 \section{Conclusion} \label{sec:conclusion}
 
