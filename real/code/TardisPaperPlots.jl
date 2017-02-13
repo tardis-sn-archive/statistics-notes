@@ -2,26 +2,28 @@ module TardisPaperPlots
 using Logging
 @Logging.configure(level=INFO)
 
-import TardisPaper.Predict, TardisPaper.Integrate
+import TardisPaper.Predict, TardisPaper.Integrate, TardisPaper.Moments, TardisPaper.SmallestInterval
 import Tardis
-using Distributions, LaTeXStrings, Plots
+using DataFrames, Distributions, LaTeXStrings, Plots, StatPlots, StatsBase
 
 const font = Plots.font("TeX Gyre Heros")
 Plots.pyplot(guidefont=font, xtickfont=font, ytickfont=font, legendfont=font)
 Plots.PyPlotBackend()
+# Plots.gr()
 
 srand(16142)
 
 "save and replot"
 savepdf(fname) = begin Plots.pdf("../figures/$fname"); plot!() end
 
-function normalize!(Qs, res, tag)
+function normalize!(Qs, res, tag="")
     # norm only useful from first call
     norm, _, _ = Integrate.simpson(Qs, res)
     res ./= norm
     # but mean and σ are affected by norm
     _, mean, stderr = Integrate.simpson(Qs, res)
-    info(tag, ": norm=$norm, Q=$(mean)±$(stderr)")
+    (tag != "") && info(tag, ": norm=$norm, Q=$(mean)±$(stderr)")
+    norm, mean, stderr
 end
 
 function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, β=60.0, a=1/2, ε=1e-3, reltol=1e-3)
@@ -78,10 +80,10 @@ function compute_all_predictions()
     kwargs[:Qs] = linspace(0.5, 3.5, 100)
     res[n] = compute_prediction(;kwargs...)
 
-    n = 200
-    kwargs[:n] = n
-    kwargs[:Qs] = linspace(2.5, 8, 100)
-    res[n] = compute_prediction(;kwargs...)
+    # n = 200
+    # kwargs[:n] = n
+    # kwargs[:Qs] = linspace(2.5, 8, 100)
+    # res[n] = compute_prediction(;kwargs...)
 
     # n = 500
     # kwargs[:n] = n
@@ -135,8 +137,8 @@ function cuba_vs_laplace(res)
     savepdf("cuba_vs_laplace")
 end
 
-function prepare_spectrum()
-    # read in normalized spectrum
+function prepare_frame()
+    # read in normalized sp
     raw_data = Tardis.readdata()
     frame = Tardis.filter_positive(raw_data...)
     Tardis.transform_data!(frame)
@@ -150,17 +152,170 @@ function prepare_spectrum()
     frame
 end
 
-function plot_spectrum(frame)
-    using StatsBase
-    h=fit(Histogram, frame[:nus], weights(frame[:energies]); nbins=200)
-    # off by one
-    # plot(h.edges[1], h.weights)
+function analyze_samples(frame; npackets=typemax(Int64), nbins=20)
+    npackets = min(length(frame[:nus]), npackets)
+    nus = frame[:nus][1:npackets]
+    energies = frame[:energies][1:npackets]
+    edges = linspace(0.0, nus[end], nbins+1)
+    n = Array{Int64}(nbins)
+    means = zeros(nbins)
+    variances = zeros(nbins)
+    logr = zeros(nbins)
+    for (i, edge) in enumerate(edges[1:end-1])
+        nmin = searchsortedfirst(nus, edge)
+        nmax = searchsortedlast(nus, edges[i+1])
+        n[i] = nmax - nmin + 1
+        # println("$nmin, $nmax")
+        if n[i] == 0
+            means[i] = variances[i] = logr[i] = 0.0
+        else
+            means[i], variances[i] = mean_and_var(energies[nmin:nmax])
+            # remove Bessel correction
+            variances[i] *= (n[i] - 1) / n[i]
+            logr[i] = n[i] * mean(log, energies[nmin:nmax])
+        end
+    end
 
-    # works, but doesn't show the right graph
-    plot(h)
+    # indices of right-most element in each bin
+    # indr = cumsum(n)
 
-    # manually subtract by one
-    plot(0.01:0.02:4.3, h.weights)
+    return DataFrame(left_edge=edges[1:end-1],
+                     center=(edges[2:end] + edges[1:end-1])/2,
+                     n=n, mean=means, variance=variances, logr=logr)
+
+end
+
+function Qrange(n, Qmean, Qvar; k=5, nbins=100, minQ=0.0)
+    # estimate moments
+    μ, σ = Moments.uncertainty(n, Qmean, Qvar+Qmean^2)
+
+    # TODO what if n small? n == 1?
+    # use MLE result with enlargement or some other
+
+    # enlarge uncertainty to undo underestimation
+    σ *= 1.5
+    info("$μ, $σ")
+
+    # avoid getting too close to a discontinuity at zero
+    # go half way between zero and next point
+    s = max(minQ, μ - k*σ)
+    if s == 0.0
+        ΔQ = (μ + k*σ) / (nbins - 1)
+        s = ΔQ/2
+    end
+
+    # take k*σ range by default
+    res = linspace(s, μ + k*σ, nbins)
+end
+
+"""
+n < 10: cubature sum
+10 <= n <= 80: Laplace sum
+80 < n: asymptotic Laplace
+"""
+function predict_Q_bin(n, Qmean, Qvar, logr; a=0.5, nbins=50)
+    (n == 0) && error("hit empty bin")
+    Qs = Qrange(n, Qmean, Qvar; nbins=nbins)
+    q = n*Qmean
+    n > 8 || error("Hit bin with 10>n=$n packets. Method unstable!")
+    if n < 10
+        f = Q->Predict.by_cubature(Q, a, n, q, logr; reltol=1e-5)[1]
+    elseif 10 <= n < 80
+        f = Q->Predict.by_laplace(Q, a, n, q, logr)[1]
+    elseif n > 80
+        second = Qvar + Qmean^2
+        f = Q->Predict.asymptotic_by_laplace(Q, a, n, Qmean, second)
+    end
+    # avoid predicting for Q=0, enforce P(Q=0)=0 to avoid numerics blowing up
+    # Gamma(Q=0)≡0 but it is not continuous at Q=0 if α<1.
+    # Setting Q=0 thus highlights the discontinuity
+    if Qs[1] == 0.0
+        res = zeros(Qs)
+        res[2:end] .= map(f, Qs[2:end])
+    else
+        res = map(f, Qs)
+    end
+    Qs, res
+end
+
+"Indices of 1σ and 2σ regions"
+function analyze_bin(Qs, res)
+    norm, mean, stderr = normalize!(Qs, res, "Analyze bin")
+    (0.95 < norm < 1.05) || warn("norm ($norm) outside of [0.9, 1.1]. Choose a better integration method !?")
+
+    one_sigma_region = SmallestInterval.connected(res, 1)
+    two_sigma_region = SmallestInterval.connected(res, 2)
+    one_sigma_region, two_sigma_region
+    # Qs[one_sigma_region], Qs[two_sigma_region]
+end
+
+# overwrite from StatsBase
+@recipe function f(h::StatsBase.Histogram)
+    seriestype := :path
+    linetype := :steppost
+    linecolor --> :blue
+    h.edges[1], h.weights
+end
+
+function analyze_spectrum(;kwargs...)
+    frame = prepare_frame()
+    sp = analyze_samples(frame; kwargs...)
+    println(sp)
+
+    # add columns for the error bars
+    sp[:onelo] = 0.0
+    sp[:onehi] = 0.0
+    sp[:twolo] = 0.0
+    sp[:twohi] = 0.0
+    sp[:mode]  = 0.0
+
+    for row in eachrow(sp)
+        Qs, res = predict_Q_bin(row[:n], row[:mean], row[:variance], row[:logr])
+        # upscale
+        Qs, res = SmallestInterval.upscale(Qs, res, 1000)
+        row[:mode] = Qs[indmax(res)]
+
+        one_sigma_region, two_sigma_region = analyze_bin(Qs, res)
+        row[:onelo] = Qs[one_sigma_region[1]]
+        row[:onehi] = Qs[one_sigma_region[end]]
+        row[:twolo] = Qs[two_sigma_region[1]]
+        row[:twohi] = Qs[two_sigma_region[end]]
+    end
+    sp
+end
+
+function plot_spectrum(sp::DataFrame)
+
+    y = sp[:mode]
+
+    # need empty plot
+    plot(; xaxis=(L"\nu",), yaxis=(L"Q"))
+
+    # right edges
+    r = 2*sp[:center] - sp[:left_edge]
+
+    # plot each 95% region separately
+    for (i,row) in enumerate(eachrow(sp))
+        plot!([row[:left_edge], r[i]], [row[:twohi], row[:twohi]];
+              fill_between=row[:twolo], fillalpha=0.4, fillcolor=:green, linealpha=0.0)
+    end
+
+    scatter!(sp[:center], y; markersize=2,
+            xerror=sp[:center]-sp[:left_edge], # symmetric xerror
+            yerror=(y-sp[:onelo], sp[:onehi]-y)) # asymmetric yerror
+
+    # y = sp[:n] .* sp[:mean]
+    # kwargs = Dict(:fillalpha=>0.4, :fillcolor=>:green, :color=>:red, :linetype=>:steppost)
+    # # kwargs[:primary] = false
+    # settings = Dict()
+    # settings[:twohi] = settings[:twolo] = Dict(:color=>:blue)
+    # settings[:onehi] = settings[:onelo] = Dict(:color=>:green)
+    # for x in (:twohi, :twolo, :onehi, :onelo)
+    #     plot!(sp[:edge], sp[x]; merge(kwargs, settings[x])...)
+    # end
+
+    savepdf("spectrum")
+    nothing
 end
 
 end # module
