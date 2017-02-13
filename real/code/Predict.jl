@@ -14,15 +14,15 @@ For N>=1, the value is just returned. Else it is inferred by a
 heuristic.
 
 """
-function initialize_N(Q, α, β, a, n, N=0)
-    if N == 0
+function initialize_N(Q, α, β, a, nb, N=0)
+    if N < 1
         # perform optimization
-        res = GammaIntegrand.heuristicN(Q, α, β, a, n)
+        res = GammaIntegrand.heuristicN(Q, α, β, a, nb)
         N = convert(Integer, ceil(Optim.minimizer(res)))
     end
 
-    @assert(N >= 1)
     debug("initial N=$N")
+    @assert(N >= 1)
     return N
 end
 
@@ -71,9 +71,9 @@ end
 Predict Q by summing over N and considering α, β fixed.
 (gmhb)
 """
-function by_sum(Q::Real, α::Real, β::Real, a::Real, n::Real; Ninit::Real=0, ε::Real=1e-3)
-    Ninit = initialize_N(Q, α, β, a, n, Ninit)
-    f = N -> exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
+function by_sum(Q::Real, α::Real, β::Real, a::Real, nb::Real; Ninit::Real=0, ε::Real=1e-3)
+    Ninit = initialize_N(Q, α, β, a, nb, Ninit)
+    f = N -> exp(log_poisson_predict(N, nb, a) + log_gamma_predict(Q, α, β, N))
     iterate(Ninit, f, ε)
 end
 
@@ -81,7 +81,7 @@ end
 Predict Q by summing over N and integrating over α, β  with the Laplace approximation.
 (spk)
 """
-function by_laplace(Q, a, n, q, logr; Ninit=0, ε=1e-3)
+function by_laplace(Q, a, n, q, logr, nb=n; Ninit=0, ε=1e-3)
     # TODO max. likelihood values for α, β as initial point
 
     # need evidence for normalized posterior
@@ -95,14 +95,14 @@ function by_laplace(Q, a, n, q, logr; Ninit=0, ε=1e-3)
 
     # find initial N at posterior mode of α, β
     α, β = Optim.minimizer(res)
-    Ninit = initialize_N(Q, α, β, a, n, Ninit)
+    Ninit = initialize_N(Q, α, β, a, nb, Ninit)
 
     # integrate by Laplace on log scale
     f = N -> begin
         kwargs = Dict(:αinit=>α, :βinit=>β)
         res, diffstore = optimize_log_posterior_predict(n, q, logr, Q, N, Z; kwargs...)
         integral = Integrate.by_laplace(-Optim.minimum(res), DiffBase.hessian(diffstore))
-        exp(log_poisson_predict(N, n, a) + integral)
+        exp(log_poisson_predict(N, nb, a) + integral)
     end
     iterate(Ninit, f, ε)
 end
@@ -118,7 +118,7 @@ Arguments
 `reltol`: tolerance for cubature integration
 """
 
-function by_cubature(Q, a, n, q, logr; αmin=1e-2, αmax=5, βmin=1e-5, βmax=100,
+function by_cubature(Q, a, n, q, logr, nb=n; αmin=1e-2, αmax=5, βmin=1e-5, βmax=100,
                      Ninit=0, ε=1e-3, reltol=1e-3)
     # to avoid overflow in Cubature, evaluate target at mode and subtract it. The
     # value within a few order of magnitude of
@@ -144,14 +144,14 @@ function by_cubature(Q, a, n, q, logr; αmin=1e-2, αmax=5, βmin=1e-5, βmax=10
     logZ = log(Z) + logf_mode
 
     # find initial N at posterior mode of α, β
-    Ninit = initialize_N(Q, α, β, a, n, Ninit)
+    Ninit = initialize_N(Q, α, β, a, nb, Ninit)
 
     # integrate by Cubature on linear scale
     f = N -> begin
         integrand = GammaIntegrand.make_log_posterior_predict(n, q, logr, Q, N, logZ)
         integral, σ, ncalls = Integrate.by_cubature(integrand, lower, upper; reltol=reltol)
         debug("integrand: $integral  $σ after $ncalls calls")
-        exp(log_poisson_predict(N, n, a)) * integral
+        exp(log_poisson_predict(N, nb, a)) * integral
     end
     iterate(Ninit, f, ε)
 end
@@ -165,12 +165,12 @@ Arguments
 `a₀`: hyperprior for inverse Gamma shape
 `b₀`: hyperprior for inverse Gamma rate
 """
-function asymptotic_by_laplace(Q, a, n, first, second; a₀=0, b₀=0)
+function asymptotic_by_laplace(Q, a, n, first, second, nb=n; a₀=0, b₀=0)
     # create integrand
-    f = make_asymptotic(Q, n, a, first, second; a₀=a₀, b₀=b₀)
+    f = make_asymptotic(Q, n, a, first, second, nb; a₀=a₀, b₀=b₀)
 
     # optimize integrand
-    res, diffstore = optimize_integrand_λμσ²(f; λinit=1.05*(n-a+1), μinit=1.05*first, σ²init=1.05*n/2*(second-first^2))
+    res, diffstore = optimize_integrand_λμσ²(f; λinit=1.05*(nb-a+1), μinit=1.05*first, σ²init=1.05*n/2*(second-first^2))
 
     # Hessian at mode
     H = DiffBase.hessian(diffstore)
@@ -182,23 +182,23 @@ function asymptotic_by_laplace(Q, a, n, first, second; a₀=0, b₀=0)
     exp(Integrate.by_laplace(-Optim.minimum(res), H))
 end
 
-function asymptotic_by_cubature(Q, a, n, first, second;a₀=0, b₀=0, reltol=1e-3,
+function asymptotic_by_cubature(Q, a, n, first, second, nb=n;
+                                reltol=1e-3, a₀=0, b₀=0,
                                 λmin=0.0, λmax=0.0,
                                 μmin=0.0, μmax=0.0,
                                 σ²min=0.0, σ²max=0.0)
     # create integrand
-    f = make_asymptotic(Q, n, a, first, second; a₀=a₀, b₀=b₀)
+    f = make_asymptotic(Q, n, a, first, second, nb; a₀=a₀, b₀=b₀)
 
     # to avoid overflow in Cubature, evaluate target at approximate mode and subtract it. The
     # value within a few order of magnitude of
-    mode = [n, first, second-first^2]
+    mode = triple_mode(nb, first, second)
     logf_mode = f(mode)
     # logf_mode = 0.0
     debug("asymptotic_by_cubature logf($mode)=$(logf_mode)")
-    target = x->(res = f(x) - logf_mode; println(res); res)
     target = x->f(x) - logf_mode
 
-    lower, upper = GammaIntegrand.triple_ranges(n, first, second)
+    lower, upper = GammaIntegrand.triple_ranges(n, first, second, nb)
     (λmin > 0.0) && (lower[1] = λmin)
     (λmax > λmin && λmax > 0.0) && (upper[1] = λmax)
     (μmin > 0.0) && (lower[2] = μmin)

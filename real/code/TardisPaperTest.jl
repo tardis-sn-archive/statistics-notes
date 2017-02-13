@@ -8,7 +8,7 @@ using Base.Test, DiffBase, Distributions, ForwardDiff, Logging, Optim
 
 function integrate_by_cubature()
     res, σ, ncalls = Integrate.by_cubature(x -> log(x^2), 0, 1)
-    println(res, " ", σ, " ", ncalls)
+    debug(res, " ", σ, " ", ncalls)
     @test_approx_eq_eps(res, 1/3, 1e-15)
 end
 
@@ -26,7 +26,7 @@ function predict()
     q = sum(samples)
     logr = sum(log(samples))
 
-    hello(res, alg) = println("$alg: P($Q|$n, $a, x) = $(res[1]) for N=$(res[2])...$(res[3])")
+    hello(res, alg) = info("$alg: P($Q|$n, $a, x) = $(res[1]) for N=$(res[2])...$(res[3])")
 
     res_cuba = Predict.by_cubature(Q, 0.5, n, q, logr; reltol=1e-5)
     hello(res_cuba, "cubature")
@@ -44,11 +44,23 @@ function predict()
     second = mapreduce(x->x^2, +, samples)/n
     res_asym_laplace = Predict.asymptotic_by_laplace(Q, a, n, first, second)
     hello((res_asym_laplace, 0, 0), "asympt. Laplace")
-    @test_approx_eq_eps(res_asym_laplace, res_laplace[1], 3e-2)
+    @test_approx_eq_eps(res_asym_laplace, res_cuba[1], 1e-2)
 
     res_asym_cubature = Predict.asymptotic_by_cubature(Q, a, n, first, second; reltol=1e-3)
     hello((res_asym_cubature, 0, 0), "asympt. cubature")
-    @test_approx_eq_eps(res_asym_cubature, res_laplace[1], 3e-2)
+    @test_approx_eq_eps(res_asym_cubature, res_cuba[1], 2e-2)
+    @test_approx_eq_eps(res_asym_cubature, res_asym_laplace[1], 5e-3)
+
+    ###
+    # repeat but choose nb ≠ n. Variance smaller ⇒ density at mode
+    # should be larger but not too much because Poisson uncertainty dominant
+    ###
+    nb = n
+    n = 5*nb
+    res_asym_laplace_nb = Predict.asymptotic_by_laplace(Q, a, n, first, second, nb)
+    hello((res_asym_laplace_nb, 0, 0), "asympt. Laplace n = 5nb")
+    @test res_asym_laplace_nb > res_cuba[1]
+    @test_approx_eq_eps(res_asym_laplace_nb, res_cuba[1], 5e-2)
 end
 
 function predict_alpha_fixed()
@@ -80,7 +92,7 @@ function gamma_integrand()
 
     # draw samples from a Gamma distribution
     α = 1.5
-    β = 60
+    β = 60.0
     n = 500
     a = 1/2
 

@@ -3,7 +3,8 @@ module GammaIntegrand
 
 export heuristicN, log_gamma, log_gamma_predict, log_inv_gamma, log_normal, log_poisson_predict, log_posterior
 export make_asymptotic, make_log_posterior
-export optimize_log_posterior, optimize_log_posterior_predict, optimize_integrand_λμσ², triple_ranges
+export optimize_log_posterior, optimize_log_posterior_predict, optimize_integrand_λμσ²
+export triple_mode, triple_ranges
 
 import ..Integrate
 
@@ -82,30 +83,33 @@ end
 """
 Collect data that the target density needs
 """
-# TODO not type stable, use parametric type
-type OptData
-    Q::Real
-    α::Real
-    β::Real
-    a::Real
-    n::Integer
-    count::Integer
+type OptData{T1 <: Real, T2 <: Integer}
+    Q::T1
+    α::T1
+    β::T1
+    a::T1
+    nb::T2
+    count::T2
+end
 
-    function OptData(Q::Real, α::Real, β::Real, a::Real, n::Integer)
-        if Q < 0 Error("Invalid Q < 0: $Q") end
-        if α <= 0 Error("Invalid α <= 0: $α") end
-        if β <= 0 Error("Invalid β <= 0: $β") end
-        if a < 0 Error("Invalid a < 0: $a") end
-        new(Q, α, β, a, n, 0)
-    end
+function OptData{T1 <: Real, T2 <: Integer}(Q::T1, α::T1, β::T1, a::T1, nb::T2)
+    if Q < 0 Error("Invalid Q < 0: $Q") end
+    if α <= 0 Error("Invalid α <= 0: $α") end
+    if β <= 0 Error("Invalid β <= 0: $β") end
+    (0 <= a <= 1) || Error("Invalid a < 0: $a")
+    (nb >= 0) || Error("Invalid nb < 0: $nb")
+    OptData(Q, α, β, a, nb, zero(nb))
 end
 
 """
 Create the target for optimization of the integrand of (spk) as a function of N. Negate for minimization
 """
-function factory(Q::Real, α::Real, β::Real, a::Real, n::Integer)
-    popt = OptData(Q, α, β, a, n)
-    f(N::Real) = (popt.count += 1; -log_poisson_predict(N, popt.n, popt.a) - log_gamma_predict(popt.Q, popt.α, popt.β, N))
+function factory(Q::Real, α::Real, β::Real, a::Real, nb::Integer)
+    popt = OptData(Q, α, β, a, nb)
+    f(N::Real) = begin
+        popt.count += 1
+        -log_poisson_predict(N, popt.nb, popt.a) - log_gamma_predict(popt.Q, popt.α, popt.β, N)
+    end
     return popt, f
 end
 
@@ -114,10 +118,10 @@ Find the arg max_N NegativeBinomial(N|n-a+1, 1/2)*Gamma(Q|Nα, β) using Brent's
 
 Use the plug-in values of α and β to avoid costly integration.
 """
-function heuristicN(Q::Real, α::Real, β::Real, a::Real, n::Integer;
+function heuristicN(Q::Real, α::Real, β::Real, a::Real, nb::Integer;
                     ε=1e-2, min=0.0, max=0.0, trace=false)
-    popt, f = factory(Q, α, β, a, n)
-    if (max <= 0.0) max = 10n end
+    popt, f = factory(Q, α, β, a, nb)
+    if (max <= 0.0) max = 10nb end
     optimize(f, min, max, rel_tol=ε, show_trace=trace, extended_trace=trace)
 end
 
@@ -131,49 +135,52 @@ Integrand of (ral), negated for minimization.
 
 # Arguments
 
-* `first`: first sample moment
-* `second`: first sample moment
+* `first`: 1st sample moment
+* `second`: 2nd sample moment
 * `a₀`: hyperprior for inverse Gamma shape
 * `b₀`: hyperprior for inverse Gamma rate
 """
-function make_asymptotic(Q, n, a, first, second; a₀=0, b₀=0)
+function make_asymptotic(Q, n, a, first, second, nb=n; a₀=0, b₀=0)
     # (rbd)
     μₙ = first
     aₙ = a₀+n/2
     bₙ = b₀+n/2*(second-first^2)
-    function(x)
+
+    x -> begin
         λ, μ, σ² = x
         # (rbd)
         σₙ² = σ²/n
         # (ral)
-        log_normal(Q, λ*μ, λ*(σ²+μ^2)) + log_gamma(λ,n-a+1,1) + log_normal(μ, μₙ, σₙ²) + log_inv_gamma(σ², aₙ, bₙ)
+        log_normal(Q, λ*μ, λ*(σ²+μ^2)) + log_gamma(λ,nb-a+1,1) + log_normal(μ, μₙ, σₙ²) + log_inv_gamma(σ², aₙ, bₙ)
     end
-    end
+end
 
-    "Extract decent ranges on [λ, μ, σ²] from marginal posterior distributions. "
-    function triple_ranges(n, first, second; k=5)
-        mode = [n, first, second-first^2]
+triple_mode(nb, first, second) = [nb, first, second-first^2]
 
-        lower = zeros(3)
-        upper = zeros(lower)
+"Extract decent ranges on [λ, μ, σ²] from marginal posterior distributions. "
+function triple_ranges(n, first, second, nb=n; k=5)
+    mode = triple_mode(nb, first, second)
 
-        # get ranges
+    lower = zeros(3)
+    upper = zeros(lower)
 
-        # Poisson λ
-        Δ = k*sqrt(n)
-        lower[1] = max(n - Δ, 0.0)
-        upper[1] = n + Δ
+    # get ranges
 
-        # Gaussian μ
-        Δ = k*sqrt(mode[3]/n)
-        lower[2] = max(mode[2] - Δ, 0.0)
-        upper[2] = mode[2] + Δ
+    # Poisson λ
+    Δ = k*sqrt(nb)
+    lower[1] = max(nb - Δ, 0.0)
+    upper[1] = nb + Δ
 
-        # InverseGamma σ²
-        Δ = k*sqrt((n/2 * mode[3])^2 / ((n/2 - 1)^2 * (n/2 - 2)))
-        lower[3] =  max(mode[3] - Δ, 0.0)
-        upper[3] = mode[3] + Δ
+    # Gaussian μ
+    Δ = k*sqrt(mode[3]/n)
+    lower[2] = max(mode[2] - Δ, 0.0)
+    upper[2] = mode[2] + Δ
 
-        lower, upper
-    end
+    # InverseGamma σ²
+    Δ = k*sqrt((n/2 * mode[3])^2 / ((n/2 - 1)^2 * (n/2 - 2)))
+    lower[3] =  max(mode[3] - Δ, 0.0)
+    upper[3] = mode[3] + Δ
+
+    lower, upper
+end
 end # GammaIntegrand
