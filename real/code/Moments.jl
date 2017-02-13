@@ -5,6 +5,31 @@ import ..Integrate
 using Optim
 import ForwardDiff
 # chunk = ForwardDiff.Chunk{3}()
+
+"Warn if `arg` negative and return `log(0)`. Else return `nothing`"
+macro check_positive(arg)
+    quote
+        # evaluate arg only once to avoid unnecessary side effects
+        t0 = $arg
+        if t0 < 0
+            warn($(string(arg)), " = $t0 < 0")
+            return -Inf
+        end
+    end
+end
+
+"Create several variables and check them for positivity"
+macro unroll_args(x)
+    esc(quote
+        λ, μ, σSq = x
+        @check_positive(λ)
+        @check_positive(μ)
+        @check_positive(σSq)
+        var = σSq + μ^2
+        exponent = λ*μ^2 / (2*var)
+    end)
+end
+
 """
 Enumeration to specify which target function to create
 * PosteriorParam p(\lambda, \mu, \sigma^2 | data)
@@ -39,37 +64,26 @@ function targetfactory(target::TARGET, n::Int64, Qfirst::Float64, Qsecond::Float
 
     """N(Q | \lambda \mu, \lambda(\mu^2 + \sigma^2))"""
     function lognormal(Q::Real, x::Vector)
-        λ, μ, σSq = x
-        # println("Q = $Q ", λ, μ, σSq )
-        var = λ*(μ^2 + σSq)
+        @unroll_args(x)
         -1/2(log(2π*var) + (Q-λ*μ)^2 / var)
     end
 
     """log(-d/dt f(target=0|x))"""
     function logfirst(x::Vector)
-        λ, μ, σSq = x
-        λ > 0 || error("Negative λ ", λ)
-        μ > 0 || error("Negative μ ", μ)
-        σSq > 0 || error("Negative σSq ", σSq)
-        var = σSq + μ^2
-        exponent = λ*μ^2 / (2*var)
+        @unroll_args(x)
         log(exp(-exponent) * sqrt(λ * var / (2π)) + 1/2 * λ * μ * (1 + erf(sqrt(exponent))))
     end
 
     """log(d²/dt² f(target=0|x))"""
     function logsecond(x::Vector)
-        λ, μ, σSq = x
-        var = σSq + μ^2
-        exponent = λ*μ^2 / (2*var)
+        @unroll_args(x)
         tmp = exp(-exponent) * sqrt(λ^3 * var / (2π)) * μ + 1/2 * λ*(λ*μ^2 + var)*(1 + erf(sqrt(exponent)))
         log(tmp)
     end
 
     """log(-d^3/dt^3 f(target=0|x))"""
     function logthird(x::Vector)
-        λ, μ, σSq = x
-        var = σSq + μ^2
-        exponent = λ*μ^2 / (2var)
+        @unroll_args(x)
         tmp = exp(-exponent) / sqrt(2π) * λ^(3/2) * sqrt(var) * (λ*μ^2 + 2var)
         tmp += 1/2 * λ^2 * μ * (λ*μ^2 + 3var)*(1 + erf(sqrt(exponent)))
         log(tmp)
@@ -77,9 +91,7 @@ function targetfactory(target::TARGET, n::Int64, Qfirst::Float64, Qsecond::Float
 
     """log(d^4/dt^4 f(target=0|x))"""
     function logfourth(x::Vector)
-        λ, μ, σSq = x
-        var = σSq + μ^2
-        exponent = λ*μ^2 / (2*var)
+        @unroll_args(x)
         tmp = exp(-exponent) / sqrt(2π) * λ^(5/2) * μ * sqrt(var) * (λ*μ^2 + 5var)
         tmp += 1/2 * λ^2 * (λ^2*μ^4 + 6var*λ*μ^2 + 3var^2)*(1 + erf(sqrt(exponent)))
         log(tmp)
