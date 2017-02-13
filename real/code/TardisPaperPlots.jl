@@ -216,15 +216,19 @@ n < 10: cubature sum
 80 < n: asymptotic Laplace
 """
 function predict_Q_bin(n, Qmean, Qsecond, logr; a=0.5, nbins=50)
-    (n > 1) || error("hit bin with n=$n packets")
+    # n > 8 || error("Hit bin with n = $n < 9 packets. Method unstable!")
+    if n < 9
+        return zeros(0), zeros(0)
+    end
+
     Qs = Qrange(n, Qmean, Qsecond; nbins=nbins)
     q = n*Qmean
-    n > 8 || error("Hit bin with 10>n=$n packets. Method unstable!")
+
     if n < 10
         f = Q->Predict.by_cubature(Q, a, n, q, logr; reltol=1e-5)[1]
     elseif 10 <= n < 80
         f = Q->Predict.by_laplace(Q, a, n, q, logr)[1]
-    elseif n > 80
+    elseif n >= 80
         f = Q->Predict.asymptotic_by_laplace(Q, a, n, Qmean, Qsecond)
     end
     # avoid predicting for Q=0, enforce P(Q=0)=0 to avoid numerics blowing up
@@ -271,6 +275,13 @@ function analyze_spectrum(;kwargs...)
 
     for row in eachrow(sp)
         Qs, res = predict_Q_bin(row[:n], row[:mean], row[:second], row[:logr])
+
+        # something went wrong in the calculation, skip it!
+        if length(Qs) == 0
+            row[:mode] = row[:onelo] = row[:onehi] = row[:twolo] = row[:twohi] = NA
+            continue
+        end
+
         # upscale
         Qs, res = SmallestInterval.upscale(Qs, res, 1000)
         row[:mode] = Qs[indmax(res)]
@@ -286,33 +297,34 @@ end
 
 function plot_spectrum(sp::DataFrame)
 
-    y = sp[:mode]
-
     # need empty plot
     plot(; xaxis=(L"\nu",), yaxis=(L"Q"))
 
     # right edges
     r = 2*sp[:center] - sp[:left_edge]
 
+    # maximum Q value to plot, ommitting NA values
+    maxQ = maximum(dropna(sp[:twohi]))
+
+    fillargs = Dict(:fillalpha=>0.4, :linealpha=>0.0)
+
     # plot each 95% region separately
     for (i,row) in enumerate(eachrow(sp))
+        # invalid result, nothing to plot
+        if row[:mode] === NA
+            plot!([row[:left_edge], r[i]], zeros(2), fillcolor=:red,
+                  fill_between=maxQ, fillargs...)
+            continue
+        end
+
         plot!([row[:left_edge], r[i]], [row[:twohi], row[:twohi]];
-              fill_between=row[:twolo], fillalpha=0.4, fillcolor=:green, linealpha=0.0)
+              fill_between=row[:twolo], fillcolor=:blue, fillargs...)
+
+        y = row[:mode]
+        scatter!([row[:center]], [y]; markersize=2,
+                 xerror=[row[:center]-row[:left_edge]], # symmetric xerror
+                 yerror=([y-row[:onelo]], [row[:onehi]-y])) # asymmetric yerror
     end
-
-    scatter!(sp[:center], y; markersize=2,
-            xerror=sp[:center]-sp[:left_edge], # symmetric xerror
-            yerror=(y-sp[:onelo], sp[:onehi]-y)) # asymmetric yerror
-
-    # y = sp[:n] .* sp[:mean]
-    # kwargs = Dict(:fillalpha=>0.4, :fillcolor=>:green, :color=>:red, :linetype=>:steppost)
-    # # kwargs[:primary] = false
-    # settings = Dict()
-    # settings[:twohi] = settings[:twolo] = Dict(:color=>:blue)
-    # settings[:onehi] = settings[:onelo] = Dict(:color=>:green)
-    # for x in (:twohi, :twolo, :onehi, :onelo)
-    #     plot!(sp[:edge], sp[x]; merge(kwargs, settings[x])...)
-    # end
 
     savepdf("spectrum")
     nothing
