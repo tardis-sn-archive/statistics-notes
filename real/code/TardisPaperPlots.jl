@@ -159,6 +159,7 @@ function analyze_samples(frame; npackets=typemax(Int64), nbins=20)
     edges = linspace(0.0, nus[end], nbins+1)
     n = Array{Int64}(nbins)
     means = zeros(nbins)
+    seconds = zeros(nbins)
     variances = zeros(nbins)
     logr = zeros(nbins)
     for (i, edge) in enumerate(edges[1:end-1])
@@ -167,9 +168,10 @@ function analyze_samples(frame; npackets=typemax(Int64), nbins=20)
         n[i] = nmax - nmin + 1
         # println("$nmin, $nmax")
         if n[i] == 0
-            means[i] = variances[i] = logr[i] = 0.0
+            means[i] = seconds[i] = variances[i] = logr[i] = 0.0
         else
             means[i], variances[i] = mean_and_var(energies[nmin:nmax])
+            seconds[i] = mapreduce(x->x^2, +, energies[nmin:nmax]) / n[i]
             # remove Bessel correction
             variances[i] *= (n[i] - 1) / n[i]
             logr[i] = n[i] * mean(log, energies[nmin:nmax])
@@ -181,13 +183,13 @@ function analyze_samples(frame; npackets=typemax(Int64), nbins=20)
 
     return DataFrame(left_edge=edges[1:end-1],
                      center=(edges[2:end] + edges[1:end-1])/2,
-                     n=n, mean=means, variance=variances, logr=logr)
+                     n=n, mean=means, second=seconds, variance=variances, logr=logr)
 
 end
 
-function Qrange(n, Qmean, Qvar; k=5, nbins=100, minQ=0.0)
+function Qrange(n, Qmean, Qsecond; k=5, nbins=100, minQ=0.0)
     # estimate moments
-    μ, σ = Moments.uncertainty(n, Qmean, Qvar+Qmean^2)
+    μ, σ = Moments.uncertainty(n, Qmean, Qsecond)
 
     # TODO what if n small? n == 1?
     # use MLE result with enlargement or some other
@@ -213,9 +215,9 @@ n < 10: cubature sum
 10 <= n <= 80: Laplace sum
 80 < n: asymptotic Laplace
 """
-function predict_Q_bin(n, Qmean, Qvar, logr; a=0.5, nbins=50)
-    (n == 0) && error("hit empty bin")
-    Qs = Qrange(n, Qmean, Qvar; nbins=nbins)
+function predict_Q_bin(n, Qmean, Qsecond, logr; a=0.5, nbins=50)
+    (n > 1) || error("hit bin with n=$n packets")
+    Qs = Qrange(n, Qmean, Qsecond; nbins=nbins)
     q = n*Qmean
     n > 8 || error("Hit bin with 10>n=$n packets. Method unstable!")
     if n < 10
@@ -223,8 +225,7 @@ function predict_Q_bin(n, Qmean, Qvar, logr; a=0.5, nbins=50)
     elseif 10 <= n < 80
         f = Q->Predict.by_laplace(Q, a, n, q, logr)[1]
     elseif n > 80
-        second = Qvar + Qmean^2
-        f = Q->Predict.asymptotic_by_laplace(Q, a, n, Qmean, second)
+        f = Q->Predict.asymptotic_by_laplace(Q, a, n, Qmean, Qsecond)
     end
     # avoid predicting for Q=0, enforce P(Q=0)=0 to avoid numerics blowing up
     # Gamma(Q=0)≡0 but it is not continuous at Q=0 if α<1.
@@ -260,7 +261,6 @@ end
 function analyze_spectrum(;kwargs...)
     frame = prepare_frame()
     sp = analyze_samples(frame; kwargs...)
-    println(sp)
 
     # add columns for the error bars
     sp[:onelo] = 0.0
@@ -270,7 +270,7 @@ function analyze_spectrum(;kwargs...)
     sp[:mode]  = 0.0
 
     for row in eachrow(sp)
-        Qs, res = predict_Q_bin(row[:n], row[:mean], row[:variance], row[:logr])
+        Qs, res = predict_Q_bin(row[:n], row[:mean], row[:second], row[:logr])
         # upscale
         Qs, res = SmallestInterval.upscale(Qs, res, 1000)
         row[:mode] = Qs[indmax(res)]
