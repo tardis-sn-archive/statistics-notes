@@ -166,7 +166,7 @@ function analyze_samples(frame; npackets=typemax(Int64), nbins=20)
         nmin = searchsortedfirst(nus, edge)
         nmax = searchsortedlast(nus, edges[i+1])
         n[i] = nmax - nmin + 1
-        # println("$nmin, $nmax")
+
         if n[i] == 0
             means[i] = seconds[i] = variances[i] = logr[i] = 0.0
         else
@@ -312,7 +312,7 @@ function plot_spectrum(sp::DataFrame)
     for (i,row) in enumerate(eachrow(sp))
         # invalid result, nothing to plot
         if row[:mode] === NA
-            plot!([row[:left_edge], r[i]], zeros(2), fillcolor=:red,
+            plot!([row[:left_edge], r[i]], zeros(2); fillcolor=:red,
                   fill_between=maxQ, fillargs...)
             continue
         end
@@ -327,7 +327,6 @@ function plot_spectrum(sp::DataFrame)
     end
 
     savepdf("spectrum")
-    nothing
 end
 
 end # module
