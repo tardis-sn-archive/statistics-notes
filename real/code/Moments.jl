@@ -39,7 +39,7 @@ Enumeration to specify which target function to create
 """
 Create a function for Laplace approximation
 """
-function targetfactory(target::TARGET, n::Int64, Qfirst::Float64, Qsecond::Float64;
+function targetfactory(target::TARGET, n::Int64, Qfirst::Float64, Qsecond::Float64, nb::Int64=nb;
                        a::Float64=1/2, Q::Float64=-1.0)
     0 <= a <= 1 || error("need a in [0,1]")
     (Qfirst > 0) || error("nonpositive Qfirst $Qfirst")
@@ -48,10 +48,10 @@ function targetfactory(target::TARGET, n::Int64, Qfirst::Float64, Qsecond::Float
     """ p(\lambda | data) p(\mu, \sigma^2 | data)"""
     function logposterior_param(x::Vector)
         # all values must be positive
-        any(v->v<0, x) && return -Inf
+        any(v -> v < 0, x) && return -Inf
         λ, μ, σSq = x
 
-        α = n-a+1
+        α = nb-a+1
 
         # Eggers: flat prior in μ, InvGamma(σ^2|a0, b0)
         σSqn = σSq / n
@@ -124,16 +124,17 @@ function targetfactory(target::TARGET, n::Int64, Qfirst::Float64, Qsecond::Float
     return x -> -f(x)
 end
 
-function uncertainty(n::Int64, Qfirst::Float64, Qsecond::Float64;
+function uncertainty(n::Int64, Qfirst::Float64, Qsecond::Float64, nb::Int64=n;
                      a::Float64=0.5, Q::Float64=-1.0)
     # initial guess for optimization: slightly off to avoid
     # ERROR: Linesearch failed to converge
-    init = [n * 1.0001, Qfirst * 1.0005, (Qsecond - Qfirst^2) * 1.0005]
+    init = 1.005 * triple_mode(nb, Qfirst, Qsecond)
+
     # Hessian
     H = Array{Float64}(3,3)
 
     function integrate(moment::TARGET; Q=-1.0)
-        target = targetfactory(moment, n, Qfirst, Qsecond; a=a, Q=Q)
+        target = targetfactory(moment, n, Qfirst, Qsecond, nb; a=a, Q=Q)
         res = optimize(target, init, Newton(), Optim.Options(autodiff=true))
         info(Optim.minimizer(res))
         ForwardDiff.hessian!(H, target, Optim.minimizer(res))
@@ -149,10 +150,10 @@ function uncertainty(n::Int64, Qfirst::Float64, Qsecond::Float64;
 
     # second moment
     second = integrate(SecondMoment)
-    # info("second $second")
     firstSquared = integrate(FirstMomentSquared)
     σ = sqrt(second - firstSquared)
     return μ, σ
+
     # lower, upper = triple_ranges(n, Qfirst, Qsecond; k=5)
     # target = targetfactory(Variance, n, Qfirst, Qsecond)
     # cubavar = Integrate.by_cubature(x->-target(x), lower, upper; reltol=1e-5)
