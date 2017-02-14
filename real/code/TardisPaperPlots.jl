@@ -178,15 +178,14 @@ function analyze_samples(frame; npackets=typemax(Int64), nbins=20)
         end
     end
 
-    # indices of right-most element in each bin
-    # indr = cumsum(n)
-
-    return DataFrame(left_edge=edges[1:end-1],
-                     center=(edges[2:end] + edges[1:end-1])/2,
-                     n=n, mean=means, second=seconds, variance=variances, logr=logr)
-
+    DataFrame(left_edge=edges[1:end-1], center=(edges[2:end] + edges[1:end-1])/2,
+              n=n, mean=means, second=seconds, variance=variances, logr=logr)
 end
 
+"""Estimate range in Q where probability mass is.
+
+Rely on moments and Gaussian approximation.
+"""
 function Qrange(n, Qmean, Qsecond; k=5, nbins=100, minQ=0.0)
     # estimate moments
     μ, σ = Moments.uncertainty(n, Qmean, Qsecond)
@@ -262,7 +261,7 @@ end
     h.edges[1], h.weights
 end
 
-function analyze_spectrum(;kwargs...)
+function analyze_spectrum(binposterior=true; kwargs...)
     frame = prepare_frame()
     sp = analyze_samples(frame; kwargs...)
 
