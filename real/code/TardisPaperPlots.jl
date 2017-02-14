@@ -2,7 +2,7 @@ module TardisPaperPlots
 using Logging
 @Logging.configure(level=INFO)
 
-import TardisPaper.Predict, TardisPaper.Integrate, TardisPaper.Moments, TardisPaper.SmallestInterval
+import TardisPaper.GammaIntegrand, TardisPaper.Predict, TardisPaper.Integrate, TardisPaper.Moments, TardisPaper.SmallestInterval
 import Tardis
 using DataFrames, Distributions, LaTeXStrings, Plots, StatPlots, StatsBase
 
@@ -11,14 +11,19 @@ Plots.pyplot(guidefont=font, xtickfont=font, ytickfont=font, legendfont=font)
 Plots.PyPlotBackend()
 # Plots.gr()
 
-srand(16142)
-
 "save and replot"
 savepdf(fname) = begin Plots.pdf("../figures/$fname"); plot!() end
 
-function normalize!(Qs, res, tag="")
+"""# Arguments
+
+`δcontrib`: For `N=0`, the δ function has a contribution that affects
+the normalization and thus mean and std. err
+
+"""
+function normalize!(Qs, res, tag=""; δcontrib=0.0)
     # norm only useful from first call
     norm, _, _ = Integrate.simpson(Qs, res)
+    norm += δcontrib
     res ./= norm
     # but mean and σ are affected by norm
     _, mean, stderr = Integrate.simpson(Qs, res)
@@ -26,7 +31,9 @@ function normalize!(Qs, res, tag="")
     norm, mean, stderr
 end
 
-function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, β=60.0, a=1/2, ε=1e-3, reltol=1e-3)
+function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, β=60.0, a=1/2, ε=1e-3, reltol=1e-3, seed=16142)
+    srand(seed)
+
     info("Computing for n=$n")
     dist = Gamma(α, 1/β)
     samples = rand(dist, n)
@@ -137,11 +144,14 @@ function cuba_vs_laplace(res)
     savepdf("cuba_vs_laplace")
 end
 
-function prepare_frame()
+"Fixed seed for reproducible spectra"
+function prepare_frame(seed=1612)
     # read in normalized sp
     raw_data = Tardis.readdata()
     frame = Tardis.filter_positive(raw_data...)
     Tardis.transform_data!(frame)
+
+    srand(seed)
 
     # update energies by drawing from Gamma distribution.
     # actual samples are only approximately from Gamma
@@ -185,17 +195,23 @@ end
 """Estimate range in Q where probability mass is.
 
 Rely on moments and Gaussian approximation.
-"""
-function Qrange(n, Qmean, Qsecond; k=5, nbins=100, minQ=0.0)
-    # estimate moments
-    μ, σ = Moments.uncertainty(n, Qmean, Qsecond)
 
-    # TODO what if n small? n == 1?
-    # use MLE result with enlargement or some other
+# Arguments
+`k`: #sigmas to include in the range
+"""
+function Qrange(n, Lmean, Lsecond, nb=n; k=5, nbins=100, minQ=0.0)
+    # what if n small? need nb large
+    # estimate moments
+    μ, σ = Moments.uncertainty(n, Lmean, Lsecond, nb)
 
     # enlarge uncertainty to undo underestimation
     σ *= 1.5
-    info("$μ, $σ")
+    info("Qrange: nb=$nb, μ=$μ, σ=$σ")
+
+    # density probably peaks at or near 0
+    if μ - σ < 0
+        return linspace(0, μ+2*k*σ, nbins)
+    end
 
     # avoid getting too close to a discontinuity at zero
     # go half way between zero and next point
@@ -206,29 +222,34 @@ function Qrange(n, Qmean, Qsecond; k=5, nbins=100, minQ=0.0)
     end
 
     # take k*σ range by default
-    res = linspace(s, μ + k*σ, nbins)
+    linspace(s, μ + k*σ, nbins)
 end
 
 """
-n < 10: cubature sum
-10 <= n <= 80: Laplace sum
-80 < n: asymptotic Laplace
+nb < 80: sum
+n < 10: cubature
+n > 10: Laplace
 """
-function predict_Q_bin(n, Qmean, Qsecond, logr; a=0.5, nbins=50)
+function predict_Q_bin(n, Lmean, Lsecond, logr, nb=n; a=0.5, nbins=50)
     # n > 8 || error("Hit bin with n = $n < 9 packets. Method unstable!")
+    # TODO is 9 the right cut off?
     if n < 9
         return zeros(0), zeros(0)
     end
 
-    Qs = Qrange(n, Qmean, Qsecond; nbins=nbins)
-    q = n*Qmean
+    Qs = Qrange(n, Lmean, Lsecond, nb; nbins=nbins)
 
-    if n < 10
-        f = Q->Predict.by_cubature(Q, a, n, q, logr; reltol=1e-5)[1]
-    elseif 10 <= n < 80
-        f = Q->Predict.by_laplace(Q, a, n, q, logr)[1]
-    elseif n >= 80
-        f = Q->Predict.asymptotic_by_laplace(Q, a, n, Qmean, Qsecond)
+    # sum of contributing samples
+    q = n * Lmean
+
+    if nb < 80
+        if n < 10
+            f = Q->Predict.by_cubature(Q, a, n, q, logr, nb; reltol=1e-5)[1]
+        else
+            f = Q->Predict.by_laplace(Q, a, n, q, logr, nb)[1]
+        end
+    else
+        f = Q->Predict.asymptotic_by_laplace(Q, a, n, Lmean, Lsecond, nb)
     end
     # avoid predicting for Q=0, enforce P(Q=0)=0 to avoid numerics blowing up
     # Gamma(Q=0)≡0 but it is not continuous at Q=0 if α<1.
@@ -239,13 +260,16 @@ function predict_Q_bin(n, Qmean, Qsecond, logr; a=0.5, nbins=50)
     else
         res = map(f, Qs)
     end
+    if nb < 3
+        debug("res((min Q = $(Qs[1])) = $(res[1]), res(max Q = $(Qs[end])) = $(res[end])")
+    end
     Qs, res
 end
 
 "Indices of 1σ and 2σ regions"
-function analyze_bin(Qs, res)
-    norm, mean, stderr = normalize!(Qs, res, "Analyze bin")
-    (0.95 < norm < 1.05) || warn("norm ($norm) outside of [0.9, 1.1]. Choose a better integration method !?")
+function analyze_bin(Qs, res; δcontrib=0.0)
+    norm, mean, stderr = normalize!(Qs, res, "Analyze bin"; δcontrib=δcontrib)
+    (0.98 < norm < 1.02) || warn("norm ($norm) outside of [0.98, 1.02]. Choose a better method or larger ranges for integration !?")
 
     one_sigma_region = SmallestInterval.connected(res, 1)
     two_sigma_region = SmallestInterval.connected(res, 2)
@@ -253,15 +277,8 @@ function analyze_bin(Qs, res)
     # Qs[one_sigma_region], Qs[two_sigma_region]
 end
 
-# overwrite from StatsBase
-@recipe function f(h::StatsBase.Histogram)
-    seriestype := :path
-    linetype := :steppost
-    linecolor --> :blue
-    h.edges[1], h.weights
-end
-
-function analyze_spectrum(binposterior=true; kwargs...)
+"`binposterior`: Use samples from single bin (true) or all bins (false) to determine α, β"
+function analyze_spectrum(binposterior=true; a=0.5, kwargs...)
     frame = prepare_frame()
     sp = analyze_samples(frame; kwargs...)
 
@@ -272,8 +289,20 @@ function analyze_spectrum(binposterior=true; kwargs...)
     sp[:twohi] = 0.0
     sp[:mode]  = 0.0
 
+    # summary statistics for all samples
+    if !binposterior
+        n = sum(sp[:n])
+        first = sum(sp[:n] .* sp[:mean]) / n
+        second = sum(sp[:n] .* sp[:second]) / n
+        logr = sum(sp[:logr])
+    end
+
     for row in eachrow(sp)
-        Qs, res = predict_Q_bin(row[:n], row[:mean], row[:second], row[:logr])
+        if binposterior
+            Qs, res = predict_Q_bin(row[:n], row[:mean], row[:second], row[:logr]; a=a)
+        else
+            Qs, res = predict_Q_bin(n, first, second, logr, row[:n]; a=a)
+        end
 
         # something went wrong in the calculation, skip it!
         if length(Qs) == 0
@@ -281,11 +310,16 @@ function analyze_spectrum(binposterior=true; kwargs...)
             continue
         end
 
+        # if row[:n] == 0
+        #     scatter(Qs, res)
+        #     savepdf("pred0")
+        # end
+
         # upscale
         Qs, res = SmallestInterval.upscale(Qs, res, 1000)
         row[:mode] = Qs[indmax(res)]
 
-        one_sigma_region, two_sigma_region = analyze_bin(Qs, res)
+        one_sigma_region, two_sigma_region = analyze_bin(Qs, res; δcontrib=exp(GammaIntegrand.log_poisson_predict(0, row[:n], a)))
         row[:onelo] = Qs[one_sigma_region[1]]
         row[:onehi] = Qs[one_sigma_region[end]]
         row[:twolo] = Qs[two_sigma_region[1]]
@@ -294,7 +328,7 @@ function analyze_spectrum(binposterior=true; kwargs...)
     sp
 end
 
-function plot_spectrum(sp::DataFrame)
+function plot_spectrum(sp::DataFrame, name="spectrum"; maxQ=-1.0)
 
     # need empty plot
     plot(; xaxis=(L"\nu",), yaxis=(L"Q"))
@@ -303,7 +337,7 @@ function plot_spectrum(sp::DataFrame)
     r = 2*sp[:center] - sp[:left_edge]
 
     # maximum Q value to plot, ommitting NA values
-    maxQ = maximum(dropna(sp[:twohi]))
+    if (maxQ < 0) maxQ = maximum(dropna(sp[:twohi])) end
 
     fillargs = Dict(:fillalpha=>0.4, :linealpha=>0.0)
 
@@ -320,12 +354,29 @@ function plot_spectrum(sp::DataFrame)
               fill_between=row[:twolo], fillcolor=:blue, fillargs...)
 
         y = row[:mode]
-        scatter!([row[:center]], [y]; markersize=2,
-                 xerror=[row[:center]-row[:left_edge]], # symmetric xerror
+        scatter!([row[:center]], [y]; markersize=0, markercolor=:black,
                  yerror=([y-row[:onelo]], [row[:onehi]-y])) # asymmetric yerror
+        # scatter!([row[:center]], [y]; markersize=0,
+        #          xerror=[row[:center]-row[:left_edge]], # symmetric xerror
+        #          yerror=([y-row[:onelo]], [row[:onehi]-y])) # asymmetric yerror
     end
 
-    savepdf("spectrum")
+    ylims!(-0.02, maxQ)
+
+    savepdf(name)
+end
+
+function compare_spectra(spectra=false)
+    if spectra === false
+        # spectra = [TardisPaperPlots.analyze_spectrum(x; npackets=100, nbins=5) for x in (true, false)]
+        # spectra = [TardisPaperPlots.analyze_spectrum(x; a=0.5, npackets=500, nbins=15) for x in (false, true)]
+        spectra = [TardisPaperPlots.analyze_spectrum(x; a=0.5, nbins=500) for x in (false, true)]
+    end
+    maxQ = max(maximum(dropna(spectra[1][:twohi])), maximum(dropna(spectra[2][:twohi])))
+    for (sp, name) in zip(spectra, ("all", "bin"))
+        plot_spectrum(sp, "spectrum_$name", maxQ=maxQ)
+    end
+    spectra
 end
 
 end # module
