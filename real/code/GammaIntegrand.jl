@@ -121,7 +121,9 @@ Use the plug-in values of α and β to avoid costly integration.
 function heuristicN(Q::Real, α::Real, β::Real, a::Real, nb::Integer;
                     ε=1e-2, min=0.0, max=0.0, trace=false)
     popt, f = factory(Q, α, β, a, nb)
-    if (max <= 0.0) max = 10nb end
+    if (max <= 0.0)
+        max = (nb > 0) ? 10nb : 50
+    end
     optimize(f, min, max, rel_tol=ε, show_trace=trace, extended_trace=trace)
 end
 

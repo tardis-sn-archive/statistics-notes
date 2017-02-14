@@ -130,13 +130,17 @@ function uncertainty(n::Int64, Qfirst::Float64, Qsecond::Float64, nb::Int64=n;
     # ERROR: Linesearch failed to converge
     init = 1.005 * triple_mode(nb, Qfirst, Qsecond)
 
+    # corner case nb == 0
+    if init[1] == 0.0
+        init[1] = 0.2
+    end
+
     # Hessian
     H = Array{Float64}(3,3)
 
     function integrate(moment::TARGET; Q=-1.0)
         target = targetfactory(moment, n, Qfirst, Qsecond, nb; a=a, Q=Q)
         res = optimize(target, init, Newton(), Optim.Options(autodiff=true))
-        info(Optim.minimizer(res))
         ForwardDiff.hessian!(H, target, Optim.minimizer(res))
         exp(Integrate.by_laplace(-Optim.minimum(res), H))
     end
