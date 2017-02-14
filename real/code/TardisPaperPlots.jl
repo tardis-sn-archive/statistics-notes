@@ -231,9 +231,8 @@ n < 10: cubature
 n > 10: Laplace
 """
 function predict_Q_bin(n, Lmean, Lsecond, logr, nb=n; a=0.5, nbins=50)
-    # n > 8 || error("Hit bin with n = $n < 9 packets. Method unstable!")
-    # TODO is 9 the right cut off?
-    if n < 9
+    # n=2 is the minimum to constrain two parameters
+    if n < 2
         return zeros(0), zeros(0)
     end
 
@@ -310,14 +309,14 @@ function analyze_spectrum(binposterior=true; a=0.5, kwargs...)
             continue
         end
 
-        # if row[:n] == 0
-        #     scatter(Qs, res)
-        #     savepdf("pred0")
-        # end
-
         # upscale
         Qs, res = SmallestInterval.upscale(Qs, res, 1000)
         row[:mode] = Qs[indmax(res)]
+
+        if row[:n] == 0
+            scatter(Qs, res)
+            savepdf("pred0")
+        end
 
         one_sigma_region, two_sigma_region = analyze_bin(Qs, res; δcontrib=exp(GammaIntegrand.log_poisson_predict(0, row[:n], a)))
         row[:onelo] = Qs[one_sigma_region[1]]
@@ -349,18 +348,18 @@ function plot_spectrum(sp::DataFrame, name="spectrum"; maxQ=-1.0)
                   fill_between=maxQ, fillargs...)
             continue
         end
-
         plot!([row[:left_edge], r[i]], [row[:twohi], row[:twohi]];
               fill_between=row[:twolo], fillcolor=:blue, fillargs...)
 
         y = row[:mode]
-        scatter!([row[:center]], [y]; markersize=0, markercolor=:black,
-                 yerror=([y-row[:onelo]], [row[:onehi]-y])) # asymmetric yerror
+        scatter!([row[:center]], [y]; markersize=1, markercolor=:black)
+
+        # scatter!([row[:center]], [y]; markersize=0, markercolor=:black,
+        #          yerror=([y-row[:onelo]], [row[:onehi]-y])) # asymmetric yerror
         # scatter!([row[:center]], [y]; markersize=0,
         #          xerror=[row[:center]-row[:left_edge]], # symmetric xerror
         #          yerror=([y-row[:onelo]], [row[:onehi]-y])) # asymmetric yerror
     end
-
     ylims!(-0.02, maxQ)
 
     savepdf(name)
