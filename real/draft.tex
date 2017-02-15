@@ -848,16 +848,8 @@ positive, we assign an improper uniform prior
 $p(\mu\cond\mu_{\rm max}) = 1/\mu_{\rm max}$ independent of $n$; as
 always, the posterior is independent of
 $\mu_{\rm max}$.
-\fred{only true if $\mu_{\rm max}$ large enough to contain posterior}
 For $\sigma^2$, we use an $n$-independent Inverse Gamma
 distribution prior with hyperparameters $(a_0,b_0)$ which reads
-%%%%%%%
-\fred{Inconsistency. Now $b_0$ is a scale parameter but before $\beta$
-  was a \emph{rate} parameter in definition of $\Gamma$}
-%%%%%%%
-\hans{Not really. This is an inverse gamma distribution, not a gamma
-  distribution.  Transformation from $\sigma$ to gamma variable
-  $v = 1/\sigma_2$ would make $b_0$ a rate variable for the latter.}
 \begin{align}
   \lleq{rad}
   p(\sigma^2\cond a_0,b_0)
@@ -899,7 +891,144 @@ While the integral cannot be carried out analytically, the integrand
 is unimodal and strongly peaked, so that the Laplace or saddle-point
 approximation~\cite[Ch. 27]{mackay2003information} can be applied.
 
-\subsection{Poisson-gamma convolution}\label{sec:poisson-gamma}
+
+\subsection{Numerical implementation}\label{sec:asympt-numeric}
+
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.48\textwidth]{asymptotic}
+  \caption{Numerical prediction of $\Lumtot$ with the sum over $N$
+    from \refeq{spk} or the asymptotic expression from \refeq{ral} for $n$
+    samples from $\GammaDist(\alpha=1.5, \beta=60)$}
+\label{fig:asymptotic}
+\end{figure}
+
+In \reffig{asymptotic}, we contrast the asymptotic expression with the
+``exact'' expression \refeq{spk} where the integrals over $\bmphi$ are
+done numerically to a requested relative accuracy of $10^{-5}$ through
+the Cubature
+package\cite{cubature,genz1980remarks,berntsen1991adaptive}. We
+computed $P(\Lumtot \cond n, \bml)$ on a grid of $\Lumtot$ values and
+checked if the probability integrates to one using Simpson's
+rule. With the exact expression, we obtain 0.997 ($n=10$) and 0.996
+($n=80$), and 0.698 and 0.953 for the asymptotic expression. For
+$n=10$, the large discrepancy arises mostly because the positivity
+constraint $P(Q \leq 0 \cond n, \bml) = 0$ is not respected in
+\refeq{ral} since the Gaussian approximation \refeq{rae} allows
+negative $\lambda$ and $\Lumtot$, whereas the results \refeq{spk}
+based on the $\GammaDist$ model imply $\lambda \geq 0$ and $Q \geq 0$.
+
+For that reason, we discourage the asymptotic approximation for small
+$n$ but we note that in general, the lack of numerical normalization
+may not be a concern. For example, if \refeq{ral} is used as the
+likelihood for a single bin in Bayesian parameter inference, the
+normalization or evidence is
+irrelevant. Following~\cite{tierney_accurate_1986}, we renormalized
+the results to integrate to one for ease of comparison in
+\reffig{asymptotic}.  We verified that for $n>80$, the two methods
+agree even better than shown there and that the normalization of the
+asymptotic result approaches one.
+
+The main advantage of the approximation is computational efficiency. A
+single evaluation of $P(Q \cond n, \bml)$ takes only about 100 calls
+to the integrand of \refeq{ral} regardless of the value of $n$. In
+contrast, a the numerical integration of a single term for fixed $N$
+in \refeq{spk} requires 1000s of function evaluations, and the number
+of terms grows like $\sqrt{n}$ for a given accuracy of
+$P(Q \cond n, \bml)$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\hans{Some comments on the numerical values of hyperparameters $a$ in
+  Poisson, $a,b$ in inverse gamma needed.} %
+\hans{I would omit the text and calculations below. Apart from the
+  extra parameters, the main reason is that the Gaussian prior in
+  $\mu$ is not consistent with the fact that all luminosities are
+  positive, while the gaussian permits negative $\mu$. This may not be
+  important numerically, but the uniform prior in $\mu$ does
+  circumvent this problem and is moreover less informative than the
+  Gaussian prior. } %
+\hans{Note also that letting $\mu_0{=}0$ and $ n_0\to 0$ below implies
+  a prior gaussian of infinite width centered on zero, i.e.\ half of
+  the values of $\mu$ will be negative. Could this be the reason why
+  the numerics pick up a factor two?}%
+\fred{No, what I used before was equivalent to a uniform prior that
+  extends into the range $\mu<0$. The normalization cancels out and
+  the negative region doesn't contribute. With the uniform prior, you
+  assume that your upper cut-off on $\mu$ is large enough to contain
+  the posterior but at the same time large values don't actually
+  contribute so it doesn't matter if you include them or not. That
+  means I can't pick up a factor of two there, it would only change
+  the normalization but not the \emph{shape} of $p(Q)$} \fred{The
+  error is fixed and I remove the next sections as Hans suggested.}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Conclusion} \label{sec:conclusion}
+
+TODO
+
+\section{Appendix} \label{sec:appendix}
+
+
+
+\subsection{Moments of the luminosity prediction}\label{sec:predict-moments}
+
+\hans{H: If threefold integrals must be carried out for the
+  expectation values, why not do so for Eq (ral) directly rather than
+  just the expectation values?} %
+
+\hans{H: I would agree to remove this section; I do not see value added.}
+
+While the integral in \refeq{ral} cannot be integrated analytically,
+the integrand is unimodal and strongly peaked, so that the Laplace or
+saddle-point approximation~\cite[Ch. 27]{mackay2003information} can be
+applied. If only the value $p(\Lumtot{=}\lumtot \cond n,m_1,m_2)$ at the
+total data luminosity $q$ is sought, then one can approximate it
+directly. In addition, we can compute the moments of $\Lumtot$ through
+the \emph{moment generating function} \cite{stuart1994kendall}
+\begin{align}
+  \lleq{rap}
+  M(t \cond \bmy) = \int_0^{\infty} \rmdx{\Lumtot} p(\Lumtot \cond \bmy) e^{-t \Lumtot} \,
+\end{align}
+from which the moments are accessible by differentiation
+\begin{align}
+  \lleq{raq}
+  \expect{\Lumtot^k} = (-1)^k \eval{\dv[k]{M(t \cond \bmy)}{t}}_{t=0}
+\end{align}
+Assuming all involved integrals are absolutely convergent, we can
+exchange the order of integration and find
+\begin{align}
+  \lleq{rar}
+  M(t \cond \bmy) &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond \bmy) p( \mu, \sigma^2 \cond \bmy)  f(t \cond \lambda, \mu, \sigma^2),
+  \intertext{where }
+  f\left(t \cond  \lambda, \mu, \sigma^2\right) &\equiv \int \rmdx{\Lumtot} \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\mu^2 + \sigma^2) \right) e^{-t \Lumtot}\\
+  &= \frac{1}{2} \exp \qty(t/2 \lambda (t (\mu^2 + \sigma^2)- 2\mu)) \erfc \qty( \frac{\sqrt{\lambda}(t \qty(\mu^2 + \sigma^2) - \mu)}{\sqrt{2 \qty(\mu^2 + \sigma^2)}}).
+\end{align}
+This implies that the mean and variance of $\Lumtot$ require an integral over the three parameters
+\begin{align}
+  \lleq{ras}
+  \expect{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond n) p( \mu, \sigma^2 \cond \bmy) \qty(-\eval{\dv{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0})\\
+  \variance{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond n) p( \mu, \sigma^2 \cond \bmy) \qty(\eval{\dv[2]{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0}) - \expect{\Lumtot}^2
+\end{align}
+We implemented the above formulae in the julia language~\cite{julia14}
+and used Newton's method from the \texttt{Optim.jl} package in
+combination with automatic
+differentiation~\cite{RevelsLubinPapamarkou2016} to optimize the
+respective integrand and compute the Hessian at the mode. As initial
+values, we slightly offset the sample estimates to avoid issues if the
+optimizer cannot improve on the initial guess and found convergence
+within $\order{10}$ steps:
+\begin{align}
+  \lleq{rat}
+  \qty(\lambda, \mu, \sigma^2) = 1.0005 (n, \langle\lum\rangle, \langle\lum^2\rangle{-}\langle\lum\rangle^2).
+\end{align}
+\fred{At least for us, I should do a comparison plot to evaluate $p(\Lumtot \cond \bmy)$ with both methods } %
+\fred{We need a plot, the one to compare predictions and 250 real replicas or 100 virtual replicas?} %
+\fred{Advantage of this approach: no need to store all packets anymore, sum and sum of squares can be accumulated online $\Rightarrow$ reduced computation and storage requirements}
+
+\section{Delendum}
+
+ \subsection{Poisson-gamma convolution}\label{sec:poisson-gamma}
 
 \hans{H: This subsection is temporary. It is motivated by the question
   whether the use of a gaussian for the single-packet luminosity
@@ -910,7 +1039,7 @@ approximation~\cite[Ch. 27]{mackay2003information} can be applied.
   systematic bias. Below, I have derived a closed form for
   $p(Q\cond \lambda,\bmphi)$ using the gamma-distributed
   $p(L_j\cond \alpha,\beta)$ of (\ref{spc}). The final result
-  (\ref{ffin}) below could be used to replace the gaussian result
+  (\ref{qfp}) below could be used to replace the gaussian result
   (\ref{rab}) for insertion into (\ref{asd}). Inclusion of the entire
   derivation below is not envisaged; rather, we would include only
   salient issues and equation in the text itself. For the moment, the
@@ -1076,216 +1205,6 @@ analytic solution for some special cases of $\alpha$.
   has the function ${}_pF_q$ available. Where it is not available, the
   above result should reduce, of course, to the series (\ref{gms}).
 \end{itemize}
-
-
-\subsection{Numerical implementation}\label{sec:asympt-numeric}
-
-
-\begin{figure}[ht]
-  \centering
-  \includegraphics[width=0.48\textwidth]{asymptotic}
-  \caption{Numerical prediction of $\Lumtot$ with the sum over $N$
-    from \refeq{spk} or the asymptotic expression from \refeq{ral} for $n$
-    samples from $\GammaDist(\alpha=1.5, \beta=60)$}
-\label{fig:asymptotic}
-\end{figure}
-
-In \reffig{asymptotic}, we contrast the asymptotic expression with the
-``exact'' expression \refeq{spk} where the integrals over $\bmphi$ are
-done numerically to a requested relative accuracy of $10^{-5}$ through
-the Cubature
-package\cite{cubature,genz1980remarks,berntsen1991adaptive}. We
-computed $P(\Lumtot \cond n, \bml)$ on a grid of $\Lumtot$ values and
-checked if the probability integrates to one using Simpson's
-rule. With the exact expression, we obtain 0.997 ($n=10$) and 0.996
-($n=80$), and 0.698 and 0.953 for the asymptotic expression. For
-$n=10$, the large discrepancy arises mostly because the positivity
-constraint $P(Q \leq 0 \cond n, \bml) = 0$ is not respected in
-\refeq{ral} since the Gaussian approximation \refeq{rae} allows
-negative $\lambda$ and $\Lumtot$, whereas the results \refeq{spk}
-based on the $\GammaDist$ model imply $\lambda \geq 0$ and $Q \geq 0$.
-
-For that reason, we discourage the asymptotic approximation for small
-$n$ but we note that in general, the lack of numerical normalization
-may not be a concern. For example, if \refeq{ral} is used as the
-likelihood for a single bin in Bayesian parameter inference, the
-normalization or evidence is
-irrelevant. Following~\cite{tierney_accurate_1986}, we renormalized
-the results to integrate to one for ease of comparison in
-\reffig{asymptotic}.  We verified that for $n>80$, the two methods
-agree even better than shown there and that the normalization of the
-asymptotic result approaches one.
-
-The main advantage of the approximation is computational efficiency. A
-single evaluation of $P(Q \cond n, \bml)$ takes only about 100 calls
-to the integrand of \refeq{ral} regardless of the value of $n$. In
-contrast, a the numerical integration of a single term for fixed $N$
-in \refeq{spk} requires 1000s of function evaluations, and the number
-of terms grows like $\sqrt{n}$ for a given accuracy of
-$P(Q \cond n, \bml)$.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\hans{Some comments on the numerical values of hyperparameters $a$ in
-  Poisson, $a,b$ in inverse gamma needed.} %
-\hans{I would omit the text and calculations below. Apart from the
-  extra parameters, the main reason is that the Gaussian prior in
-  $\mu$ is not consistent with the fact that all luminosities are
-  positive, while the gaussian permits negative $\mu$. This may not be
-  important numerically, but the uniform prior in $\mu$ does
-  circumvent this problem and is moreover less informative than the
-  Gaussian prior. } %
-\hans{Note also that letting $\mu_0{=}0$ and $ n_0\to 0$ below implies
-  a prior gaussian of infinite width centered on zero, i.e.\ half of
-  the values of $\mu$ will be negative. Could this be the reason why
-  the numerics pick up a factor two?}%
-\fred{No, what I used before was equivalent to a uniform prior that
-  extends into the range $\mu<0$. The normalization cancels out and
-  the negative region doesn't contribute. With the uniform prior, you
-  assume that your upper cut-off on $\mu$ is large enough to contain
-  the posterior but at the same time large values don't actually
-  contribute so it doesn't matter if you include them or not. That
-  means I can't pick up a factor of two there, it would only change
-  the normalization but not the \emph{shape} of $p(Q)$} \fred{The
-  error is fixed and I remove the next sections as Hans suggested.}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-\subsection{Moments of the luminosity prediction}\label{sec:predict-moments}
-
-\hans{H: If threefold integrals must be carried out for the
-  expectation values, why not do so for Eq (ral) directly rather than
-  just the expectation values?} %
-
-\hans{H: I would agree to remove this section; I do not see value added.}
-
-While the integral in \refeq{ral} cannot be integrated analytically,
-the integrand is unimodal and strongly peaked, so that the Laplace or
-saddle-point approximation~\cite[Ch. 27]{mackay2003information} can be
-applied. If only the value $p(\Lumtot{=}\lumtot \cond n,m_1,m_2)$ at the
-total data luminosity $q$ is sought, then one can approximate it
-directly. In addition, we can compute the moments of $\Lumtot$ through
-the \emph{moment generating function} \cite{stuart1994kendall}
-\begin{align}
-  \lleq{rap}
-  M(t \cond \bmy) = \int_0^{\infty} \rmdx{\Lumtot} p(\Lumtot \cond \bmy) e^{-t \Lumtot} \,
-\end{align}
-from which the moments are accessible by differentiation
-\begin{align}
-  \lleq{raq}
-  \expect{\Lumtot^k} = (-1)^k \eval{\dv[k]{M(t \cond \bmy)}{t}}_{t=0}
-\end{align}
-Assuming all involved integrals are absolutely convergent, we can
-exchange the order of integration and find
-\begin{align}
-  \lleq{rar}
-  M(t \cond \bmy) &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond \bmy) p( \mu, \sigma^2 \cond \bmy)  f(t \cond \lambda, \mu, \sigma^2),
-  \intertext{where }
-  f\left(t \cond  \lambda, \mu, \sigma^2\right) &\equiv \int \rmdx{\Lumtot} \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\mu^2 + \sigma^2) \right) e^{-t \Lumtot}\\
-  &= \frac{1}{2} \exp \qty(t/2 \lambda (t (\mu^2 + \sigma^2)- 2\mu)) \erfc \qty( \frac{\sqrt{\lambda}(t \qty(\mu^2 + \sigma^2) - \mu)}{\sqrt{2 \qty(\mu^2 + \sigma^2)}}).
-\end{align}
-This implies that the mean and variance of $\Lumtot$ require an integral over the three parameters
-\begin{align}
-  \lleq{ras}
-  \expect{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond n) p( \mu, \sigma^2 \cond \bmy) \qty(-\eval{\dv{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0})\\
-  \variance{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond n) p( \mu, \sigma^2 \cond \bmy) \qty(\eval{\dv[2]{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0}) - \expect{\Lumtot}^2
-\end{align}
-We implemented the above formulae in the julia language~\cite{julia14}
-and used Newton's method from the \texttt{Optim.jl} package in
-combination with automatic
-differentiation~\cite{RevelsLubinPapamarkou2016} to optimize the
-respective integrand and compute the Hessian at the mode. As initial
-values, we slightly offset the sample estimates to avoid issues if the
-optimizer cannot improve on the initial guess and found convergence
-within $\order{10}$ steps:
-\begin{align}
-  \lleq{rat}
-  \qty(\lambda, \mu, \sigma^2) = 1.0005 (n, \langle\lum\rangle, \langle\lum^2\rangle{-}\langle\lum\rangle^2).
-\end{align}
-\fred{At least for us, I should do a comparison plot to evaluate $p(\Lumtot \cond \bmy)$ with both methods } %
-\fred{We need a plot, the one to compare predictions and 250 real replicas or 100 virtual replicas?} %
-\fred{Advantage of this approach: no need to store all packets anymore, sum and sum of squares can be accumulated online $\Rightarrow$ reduced computation and storage requirements}
-
-
-
-\section{Conclusion} \label{sec:conclusion}
-
-TODO
-
-\section{Appendix} \label{sec:appendix}
-
-\fred{Will be removed later}
-
-We use the shorthand $\alpha_n \equiv \alpha(\nu_n \cond
-\bmphi), \beta_n \equiv \beta(\nu_n \cond \bmphi), \alpha \equiv
-\alpha(\nu \cond \bmphi), \beta \equiv \beta(\nu \cond \bmphi)$.
-
-\subsection{Gradients} \label{sec:gradients}
-
-\begin{align}
-  \label{eq:grad-posterior}
-  \left( \firstDeriv{\alpha_i}, \firstDeriv{\beta_i} \right) \log p(\bmx \cond \alpha, \beta) &=
-  \left(
-    \sum_n \left[ \log \beta_n - \Psi(\alpha_n) + \log x_n \right] \nu_n^i \;,
-    \sum_n \left[ \frac{\alpha_n}{\beta_n} - x_n \right]\nu_n^i
-  \right)
-\end{align}
-
-\begin{align}
-  \label{eq:grad-prediction}
-  \left( \firstDeriv{\alpha_i}, \firstDeriv{\beta_i}, \firstDeriv{N} \right) \log p(X \cond N \alpha, \beta)  &=
-  \left(
-    \left[ \log \beta - \Psi(N \alpha) + \log X \right] N \nu^i,
-    \left[ \frac{N\alpha}{\beta} - X \right]\nu^i,
-    \left[ \log \beta -\Psi(N \alpha) + \log X \right] \alpha
-  \right)
-\end{align}
-
-\begin{align}
-  \label{eq:grad-nb}
-  \firstDeriv{N} \log p(N \cond n) = \Psi(N+n-a+1) - \Psi(N+1) - \log 2
-\end{align}
-
-\subsection{Hessians} \label{sec:hessians}
-
-\begin{align}
-  \label{eq:hess-posterior}
-    - \left(
-    \begin{array}{ccc}
-      \secPartial{\alpha_i}{\alpha_j} & \secPartial{\alpha_i}{\beta_j}\\
-      \dots & \secPartial{\beta_i}{\beta_j}
-    \end{array}
-  \right) \log p(\bmx \cond \alpha, \beta)
-    &= \left(
-    \begin{array}{cc}
-      \sum_n \Psi'(\alpha_n) \nu_n^{i+j} & -\sum_n \frac{\nu_n^{i+j}}{\beta_n}\\
-      \dots & \sum_n \frac{\alpha_n}{\beta_n^2} \nu_n^{i+j}
-    \end{array}
-  \right)
-\end{align}
-
- \begin{align}
-  \label{eq:hess-prediction}
-  & - \left(
-    \begin{array}{ccc}
-      \secPartial{\alpha_i}{\alpha_j} & \secPartial{\alpha_i}{\beta_j} & \secPartial{\alpha_i}{N}\\
-      \dots & \secPartial{\beta_i}{\beta_j} & \secPartial{\beta_i}{N}\\
-      \dots & \dots & \secDeriv{N}
-    \end{array}
-  \right) \log p(X \cond N \alpha, \beta)
-  \\
-  &=
-  \left(
-    \begin{array}{ccc}
-      N^2 \Psi'(N \alpha) \nu^{i+j} & -\frac{N \nu^{i+j}}{\beta} & \left[ -\log \beta +\Psi(N \alpha) + N \alpha \Psi'(N \alpha) - \log X \right] \nu^{i}\\
-      \dots &  \frac{N\alpha}{\beta^2} \nu^{i+j} & -\frac{\alpha}{\beta} \nu^{i} \\
-      \dots & \dots & \alpha^2 \Psi'(N \alpha)
-    \end{array}
-  \right)
-\end{align}
-\begin{align}
-  \label{eq:hess-nb}
-   - \secDeriv{N} \log p(N \cond n) = \Psi'(N+1) - \Psi'(N+n-a+1)
-\end{align}
 
 \bibliographystyle{plain}
 \bibliography{references}
