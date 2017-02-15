@@ -402,14 +402,9 @@ packets $N$ is Poisson-distributed,
   p(N\cond\lambda) &= \frac{e^{-\lambda}\lambda^{N}}{N!}
   \quad N = 0,1,\ldots,\infty.
 \end{align}
-The observed $n$ is naturally presumed to have arisen from the same Poisson
-distribution with the same $\lambda$, so $p(n\cond\lambda) =
-e^{-\lambda}\lambda^{n}/n!$. %
-% and since $n$ is just one realisation of $N$, it likewise is
-% poissonian $p(n\cond\lambda) = e^{-\lambda}\lambda^{n}/n!$ with the
-% same $\lambda$.
-The posterior for $\lambda$ is found from the data $n$ via Bayes'
-Theorem,
+The observed $n$ is naturally presumed to have arisen from the same
+Poisson distribution with the same $\lambda$.  The posterior for
+$\lambda$ is found from the data $n$ via Bayes' Theorem,
 \begin{align}
   \lleq{pmc}
   p(\lambda\cond n) %
@@ -423,10 +418,7 @@ We use an improper prior
   p(\lambda) = c \lambda^{-a},
 \end{align}
 meaning that $\int_0^\infty \rmdx{\lambda}\,p(\lambda)$ is known only up to
-a constant $c$. A hyperparameter choice $a=0$ yields the uniform
-prior, $a=1/2$ gives the Jeffreys and reference prior, and $a=1$ is
-the transformation-group result advocated by
-Jaynes~\cite[Ch. 12]{jaynes2003probability}. An improper prior is not
+a constant $c$. An improper prior is not
 a problem because $c$ cancels out when calculating the posterior,
 provided that $n \ge 1$; i.e., at least one packet is observed in the
 bin.\footnote{For a uniform prior, the case $a{=}0$, we require of
@@ -455,15 +447,25 @@ $p(n) =  \int_0^\infty \rmdx{\lambda}\, p(n\cond\lambda)\,p(\lambda) = c\,(n-a)!
 %     \ =\ c\frac{(n-a)!}{n!} \,, \\
 % \end{align}
 and inserting Eqs.~(\ref{pmb}) and (\ref{pmc}), the prediction for $N$
-given $n$ is, for all possible values of $\lambda$,
+given $n$ is a negative binomial distribution
 \begin{align}
   \lleq{pmh}
   p(N\cond n) %
   &= \int_0^\infty \rmdx{\lambda}\, p(N\cond\lambda)\,p(\lambda\cond n)
-  \ =\ \binom{N{+}n{-}a}{N} \left(\frac{1}{2}\right)^{N+n-a+1}
+  \ =\ \binom{N{+}n{-}a}{N} \left(\frac{1}{2}\right)^{N+n-a+1}\, .
     %\ =\ \frac{(N+n-a)!}{N!\,(n-a)!\,2^{N+n+1-a}} \, .
 \end{align}
-(a negative binomial distribution), so that Eq.~(\ref{sll}) simplifies to
+A hyperparameter choice $a=0$ yields the uniform prior, $a=1/2$ gives
+the Jeffreys and reference prior, and $a=1$ is the
+transformation-group result advocated by
+Jaynes~\cite[Ch. 12]{jaynes2003probability}. The uniform prior has no
+solid information-theoretic foundation in this case reducing the
+choice to $a \in \{1/2, 1\}$. We examine the consequence for the
+extreme case that no packet is observed: $P(N=0 \cond n=0) =
+2^{a-1}$. For $a=1$, any $N>0$ is excluded which is undesirable unless
+we accept that repeating the simulation will never yield a packet in
+the current bin. Hence we are led to Jeffreys prior, $a=1/2$.  With
+\refeq{pmh}, \refeq{sll} simplifies to
 \begin{align}
   \lleq{gmh}
   p(Q\cond n,\bml)
