@@ -476,7 +476,7 @@ given $n$ is, for all possible values of $\lambda$,
     p(\bmphi\cond n,\bml).
 \end{align}
 
-\subsection{Single-packet description}
+\subsection{Single-packet description} \label{sec:single-packet}
 
 Next, we consider detailed modelling of $p(\bmL\cond N,\bmphi)$ which
 was written in Eq.~(\ref{slk}) as a product single-packet
@@ -730,6 +730,13 @@ paper. Here we choose $\Kalpha = 3$ and $\Kbeta = 1$.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Large packet number approximations} \label{sec:asymptotic}
 
+In practice, the situation may arise that many packets fall into a
+bin. One can then avoid modeling the luminosity distribution
+explicitly as done in \refsec{single-packet} as it becomes irrelevant
+in the limit $n \to \infty$, essentially due to the central limit
+theorem. As a bonus, the numerical effort to evaluate the basic
+\refeq{sll} drastically simplifies.
+
 \subsection{Derivation of $p(Q\,|\,n,\boldmath{\ell})$ for large $n$}
 
 We return to the general formulation of \refeq{sll} and re-arrange its
@@ -844,7 +851,7 @@ For $\sigma^2$, we use an $n$-independent Inverse Gamma
 distribution prior with hyperparameters $(a_0,b_0)$ which reads
 %%%%%%%
 \fred{Inconsistency. Now $b_0$ is a scale parameter but before $\beta$
-  was a \emph{rate} parameter in definition of $\Gamma$} 
+  was a \emph{rate} parameter in definition of $\Gamma$}
 %%%%%%%
 \hans{Not really. This is an inverse gamma distribution, not a gamma
   distribution.  Transformation from $\sigma$ to gamma variable
@@ -922,13 +929,13 @@ We start again from (\ref{asd}) and use (\ref{spc})
     p(Q\cond N,\bmL)\;
     p(\bmL\cond N,\bmphi)\\
   \lleq{spcd}
-  p(L_j\cond \alpha,\beta) 
+  p(L_j\cond \alpha,\beta)
   &= \frac{\beta^\alpha L_j^{\alpha-1}e^{-\beta L_j}}{\Gamma(\alpha)}.
 \end{align}
 The moment generating function of $p(L_j\cond \alpha,\beta)$ is
 \begin{align}
   M[t\cond p(L_j\cond \alpha,\beta) ]
-  &= E[e^{tL_j}] = \int_0^\infty dL_j e^{tL_j}\,p(L_j\cond \alpha,\beta) 
+  &= E[e^{tL_j}] = \int_0^\infty dL_j e^{tL_j}\,p(L_j\cond \alpha,\beta)
     = (1 - t/\beta)^{-\alpha}
 \end{align}
 The convolution of $N$ Gamma distributions yields the moment generating
@@ -940,16 +947,16 @@ function
 and so we obtain the well-known result that the convolved distribution
 is also a Gamma distribution with shape parameter $N\alpha$,
 \begin{align}
-  p(Q\cond \alpha,\beta) 
+  p(Q\cond \alpha,\beta)
   &= \frac{\beta^{N\alpha} Q^{N\alpha-1}e^{-\beta Q}}{\Gamma(N\alpha)}.
 \end{align}
 Inserting this into the $N$-sum, we have
 \begin{equation}
   \lleq{gms}
   \boxed{
-  p(Q\cond \lambda,\alpha,\beta) 
+  p(Q\cond \lambda,\alpha,\beta)
   = \frac{e^{-\lambda - \beta Q}}{Q}
-    \sum_{N=0}^\infty 
+    \sum_{N=0}^\infty
     \frac{[\lambda \beta^\alpha Q^\alpha]^N}{N!\;\Gamma(N\alpha)}.
     }
 \end{equation}
@@ -959,9 +966,9 @@ analytic solution for some special cases of $\alpha$.
 \begin{itemize}
 \item For $\alpha=1$ we have
   \begin{align}
-    p(Q\cond \lambda,\alpha{=}1,\beta) 
+    p(Q\cond \lambda,\alpha{=}1,\beta)
     &= \frac{e^{-\lambda - \beta Q}}{Q}
-      \sum_{N=0}^\infty 
+      \sum_{N=0}^\infty
       \frac{[\lambda \beta Q]^N}{N!\;(N-1)!}.
   \end{align}
   Comparing the above to the series definition of the modified Bessel function,
@@ -971,21 +978,21 @@ analytic solution for some special cases of $\alpha$.
   we can identify $z = 2\sqrt{\lambda\beta Q}$ to get
   \begin{equation}
     \boxed{
-      p(Q\cond \lambda,\alpha{=}1,\beta) 
-      = \sqrt{\frac{\lambda\beta}{Q}}  e^{-\lambda - \beta Q} 
+      p(Q\cond \lambda,\alpha{=}1,\beta)
+      = \sqrt{\frac{\lambda\beta}{Q}}  e^{-\lambda - \beta Q}
       \;I_1\!\left(2\sqrt{\lambda\beta Q}\right)
       }
   \end{equation}
-  as derived by Fisher and Cornish (1960). We often prefer to use the 
+  as derived by Fisher and Cornish (1960). We often prefer to use the
   corresponding hypergeometric function formulation, in terms of which
   \begin{align}
-    p(Q\cond \lambda,\alpha{=}1,\beta) 
-    &= \lambda\beta\; e^{-\lambda - \beta Q} 
+    p(Q\cond \lambda,\alpha{=}1,\beta)
+    &= \lambda\beta\; e^{-\lambda - \beta Q}
       \;{}_0F_1(2; \lambda\beta Q).
   \end{align}
 
 \item For integer $\alpha = 2,3,\ldots$, we rely on a paper by Withers and
-  Nadarajah (2011) from which we get an expression for the (p,q) hypergeometric 
+  Nadarajah (2011) from which we get an expression for the (p,q) hypergeometric
   function, defined as
   \begin{align}
     {}_pF_q\left( a_1,a_2,\ldots, a_p\;;\; b_1,b_2,\ldots,b_q\;;\; z \right)
@@ -995,8 +1002,8 @@ analytic solution for some special cases of $\alpha$.
   in terms of the Pochhammer symbol $(a)_k = \Gamma(a+k)/\Gamma(a)$. Withers
   and Nadarajah found that (and I checked)
   \begin{align}
-    (N\alpha)! 
-    &= (\alpha^\alpha)^N 
+    (N\alpha)!
+    &= (\alpha^\alpha)^N
       \left(\frac{1}{\alpha}\right)_k
       \left(\frac{2}{\alpha}\right)_k
       \left(\frac{\alpha{-}1}{\alpha}\right)_k
@@ -1026,7 +1033,7 @@ analytic solution for some special cases of $\alpha$.
     z &= \lambda (\beta Q / \alpha)^\alpha \\
     \lleq{qpfe}
     p(Q\cond \lambda,\alpha,\beta)
-      &= \frac{\alpha e^{-\lambda - \beta Q} }{Q} 
+      &= \frac{\alpha e^{-\lambda - \beta Q} }{Q}
         z\frac{d}{dz} \;
         {}_0F_\alpha\left[ 0,0,\ldots,0 \;;\;
         \frac{1}{\alpha},
@@ -1036,7 +1043,7 @@ analytic solution for some special cases of $\alpha$.
         \frac{\alpha}{\alpha}
         \;;\; z \right]
         \nonumber\\
-      &= \frac{\alpha e^{-\lambda - \beta Q} }{Q} 
+      &= \frac{\alpha e^{-\lambda - \beta Q} }{Q}
         \frac{z}{(\alpha-1)!\;\alpha^{\alpha-1}} \;
         {}_0F_\alpha\left[ 0,0,\ldots,0 \;;\;
         1{+}\frac{1}{\alpha},
@@ -1052,7 +1059,7 @@ analytic solution for some special cases of $\alpha$.
     \lleq{qfp}
     \boxed{
       p(Q\cond \lambda,\alpha,\beta)
-      = 
+      =
     \frac{\lambda\beta^\alpha Q^{\alpha-1} e^{-\lambda - \beta Q} }{(\alpha-1)!}\;
     {}_0F_\alpha\left[ \;;\;
         \frac{\alpha{+}1}{\alpha},
