@@ -379,21 +379,24 @@ since $p(Q\cond N,\bmL)$ can be written as a Dirac delta function,
 \end{align}
 Eq.~(\ref{sll}) is exact, and in principle all that remains is to make
 specific choices for the various probabilities which are judged best
-to represent the data at hand, and thence to carry out the sum and
+to represent the problem at hand, and thence to carry out the sum and
 multiple integrals. In practice, of course, such calculations may be
 time-consuming, and there will often be more than one choice for the
-functional form of each probability. In Section \ref{sec:example}, we
-shall therefore set out a specific example.
-
+functional form of each probability. And those choices affect the
+computational effort which may be critical if \refeq{slm} has to be
+repeatedly evaluatated for thousands of bins.
 
 \section{Example: modelling single-packet luminosity distributions}
 \label{sec:example}
 
 In this section, we show by example how information on the
 single-packet luminosity distributions can be utilised to find exact
-expressions for Eq.~(\ref{sll}).
+expressions for Eq.~(\ref{sll}). Our choices are motivated by our
+original application \tardis{} but we emphasize that much of the
+analysis below, especially \refsec{multiplicity}, is generally
+applicable.
 
-\subsection{Multiplicity prediction}
+\subsection{Multiplicity prediction} \label{sec:multiplicity}
 
 First, the parameter $\lambda$ is eliminated as follows. The number of
 packets $N$ is Poisson-distributed,
@@ -529,6 +532,10 @@ Gamma likelihood as $(N,\bmL)$, i.e.\
 with the data summarized by the sufficient statistics $n$,
 $q \equiv \sum_{j=1}^n \ell_j$, and $r \equiv \prod_{j=1}^n \ell_j$.
 
+\fred{Here and above, $n$ does not have to be the same in
+  $P(N \cond n)$ and $p(n,\bml\cond \alpha,\beta)$. We can use packets
+  from other bins if we assume $\alpha, \beta$ are the same in those bins.}
+
 The only missing piece to explicitly evaluate \refeq{spf} is the prior
 $p(\alpha,\beta)$.
 % To gain some insight, consider the standard $\GammaDist$ model with
@@ -538,85 +545,52 @@ $p(\alpha,\beta)$.
 % form, so it is thus of no use for us.
 % How about a noninformative prior?
 The authors of \cite{moala2013bayesian} present an overview of
-possible choices and conclude that the point estimate given by the
-mode of the posterior is nearly insensitive to the prior choice
-starting from around $n = 30$. This requirement is nearly always
-satisfied and so the functional form of $p(\alpha,\beta)$ is not
-important. There is, however, some explicit prior information which we
-want to build into our analysis.
-The distribution $p(\ell \cond \alpha, \beta)$ should always vanish at
-the origin, requiring that $\alpha$ must be larger than 1.  For
-$\beta$, we likewise choose a uniform prior
-%
-\fred{This paragraph is from the old TARDIS section. In general, we
-  don't impose the constraint on $\alpha$. Only for TARDIS it seemed
-  to match and prevented the fitting from running away if very few
-  samples were present}
-%
+possible choices indicating that their \emph{modified MDIP} prior
+performed best in the few examples considered there. We do not follow
+their recommendation because their modification is not well motivated
+and it seems to accidentally perform better because of the particular
+examples considered. The other conclusion they have is that the
+Jeffreys, reference, and other noninformative priors with similarly
+solid motivation have comparable performance. They all exhibit the
+standard form for a scale or rate parameter $\propto 1/\beta$ and only
+differ in the $\alpha$ dependence. We disregard the reference prior as
+it forces us to identify either $\alpha$ or $\beta$ as \emph{the}
+nuisance parameter but we consider \emph{both} as nuisance
+parameters. Hence we select the Jeffreys prior
 \begin{align}
   \lleq{sph}
   p(\alpha,\beta)
-  &= \frac{1}{(\alpha_{\rm max}{-}1)\beta_{\rm max}}
-  \qquad 1 < \alpha < \alpha_{\rm max},\; 0 < \beta < \beta_{\rm max}.
+  &=  C \frac{\sqrt{\alpha \Psi'(\alpha)-1}}{\beta} \, .
+  % \frac{1}{(\alpha_{\rm max}{-}1)\beta_{\rm max}}
+  % \qquad 1 < \alpha < \alpha_{\rm max},\; 0 < \beta < \beta_{\rm max}.
 \end{align}
 % since $\alpha_{\rm max}$ and $\beta_{\rm max}$ cancel in (\ref{spf}).
-With these choices, the posterior is found to be
+With these choices, the posterior normalization is
 \begin{align}
-  \lleq{spi}
-  p(\alpha,\beta\cond n,\bml)
-  &= \frac{1}{C}\; \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n},\\
   \lleq{spj}
-  C &= \int_1^{\alpha_{\rm max}} d\alpha \int_0^{\beta_{\rm max}} d\beta\;
-    \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n},
+  p(n, \bml) &= C \int_0^{\alpha_{\rm max}} d\alpha \int_0^{\beta_{\rm max}} d\beta\;
+  \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n},
 \end{align}
-and hence
+where the upper integration limits
+$(\alpha_{\rm max}, \beta_{\rm max})$ should formally extend to
+$\infty$ but in practice have to be chosen by trial and error to be
+large enough to contain the relevant contribution to the integral.
+The prior's constant of proportionality $C$ cancels in the final
+result and we may set $C\equiv 1$ to obtain
 \begin{align}
   \lleq{spk}
   p(Q\cond n,\bml)
-  &= \frac{1}{C}
+  &= \frac{1}{p(n, \bml)}
     \sum_{N=0}^\infty \;
     p(N\cond n)\;
     \int \rmdx{\alpha}\,\rmdx{\beta}\;
     \GammaDist(Q\cond N\alpha, \beta)\;
-    \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}.
+    \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n} \frac{\sqrt{\alpha \Psi'(\alpha)-1}}{\beta}.
 \end{align}
 
+\fred{Check below if \refeq{spk} used with flat prior}
 
-\subsection{Numerical implementation} \label{sec:numerical}
-
-\fred{Editing will be done by Fred}
-
-In our numerical implementation, the constants
-$(\alpha_{\rm max}, \beta_{\rm max})$ are chosen by trial and error to
-be large enough to contain the relevant region of
-$p(\ell\cond \alpha,\beta)$.
-%
-To perform the integrals over $(\alpha,\beta)$ to find $C$ and the
-Gamma-weighted numerator in (\ref{spe}), we used the fact that the
-posterior $p(\alpha,\beta \cond n,\bml)$ is approximately Gaussian in
-both $\alpha$ and $\beta$ for large $n$, so we can apply Laplace's
-method for both. This requires the Hessian at the mode and the
-gradient helps in locating the mode. The relevant analytic expressions
-are summarized in \refsec{appendix}.
-
-
-Regarding the sum over $N$, we start at
-$N = \lfloor n-a+1 \rfloor = \arg \max_N p(N|n)$ %
-\fred{Actually we should say $p(N \cond n, a)$} %
-and continue to larger and smaller values of $N$ until the
-contribution to $p(Q \cond n,\bml)$ becomes negligible. In case the
-relevant contribution is from large $N$ and $n$, we interpret $N$ as a
-continuous variable, replace factorials by $\Gamma$ function in
-\refeq{spj}, and apply Laplace's method to integrate over $N$ also.
-
-\fred{Our implementation is available online on \href{https://github.com/tardis-sn/XXX}{github}}
-
-\subsection{Results} \label{sec:gammaresults}
-
-\fred{Graphics output, comments, conclusions by Fred}
-
-
-\subsection{Specifics of \tardis} \label{sec:tardis}
+\subsection{Preprocessing \tardis{} output } \label{sec:tardis}
 
 
 \hans{H: This subsection needs much more work. I have just copied some
@@ -630,8 +604,8 @@ Here we focus on the real packets as opposed to the virtual packets
 output by tardis.
 
 
-A histogram of the luminosities from a \tardis{} run indicates a
-distribution strongly skewed with a mode close to the maximum
+A histogram plot of the luminosities from a \tardis{} run indicates a
+strongly skewed distribution with its single mode close to the maximum
 luminosity $\lmax$, while there is a long tail for small $\ell$. These
 features can be accomodated by a $\GammaDist$ distribution if we
 transform the luminosities to
@@ -1027,6 +1001,36 @@ within $\order{10}$ steps:
 \fred{Advantage of this approach: no need to store all packets anymore, sum and sum of squares can be accumulated online $\Rightarrow$ reduced computation and storage requirements}
 
 \section{Delendum}
+
+
+\subsection{Numerical implementation} \label{sec:numerical}
+
+\fred{Editing will be done by Fred}
+
+In our numerical implementation, the constants
+$(\alpha_{\rm max}, \beta_{\rm max})$ are chosen by trial and error to
+be large enough to contain the relevant region of
+$p(\ell\cond \alpha,\beta)$.
+%
+To perform the integrals over $(\alpha,\beta)$ to find $C$ and the
+Gamma-weighted numerator in (\ref{spe}), we used the fact that the
+posterior $p(\alpha,\beta \cond n,\bml)$ is approximately Gaussian in
+both $\alpha$ and $\beta$ for large $n$, so we can apply Laplace's
+method for both. This requires the Hessian at the mode and the
+gradient helps in locating the mode. The relevant analytic expressions
+are summarized in \refsec{appendix}.
+
+
+Regarding the sum over $N$, we start at
+$N = \lfloor n-a+1 \rfloor = \arg \max_N p(N|n)$ %
+\fred{Actually we should say $p(N \cond n, a)$} %
+and continue to larger and smaller values of $N$ until the
+contribution to $p(Q \cond n,\bml)$ becomes negligible. In case the
+relevant contribution is from large $N$ and $n$, we interpret $N$ as a
+continuous variable, replace factorials by $\Gamma$ function in
+\refeq{spj}, and apply Laplace's method to integrate over $N$ also.
+
+\fred{Our implementation is available online on \href{https://github.com/tardis-sn/XXX}{github}}
 
  \subsection{Poisson-gamma convolution}\label{sec:poisson-gamma}
 
