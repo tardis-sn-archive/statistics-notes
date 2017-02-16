@@ -588,8 +588,6 @@ result and we may set $C\equiv 1$ to obtain
     \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n} \frac{\sqrt{\alpha \Psi'(\alpha)-1}}{\beta}.
 \end{align}
 
-\fred{Check below if \refeq{spk} used with flat prior}
-
 \subsection{Preprocessing \tardis{} output } \label{sec:tardis}
 
 
@@ -747,9 +745,6 @@ Writing the moments and variance of $L$ as\footnote{The $k$-th moment
 it is easy to show that, for the Poissonian compound process
 (\ref{asd}), the first moment and variance of $Q$ are related to those
 of $L$ by
-%%%%%%%%%%%%%%%%
-\fredmargin{citation} %
-%%%%%%%%%%%%%%%
 \begin{align}
   \lleq{raa}
   \expect{Q} = \lambda \mu, \qquad
@@ -813,10 +808,6 @@ Theorem,
     p(\sigma^2\cond n)}
   {p(\bml\cond n)}
 \end{align}
-\hans{I have inserted a uniform prior for $\mu$ here; see comments
-  below. The original Gaussian prior has been retained below but I
-  would suggest that the compliations introduced by it are
-  unnecessary.}  %
 In keeping with prior information that luminosities are always
 positive, we assign an improper uniform prior
 $p(\mu\cond\mu_{\rm max}) = 1/\mu_{\rm max}$ independent of $n$; as
@@ -845,8 +836,9 @@ parameters updated by the data,
   a_n &= a_0 + \tfrac{1}{2}n \\
   b_n &= b_0 + \tfrac{1}{2} n\left( \langle\ell^2\rangle - \langle\ell\rangle^2\right)
 \end{align}
-with data sample moments $\langle\lum^k\rangle$ defined as $(1/n)
-\sum_{j=1}^n \lum_j^k$.
+with data sample moments $\langle\lum^k\rangle$ defined as
+$(1/n) \sum_{j=1}^n \lum_j^k$. Since we assume $n \gg 1$, we may
+choose $a_0 = b_0 = 0$ resulting in a noninformative prior on $\sigma^2$.
 %
 Inserting Eqs.~(\ref{pms}) and (\ref{rbd}) into \refeq{asc}, we obtain
 \begin{align}
@@ -861,10 +853,6 @@ Inserting Eqs.~(\ref{pms}) and (\ref{rbd}) into \refeq{asc}, we obtain
   \InvGammaDist(\sigma^2\cond a_n,b_n) \;
   \nonumber
 \end{align}
-While the integral cannot be carried out analytically, the integrand
-is unimodal and strongly peaked, so that the Laplace or saddle-point
-approximation~\cite[Ch. 27]{mackay2003information} can be applied.
-
 
 \subsection{Numerical implementation}\label{sec:asympt-numeric}
 
@@ -878,11 +866,32 @@ approximation~\cite[Ch. 27]{mackay2003information} can be applied.
 \label{fig:asymptotic}
 \end{figure}
 
-In \reffig{asymptotic}, we contrast the asymptotic expression with the
-``exact'' expression \refeq{spk} where the integrals over $\bmphi$ are
-done numerically to a requested relative accuracy of $10^{-5}$ through
-the Cubature
-package\cite{cubature,genz1980remarks,berntsen1991adaptive}. We
+In \reffig{asymptotic}, we compare the asymptotic expression
+\refeq{ral} with the ``exact'' expression \refeq{spk} where the
+integrals over $\bmphi$ are done numerically to a requested relative
+accuracy of $10^{-5}$ through the Cubature
+package\cite{cubature,genz1980remarks,berntsen1991adaptive}.
+
+For large $n$ where the asymptotic expression \refeq{ral} is valid,
+asymptotic normality justifies the use of the Laplace or saddle-point
+approximation~\cite[Ch. 27]{mackay2003information}. We implemented
+\fredmargin{\href{https://github.com/tardis-sn/XXX}{github}}
+the
+above formulae in the julia language~\cite{julia14} and used Newton's
+method from the \texttt{Optim.jl} package in combination with
+automatic differentiation~\cite{RevelsLubinPapamarkou2016} to optimize
+the respective integrand and to compute the Hessian at the mode as
+required for the Laplace method. As initial values for optimization,
+we slightly offset the sample estimates
+\begin{align}
+  \lleq{rat}
+  \qty(\lambda, \mu, \sigma^2) = 1.0005 (n, \langle\lum\rangle, \langle\lum^2\rangle{-}\langle\lum\rangle^2)
+\end{align}
+to avoid issues if the optimizer cannot improve on the initial guess
+and found convergence within $\order{10}$ steps.
+
+As a test case, we generated
+$\ell_i \sim \GammaDist(\alpha=1.5, \beta=60), i=1 \dots n$, and
 computed $P(\Lumtot \cond n, \bml)$ on a grid of $\Lumtot$ values and
 checked if the probability integrates to one using Simpson's
 rule. With the exact expression, we obtain 0.997 ($n=10$) and 0.996
@@ -892,6 +901,8 @@ constraint $P(Q \leq 0 \cond n, \bml) = 0$ is not respected in
 \refeq{ral} since the Gaussian approximation \refeq{rae} allows
 negative $\lambda$ and $\Lumtot$, whereas the results \refeq{spk}
 based on the $\GammaDist$ model imply $\lambda \geq 0$ and $Q \geq 0$.
+%
+\fred{Update values after Jeffreys implementing prior}
 
 For that reason, we discourage the asymptotic approximation for small
 $n$ but we note that in general, the lack of numerical normalization
@@ -902,40 +913,17 @@ irrelevant. Following~\cite{tierney_accurate_1986}, we renormalized
 the results to integrate to one for ease of comparison in
 \reffig{asymptotic}.  We verified that for $n>80$, the two methods
 agree even better than shown there and that the normalization of the
-asymptotic result approaches one.
+asymptotic result approaches one. Integrating the asymptotic
+expression with cubature instead of Laplace gave very similar results
+but turns out to be less reliable and requires many more iterations.
 
 The main advantage of the approximation is computational efficiency. A
-single evaluation of $P(Q \cond n, \bml)$ takes only about 100 calls
-to the integrand of \refeq{ral} regardless of the value of $n$. In
-contrast, a the numerical integration of a single term for fixed $N$
-in \refeq{spk} requires 1000s of function evaluations, and the number
-of terms grows like $\sqrt{n}$ for a given accuracy of
-$P(Q \cond n, \bml)$.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\hans{Some comments on the numerical values of hyperparameters $a$ in
-  Poisson, $a,b$ in inverse gamma needed.} %
-\hans{I would omit the text and calculations below. Apart from the
-  extra parameters, the main reason is that the Gaussian prior in
-  $\mu$ is not consistent with the fact that all luminosities are
-  positive, while the gaussian permits negative $\mu$. This may not be
-  important numerically, but the uniform prior in $\mu$ does
-  circumvent this problem and is moreover less informative than the
-  Gaussian prior. } %
-\hans{Note also that letting $\mu_0{=}0$ and $ n_0\to 0$ below implies
-  a prior gaussian of infinite width centered on zero, i.e.\ half of
-  the values of $\mu$ will be negative. Could this be the reason why
-  the numerics pick up a factor two?}%
-\fred{No, what I used before was equivalent to a uniform prior that
-  extends into the range $\mu<0$. The normalization cancels out and
-  the negative region doesn't contribute. With the uniform prior, you
-  assume that your upper cut-off on $\mu$ is large enough to contain
-  the posterior but at the same time large values don't actually
-  contribute so it doesn't matter if you include them or not. That
-  means I can't pick up a factor of two there, it would only change
-  the normalization but not the \emph{shape} of $p(Q)$} \fred{The
-  error is fixed and I remove the next sections as Hans suggested.}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
+single evaluation of $P(Q \cond n, \bml)$ with the Laplace methods
+requires only about 100 calls to the integrand of \refeq{ral}
+regardless of the value of $n$. In contrast, the numerical integration
+of a single term for fixed $N$ in \refeq{spk} requires 1000s of
+function evaluations, and the number of terms grows like $\sqrt{n}$
+for a given accuracy of $P(Q \cond n, \bml)$.
 
 \section{Conclusion} \label{sec:conclusion}
 
@@ -946,11 +934,6 @@ TODO
 
 
 \subsection{Moments of the luminosity prediction}\label{sec:predict-moments}
-
-\hans{H: If threefold integrals must be carried out for the
-  expectation values, why not do so for Eq (ral) directly rather than
-  just the expectation values?} %
-
 \hans{H: I would agree to remove this section; I do not see value added.}
 
 While the integral in \refeq{ral} cannot be integrated analytically,
@@ -1029,8 +1012,6 @@ contribution to $p(Q \cond n,\bml)$ becomes negligible. In case the
 relevant contribution is from large $N$ and $n$, we interpret $N$ as a
 continuous variable, replace factorials by $\Gamma$ function in
 \refeq{spj}, and apply Laplace's method to integrate over $N$ also.
-
-\fred{Our implementation is available online on \href{https://github.com/tardis-sn/XXX}{github}}
 
  \subsection{Poisson-gamma convolution}\label{sec:poisson-gamma}
 
