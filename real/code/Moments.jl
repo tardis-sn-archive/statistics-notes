@@ -39,7 +39,7 @@ Enumeration to specify which target function to create
 """
 Create a function for Laplace approximation
 """
-function targetfactory(target::TARGET, n::Int64, Qfirst::Float64, Qsecond::Float64, nb::Int64=nb;
+function targetfactory(target::TARGET, n::Int64, Qfirst::Float64, Qsecond::Float64, nb::Int64=n;
                        a::Float64=1/2, Q::Float64=-1.0)
     0 <= a <= 1 || error("need a in [0,1]")
     (Qfirst > 0) || error("nonpositive Qfirst $Qfirst")
