@@ -588,114 +588,111 @@ result and we may set $C\equiv 1$ to obtain
     \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n} \frac{\sqrt{\alpha \Psi'(\alpha)-1}}{\beta}.
 \end{align}
 
-\subsection{Preprocessing \tardis{} output } \label{sec:tardis}
+\subsection{Preprocessing simulation output } \label{sec:tardis}
 
+\fred{I removed a lot of cruft and swapped the symbols
+  $x \to \ell, \ell \to \ell^\prime$ so it's in line with the previous section}
 
-\hans{H: This subsection needs much more work. I have just copied some
-  relevant text in here which may be useful. Much of it should be
-  removed. Some connection to TARDIS should preferably be kept in the
-  paper, in my view, eg the definition of $X = 1 - L/\ell_{\rm max}$.}
-\fred{I removed a lot of cruft and swapped the symbols $x \leftrightarrow \ell$ so it's in line with the previous section}
+We consider \tardis{} as an example to demonstrate both how
+transforming the output of a simulation helps in predictions, and what
+further complications may arise in practice.
 
-Here we focus on the real packets as opposed to the virtual packets
-and denote the raw output by \tardis{} for the $i$-{th} packet as $\qty(\nu_i^\prime, \ell_i^\prime)$.  A histogram plot \fredmargin{include plot} of the luminosities
-from a \tardis{} run indicates a strongly skewed distribution with its
-single mode close to the maximum luminosity $\lmax$, while there is a
-long tail for small $\ell$. These features can be accomodated by a
-$\GammaDist$ distribution if we transform the luminosities to
+\tardis{} can output two kinds of packets, real and virtual. Here we
+focus on the real packets and denote the raw output of \tardis{} by
+primed symbols, for example for the $i$-{th} packet
+$\qty(\nu_i^\prime, \ell_i^\prime)$.  A histogram plot
+\fredmargin{include plot} of the luminosities from a \tardis{} run
+indicates a strongly skewed distribution with its single mode close to
+the maximum luminosity $\lmax^\prime$, while there is a long tail for
+small $\ell$. These features can be accomodated by a $\GammaDist$
+distribution as in \refsec{single-packet} if we transform the
+luminosities to
 \begin{align}
   \lleq{gmf}
-  x_j \equiv 1- \frac{\ell_j}{\lmax} > 0
+  \ell_i \equiv 1- \frac{\ell_i^\prime}{\lmax^\prime} > 0
 \end{align}
-and similarly $X_j = 1 - (L_j/\lmax)$ and $\Lumtot \to X$. We assume
+and similarly $L_i \equiv 1 - (L_i^\prime/\lmax^\prime)$. We assume
 the total number of samples across all bins is large, hence the effect
-of considering $\lmax$ a constant independent of the data is
-negligible. We checked that leaving $\lmax$ as a free parameter in a
-fit gave equivalent results.
+of considering $\lmax^\prime$ a constant independent of the data is
+negligible. We checked that leaving $\lmax^\prime$ as a free parameter
+in a fit gave equivalent results.
 %
 Numerically, we take the largest luminosity of all \tardis{} packets
 across the entire frequency range and increase it slightly to avoid
 numerical difficulties at the end point
 \begin{align}
   \lleq{gme}
-  \lmax \equiv (1+\epsilon) \times \max_i \ell_i,
+  \lmax^\prime \equiv (1+\epsilon) \times \max_i \ell_i^\prime,
 \end{align}
-where $ \epsilon=10^{-6}$.
-
-We infer $p(X \cond n,\bml)$ and only in the end transform back to a
-probability density in $\Lumtot$ via
+where $ \epsilon=10^{-6}$. We infer $p(\Lumtot \cond n,\bml)$ and only
+in the end transform back to a probability density in the raw
+coordinates via
 \begin{align}
   \lleq{gmg}
-  p(\Lumtot  \cond n, \bml)
-  &= p(X  \cond n, \bmx) \frac{1}{\lmax} \,.
+  p(\Lumtot^\prime  \cond n, \bml^\prime)
+  &= p(\Lumtot  \cond n, \bml) \frac{1}{\lmax^\prime} \,.
 \end{align}
-To simplify the numerics, we also rescale the frequencies by a
-constant from $\mathcal{O}(10^{15})$ to $\mathcal{O}(1)$.  %
-
-
-
-A major numerical simplification arises because of the $\Lumtot \to X$
-transformation. Rewriting the \refeq{sll} formally as
+We also rescale the frequencies by a constant from
+$\mathcal{O}(10^{15})$ to $\mathcal{O}(1)$ but the most important
+numerical simplification arises because of the transformation of the
+luminosities. Rewriting \refeq{sll} formally as
 \begin{align}
   \lleq{gmhb}
   p(Q  \cond n,\bml)
   & = \sum_{N} p(N \cond n)\; p(Q \cond N, n, \bml),
 \end{align}
-we see that the right-hand side is a mixture density. In our
-application, the distribution of a single-packet luminosity is narrow
-in the sense that the standard deviation relative to the mean is at
-the percent level. This implies that $p(Q \cond N, n, \bml)$ has one
-mode from each $N$ and all modes are clearly separated. The
-transformation $\Lumtot \to X$ effects a strong overlap between the
-distributions $p(X \cond N, n, \bmx)$ with similar $N$, so
-$p(X \cond n, \bmx)$ can be well approximated by a unimodal
-distribution.
+we see that the right-hand side is a mixture density. In the \tardis{}
+application, the distribution of a single-packet luminosity,
+$P\qty(\ell_i \cond \bmphi)$ is narrow in the sense that the standard
+deviation relative to the mean is at the percent level. This implies
+that each $p(Q^\prime \cond N, n, \bml^\prime)$ contributes one narrow
+peak and all peaks are clearly separated in the superposition
+$ p(Q^\prime \cond n,\bml^\prime)$. The transformation
+$\ell^\prime \to \ell$ effects a strong overlap between the
+distributions $p(\Lumtot \cond N, n, \bml)$ with similar $N$, so
+$p(\Lumtot \cond n, \bml)$ can be well approximated by a unimodal
+distribution and thus $\Lumtot$ instead of $\Lumtot^\prime$ the
+preferred coordinate basis.
+%
+\fredmargin{show hedgehog plot}
 
-We chose the Gamma distribution because it is \emph{stable}; i.e.,
-the sum of $N$ Gamma variates is again a Gamma variate
+\subsection{Towards an unbinned analysis} \label{sec:unbinned}
+
+The parameters $\qty(\alpha, \beta)$ of the single-packet distribution
+$\GammaDist(\ell_i \cond \alpha, \beta)$ may, of course, depend on the
+frequency. % $\nu_i$
+This effect could be captured, for example, by a (linear) model such
+$\alpha = \alpha(\nu \cond \bmphi)$ and
+$\beta = \beta(\nu \cond \bmphi)$ are functions of $\nu$ that depend
+on parameters $\bmphi$ such that integrals over $\alpha, \beta$ would
+turn into integrals over $\bmphi$. But for the sake of clarity, let us
+consider only the simplest case where $\alpha, \beta$ are the same in
+every bin such that \refeq{spk} becomes
 \begin{align}
-  \lleq{gmb}
-    X_j \sim \GammaDist(\alpha, \beta) \Rightarrow X \equiv \sum_{j=1}^N X_j \sim \GammaDist(N \alpha, \beta).
+  \lleq{gmi}
+  p(Q\cond \npack,\bmy)
+  &=     \sum_{N=0}^\infty \;
+    p(N\cond n)\;
+    \int \rmdx{\alpha}\,\rmdx{\beta}\;
+    \GammaDist(Q\cond N\alpha, \beta)\;
+    p(\alpha, \beta \cond \npack, \bmy) \, .
 \end{align}
-Assuming $\alpha = \alpha(\nu \cond \bmphi)$ and $\beta = \beta(\nu
-\cond \bmphi)$ are functions of $\nu$ that depend on parameters
-$\bmphi$, we set
-\begin{align}
-  \lleq{gmib}
-  p(\bmX \cond \bmphi, N, \nu) &= \prod_{j=1}^N \GammaDist(X_j \cond \alpha, \beta ),\\
-  p(\bmx \cond \bmphi, \npack, \bmnu) &= \prod_{i=1}^{\npack} \GammaDist(x_i \cond \alpha_i, \beta_i).
-\end{align}
-where $\alpha_i \equiv \alpha(\nu_i \cond \bmphi), \beta_i \equiv
-\beta(\nu_i \cond \bmphi)$.
-
-\subsection{Linear model}
-
-\fred{Parts may still be relevant, especially if we put a plot of an
-  entire spectrum in the paper.}
-
-For simple functions $\alpha(\nu \cond \bmphi)$, one can find the
-minimum value of $\alpha$ over the entire range of $\nu$
-analytically. If this is too complicated, we propose to require
-$\alpha(\nu_i \cond \bmphi) > 1$ only at each packet frequency
-$\nu_i$. In the evaluation of $p(\bmx \cond \bmphi, \npack, \bmnu)$,
-one has to loop over all packets and compute $\alpha$ and $\beta$
-anyways, so the constraint imposes essentially no computational
-overhead.
-
-
-In the absence of a physical model to determine
-$\alpha(\nu \cond \bmphi)$ and $\beta(\nu \cond \bmphi)$, we propose
-to start with a simple polynomial ansatz
-$\alpha(\nu \cond \bmphi) = \sum_{k=0}^\Kalpha \alpha_k \nu^k,
-\beta(\nu \cond \bmphi) = \sum_{k=0}^\Kbeta \beta_k \nu^k$ such that
-\begin{align}
-  \lleq{gmp}
-  \bmphi = (\alpha_0, \dots \alpha_\Kalpha , \beta_0, \dots \beta_\Kbeta)
-\end{align}
-The usual trade off between parsimony and the ability to accurately
-model the frequency dependence determines the orders of the
-polynomials, $\Kalpha$ and $\Kbeta$. This is outside the scope of this
-paper. Here we choose $\Kalpha = 3$ and $\Kbeta = 1$.
+In words, the posterior $ p(\alpha, \beta \cond \npack, \bmy)$ uses
+all packets to essentially fix $\alpha, \beta$ if $\npack \gg 1$ and
+allows meaningful predictions of $\Lumtot$ even in bins where
+\emph{no} packet is observed; i.e., $n=0$. The only binning left is
+performed to count $n$ the number of packets that fall into a given
+frequency bin. This strategy is applicable, for example, when
+absorption or emission lines in the spectrum abruptly alter the number
+of packets for nearby frequencies but the luminosities are unaffected
+by those line features. Note that if the dependence on $\bmphi$ can be
+modeled with few parameters, the total number of parameters may be
+drastically reduced: instead of having $\alpha, \beta$ separately for
+each of a few thousand bins, there are potentially only a handful of
+elements in $\bmphi$ for the entire spectrum. In that case, the
+integral in \refeq{gmi} does not depend on the bin but only on $N$ so
+its value may be cached to speed up the simultaneous evaluation across
+all bins.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Large packet number approximations} \label{sec:asymptotic}
@@ -927,10 +924,9 @@ TODO
 
 \section{Appendix} \label{sec:appendix}
 
-
-
 \subsection{Moments of the luminosity prediction}\label{sec:predict-moments}
-\hans{H: I would agree to remove this section; I do not see value added.}
+\fred{Shouldn't we use $n, \bml$ instead of $\bmy$ to be consistent?
+  $\bmy$ would mean we use all samples from all bins}
 
 While the integral in \refeq{ral} cannot be integrated analytically,
 the integrand is unimodal and strongly peaked, so that the Laplace or
@@ -961,21 +957,8 @@ This implies that the mean and variance of $\Lumtot$ require an integral over th
 \begin{align}
   \lleq{ras}
   \expect{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond n) p( \mu, \sigma^2 \cond \bmy) \qty(-\eval{\dv{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0})\\
-  \variance{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond n) p( \mu, \sigma^2 \cond \bmy) \qty(\eval{\dv[2]{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0}) - \expect{\Lumtot}^2
+  \variance{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond n) p( \mu, \sigma^2 \cond \bmy) \qty{\eval{\dv[2]{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0} - \qty(\eval{\dv{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0})^2} \, .
 \end{align}
-We implemented the above formulae in the julia language~\cite{julia14}
-and used Newton's method from the \texttt{Optim.jl} package in
-combination with automatic
-differentiation~\cite{RevelsLubinPapamarkou2016} to optimize the
-respective integrand and compute the Hessian at the mode. As initial
-values, we slightly offset the sample estimates to avoid issues if the
-optimizer cannot improve on the initial guess and found convergence
-within $\order{10}$ steps:
-\begin{align}
-  \lleq{rat}
-  \qty(\lambda, \mu, \sigma^2) = 1.0005 (n, \langle\lum\rangle, \langle\lum^2\rangle{-}\langle\lum\rangle^2).
-\end{align}
-\fred{At least for us, I should do a comparison plot to evaluate $p(\Lumtot \cond \bmy)$ with both methods } %
 \fred{We need a plot, the one to compare predictions and 250 real replicas or 100 virtual replicas?} %
 \fred{Advantage of this approach: no need to store all packets anymore, sum and sum of squares can be accumulated online $\Rightarrow$ reduced computation and storage requirements}
 
