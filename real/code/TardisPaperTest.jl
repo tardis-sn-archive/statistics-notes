@@ -114,6 +114,9 @@ function gamma_integrand()
     @test log_gamma(x, α, β) ≈ logpdf(dist, x)
     @test log_gamma_predict(x, α, β, n) ≈ logpdf(Gamma(n*α, 1/β), x)
 
+    λ = 3.3
+    @test log_poisson(N, λ) ≈ logpdf(Poisson(λ), N)
+
     @test log_posterior(α, β, n, q, logr) ≈ 1407.87731905469
     # TODO was type stable before, why not anymore?
     # @inferred log_posterior(α, β, n, q, logr)

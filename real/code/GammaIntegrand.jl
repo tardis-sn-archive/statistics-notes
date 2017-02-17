@@ -1,7 +1,7 @@
 """reload("TardisPaper"); TardisPaper.GammaIntegrand.test()"""
 module GammaIntegrand
 
-export heuristicN, log_gamma, log_gamma_predict, log_inv_gamma, log_normal, log_poisson_predict, log_posterior
+export heuristicN, log_gamma, log_gamma_predict, log_inv_gamma, log_normal, log_poisson, log_poisson_predict, log_posterior
 export make_asymptotic, make_log_posterior
 export optimize_log_posterior, optimize_log_posterior_predict, optimize_integrand_λμσ²
 export triple_mode, triple_ranges
@@ -33,6 +33,9 @@ log_gamma(x::Real, α::Real, β::Real) = α*log(β) - lgamma(α) + (α-1)*log(x)
 
 """ p(Q | α, β, N) """
 log_gamma_predict(Q::Real, α::Real, β::Real, N::Real) = log_gamma(Q, N*α, β)
+
+"Poisson(N | λ)"
+log_poisson(N, λ) = N*log(λ) - λ - lgamma(N+1)
 
 """(pmh) p(N | n)"""
 function log_poisson_predict(N::Real, n::Integer, a::Real)
