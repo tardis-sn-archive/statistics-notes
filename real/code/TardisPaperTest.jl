@@ -70,13 +70,17 @@ function predict_alpha_fixed()
     a = 1/2
     Q = n*α/β
     ε = 1e-3
+    λ = n
 
     res, Ndown, Nup = Predict.by_sum(Q, α, β, a, n; ε=ε)
-    target = 0.0
-    for N in Ndown:Nup
-        target += exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N))
-    end
+    res2, Ndown2, Nup2 = Predict.by_sum(Q, α, β, λ; ε=ε)
+
+    # variance should be reduced if λ fixed
+    @test (Nup2 - Ndown2) <= (Nup - Ndown)
+
+    target = mapreduce(N -> exp(log_poisson_predict(N, n, a) + log_gamma_predict(Q, α, β, N)), +, 0.0, max(1, Ndown):Nup)
     @test res == target
+    @test res2 == mapreduce(N -> exp(log_poisson(N, λ) + log_gamma_predict(Q, α, β, N)), +, 0.0, Ndown2:Nup2)
 
     # adding more terms shouldn't change much
     for N in Nup+1:Nup+10

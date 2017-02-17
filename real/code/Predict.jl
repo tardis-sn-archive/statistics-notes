@@ -78,6 +78,15 @@ function by_sum(Q::Real, α::Real, β::Real, a::Real, nb::Real; Ninit::Real=0, �
 end
 
 """
+Predict Q by summing over N and considering λ, α, β fixed.
+"""
+function by_sum(Q::Real, α::Real, β::Real, λ::Real; Ninit::Real=0, ε::Real=1e-3)
+    Ninit = initialize_N(Q, α, β, 0.5, λ, Ninit)
+    f = N -> exp(log_poisson(N, λ) + log_gamma_predict(Q, α, β, N))
+    iterate(Ninit, f, ε)
+end
+
+"""
 Predict Q by summing over N and integrating over α, β  with the Laplace approximation.
 (spk)
 """
