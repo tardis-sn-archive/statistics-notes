@@ -31,14 +31,32 @@ function normalize!(Qs, res, tag=""; δcontrib=0.0)
     norm, mean, stderr
 end
 
+type GammaStatistics{T<:Real}
+    q::T
+    logr::T
+    first::T
+    second::T
+    n::Int64
+
+    function GammaStatistics(samples::Vector)
+        q = sum(samples)
+        logr = sum(log(samples))
+        n = length(samples)
+        first = q/n
+        second = mapreduce(x->x^2, +, samples)/n
+        new(q, logr, first, second, n)
+    end
+end
+
 function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, β=60.0, a=1/2, ε=1e-3, reltol=1e-3, seed=16142)
     srand(seed)
 
     info("Computing for n=$n")
     dist = Gamma(α, 1/β)
     samples = rand(dist, n)
-    q = sum(samples)
-    logr = sum(log(samples))
+    gstats = GammaStatistics(samples)
+    # q = sum(samples)
+    # logr = sum(log(samples))
 
     if Qs === false
         meanQ = n*α/β
@@ -52,18 +70,18 @@ function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
     res_mle = map(Q->Predict.by_sum(Q, shape(dist_fit), 1/scale(dist_fit), a, n;ε=ε)[1], Qs)
     normalize!(Qs, res_mle, "max. likelihood")
 
-    first = q/n
-    second = mapreduce(x->x^2, +, samples)/n
-    res_asym_laplace = map(Q->Predict.asymptotic_by_laplace(Q, a, n, first, second), Qs)
+    # first = q/n
+    # second = mapreduce(x->x^2, +, samples)/n
+    res_asym_laplace = map(Q->Predict.asymptotic_by_laplace(Q, a, n, gstats.first, gstats.second), Qs)
     normalize!(Qs, res_asym_laplace, "asympt. Laplace")
 
-    res_laplace = map(Q->Predict.by_laplace(Q, a, n, q, logr; ε=ε)[1], Qs)
+    res_laplace = map(Q->Predict.by_laplace(Q, a, n, gstats.q, gstats.logr; ε=ε)[1], Qs)
     normalize!(Qs, res_laplace, "Laplace")
 
-    res_asym_cuba = map(Q->Predict.asymptotic_by_cubature(Q, a, n, first, second; reltol=reltol)[1], Qs)
+    res_asym_cuba = map(Q->Predict.asymptotic_by_cubature(Q, a, n, gstats.first, gstats.second; reltol=reltol)[1], Qs)
     normalize!(Qs, res_asym_cuba, "asympt. cubature")
 
-    res_cuba = map(Q->Predict.by_cubature(Q, a, n, q, logr; reltol=reltol, ε=ε)[1], Qs)
+    res_cuba = map(Q->Predict.by_cubature(Q, a, n, gstats.q, gstats.logr; reltol=reltol, ε=ε)[1], Qs)
     normalize!(Qs, res_cuba, "cubature")
 
     Qs, res_cuba, res_laplace, res_asym_cuba, res_asym_laplace, res_mle
@@ -376,6 +394,55 @@ function compare_spectra(spectra=false)
         plot_spectrum(sp, "spectrum_$name", maxQ=maxQ)
     end
     spectra
+end
+
+function compare_uncertainties(Qs;nb=2, λ=nb, n=nb, α=1.5, β=60.0, a=1/2, ε=1e-3, reltol=1e-5, seed=61)
+    resαβ = map(Q->Predict.by_sum(Q, α, β, a, nb;ε=ε)[1], Qs)
+    normalize!(Qs, resαβ, "α, β fixed"; δcontrib=exp(GammaIntegrand.log_poisson_predict(0, nb, a)))
+
+    resλαβ = map(Q->Predict.by_sum(Q, α, β, λ;ε=ε)[1], Qs)
+    normalize!(Qs, resλαβ, "λ, α, β fixed"; δcontrib=exp(GammaIntegrand.log_poisson(0, λ)))
+
+    if nb >= 2
+        dist = Gamma(α, 1/β)
+        srand(seed)
+        samples = rand(dist, nb)
+        gstats = GammaStatistics{Float64}(samples)
+        res = map(Q->Predict.by_cubature(Q, a, n, gstats.q, gstats.logr, nb;ε=ε, reltol=reltol)[1], Qs)
+        normalize!(Qs, res, "nothing fixed"; δcontrib=exp(GammaIntegrand.log_poisson_predict(0, nb, a)))
+    else
+        res = zeros(Qs)
+    end
+    res, resαβ, resλαβ
+end
+
+function plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=2)
+    # plot(Qs, res, xlabel="Q", ylabel="P(Q | n=2)", leg=true, label=L"p(N | n=2) \int d \alpha d \beta p(Q| N, \alpha, \beta) p(\alpha, \beta | n, y)")
+    # plot!(Qs, resαβ, label=L"p(N | n=2) p(Q | N, \alpha_0, \beta_0)")
+    # plot!(Qs, resλαβ, label=L"p(N | \lambda=2) p(Q | N, \alpha_0, \beta_0)")
+
+    plot(Qs, resλαβ, label=L"\lambda, \alpha, \beta fixed", xlabel="Q", ylabel="P(Q | n=$nb)", leg=true)
+    plot!(Qs, resαβ, label=L"\alpha, \beta fixed")
+    (res[end] > 0) && plot!(Qs, res, label=L"nothing fixed")
+    plot!()
+end
+
+function prepare_compare_uncertainties(kwargs...)
+    K = 150
+
+    Qs = linspace(0.001, 0.8, K)
+    nb = 2
+    res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, seed=61, kwargs...)
+    plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb)
+    savepdf("comp_unc_$nb")
+
+    Qs = linspace(0.001, 0.21, K)
+    nb = 0
+    # compute λ to give same δ contribution
+    # Optim.optimize(x -> abs(exp(TardisPaper.GammaIntegrand.log_poisson(0, x)) - 1/sqrt(2)), 0.3, 0.4, show_trace=true)
+    res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, λ=3.465736e-01, kwargs...)
+    plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb)
+    savepdf("comp_unc_$nb")
 end
 
 end # module

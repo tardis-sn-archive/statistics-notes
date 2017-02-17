@@ -111,7 +111,6 @@
   case when parameters determined from a single bin with few samples,
   should make large difference. Fix $\lambda$, what are the uncertainties now?
   \item Statistics of replicas: again compare \refeq{spe} to \refeq{ral}. Teach a lesson: from a single data set, prediction will be centered there
-  \item Question: does Wolfgang want to see a plot in which ``$\lambda$ is divided out''? That is , just plot how mean
 \end{enumerate}
 
 \subsection{Other issues that need to be resolved}
@@ -703,6 +702,57 @@ integral in \refeq{gmi} does not depend on the bin but only on $N$ so
 its value may be cached to speed up the simultaneous evaluation across
 all bins.
 
+Let's consider the extreme case $\npack \gg 1$ so we can neglect the
+uncertainty on $\alpha, \beta$ and
+$p(\alpha, \beta \cond \npack, \bmy) =
+\delta(\alpha-\alpha_0)\delta(\beta - \beta_0)$ such that
+\begin{align}
+  \lleq{gmj}
+  p(Q\cond \npack,\bmy)
+  &=     \sum_{N=0}^\infty p(N\cond n) \GammaDist(Q\cond N\alpha_0, \beta_0)\\
+  &=     \sum_{N=0}^\infty p(N\cond n) p(Q\cond N, \alpha_0, \beta_0) \, .
+\end{align}
+The case $N=0$ deserves special attention. To preserve the normalization of $p(Q\cond \npack,\bmy)$, we need to define
+\begin{align}
+  \lleq{gmk}
+   p(Q\cond N, \alpha, \beta) &\equiv
+   \begin{cases}
+     \delta(Q),     &N=0;\\
+     \GammaDist(Q\cond N\alpha, \beta), & N > 0 \, .
+   \end{cases}
+ \end{align}
+ %
+ \fred{Notation is sloppy before, it has nothing to do with unbinned
+   stuff or $\npack \gg 1$. This is just where it became apparent to
+   me.}
+ %
+ Intuitively, we can only observe $Q=0$ for $N=0$ packets bu
+ mathematically, $\GammaDist(Q\cond \alpha=0, \beta) = 0$ which,
+ without the extra contribution from the Dirac $\delta$ function,
+ would imply
+ $p(Q\cond \npack,\bmy) = \sum_{N>0}^\infty p(N \cond n) < 1$. Higher
+ moments of $p(Q \cond N, \alpha, \beta)$ are unaffected by this
+ subtlety.
+
+ In \reffig{comp-unc}, we illustrate the impact of the uncertainty due
+ to $\lambda$ or $\alpha, \beta$ for $n=2$ packets and continue to use
+ the true values $\alpha_0 = 1.5, \beta_0 = 60$. The standard error
+ increases from 0.042 ($\lambda, \alpha, \beta$ fixed) over 0.059
+ ($\alpha, \beta$ fixed) to 0.11 (nothing fixed). The case where all
+ parameters are known is usually not attainable in practice and only
+ shown for comparison. But the case $\alpha, \beta$ fixed can be
+ reached easily if packets from other bins are used. Note that $n=2$
+ is the minimum number of packets to perform the binned analysis.
+
+ \begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.44\textwidth]{comp_unc_0}
+  \includegraphics[width=0.44\textwidth]{comp_unc_2}
+  \caption{Prediction considering $\lambda, \alpha, \beta$ fixed (green), $\alpha, \beta$ fixed (red), or nothing fixed (blue).}
+\label{fig:comp-unc}
+\end{figure}
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Large packet number approximations} \label{sec:asymptotic}
 
@@ -765,6 +815,7 @@ are suppressed by powers of $\lambda^{-1/2}$.
 %%%%%%%%%%%
 \hans{H comment (not for text): The magnitude of the correction to
   Eq.~(\ref{rab}) due to $\kappa_3$ and higher orders is unclear.}
+\fred{These guys \href{http://stats.stackexchange.com/questions/83069/what-is-the-maximum-entropy-probability-density-function-for-a-positive-continuo}{claim} that our truncated Gauss is the max-ent distribution for our prior information. I'm not sure they are right, they are not convinced themselves. We have to check.}
 %%%%%%%%%%%
 From Theorem 4.3.1 of Ref.~\cite{bening2002generalized}, we conclude
 that the asymptotic distribution of $\Lumtot$ when
@@ -808,15 +859,14 @@ Theorem,
     \GaussianDist(\bml\cond\mu,\sigma^2)\;
     p(\mu\cond n)\;
     p(\sigma^2\cond n)}
-  {p(\bml\cond n)}
+  {p(\bml\cond n)} \, .
 \end{align}
 In keeping with prior information that luminosities are always
 positive, we assign an improper uniform prior
 $p(\mu\cond\mu_{\rm max}) = 1/\mu_{\rm max}$ independent of $n$; as
-always, the posterior is independent of
-$\mu_{\rm max}$.
-For $\sigma^2$, we use an $n$-independent Inverse Gamma
-distribution prior with hyperparameters $(a_0,b_0)$ which reads
+always, the posterior is independent of $\mu_{\rm max}$.  For
+$\sigma^2$, we use an $n$-independent Inverse Gamma prior with
+hyperparameters $(a_0,b_0)$ which reads
 \begin{align}
   \lleq{rad}
   p(\sigma^2\cond a_0,b_0)
