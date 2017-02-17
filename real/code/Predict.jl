@@ -81,7 +81,7 @@ end
 Predict Q by summing over N and considering λ, α, β fixed.
 """
 function by_sum(Q::Real, α::Real, β::Real, λ::Real; Ninit::Real=0, ε::Real=1e-3)
-    Ninit = initialize_N(Q, α, β, 0.5, λ, Ninit)
+    Ninit = initialize_N(Q, α, β, 0.5, convert(Int64, ceil(λ)), Ninit)
     f = N -> exp(log_poisson(N, λ) + log_gamma_predict(Q, α, β, N))
     iterate(Ninit, f, ε)
 end
@@ -128,7 +128,7 @@ Arguments
 """
 
 function by_cubature(Q, a, n, q, logr, nb=n; αmin=1e-2, αmax=5, βmin=1e-5, βmax=100,
-                     Ninit=0, ε=1e-3, reltol=1e-3)
+                     Ninit=0, ε=1e-3, reltol=1e-5)
     # to avoid overflow in Cubature, evaluate target at mode and subtract it. The
     # value within a few order of magnitude of
     fit_dist = Distributions.fit_mle(Distributions.Gamma, Distributions.GammaStats(q, logr, n))
@@ -192,7 +192,7 @@ function asymptotic_by_laplace(Q, a, n, first, second, nb=n; a₀=0, b₀=0)
 end
 
 function asymptotic_by_cubature(Q, a, n, first, second, nb=n;
-                                reltol=1e-3, a₀=0, b₀=0,
+                                reltol=1e-5, a₀=0, b₀=0,
                                 λmin=0.0, λmax=0.0,
                                 μmin=0.0, μmax=0.0,
                                 σ²min=0.0, σ²max=0.0)
