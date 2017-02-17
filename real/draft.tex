@@ -595,18 +595,14 @@ result and we may set $C\equiv 1$ to obtain
   relevant text in here which may be useful. Much of it should be
   removed. Some connection to TARDIS should preferably be kept in the
   paper, in my view, eg the definition of $X = 1 - L/\ell_{\rm max}$.}
+\fred{I removed a lot of cruft and swapped the symbols $x \leftrightarrow \ell$ so it's in line with the previous section}
 
-The \tardis{} packages simulates supernovae with %
-\fred{Wolfgang's favorite description of his package}. %
 Here we focus on the real packets as opposed to the virtual packets
-output by tardis.
-
-
-A histogram plot of the luminosities from a \tardis{} run indicates a
-strongly skewed distribution with its single mode close to the maximum
-luminosity $\lmax$, while there is a long tail for small $\ell$. These
-features can be accomodated by a $\GammaDist$ distribution if we
-transform the luminosities to
+and denote the raw output by \tardis{} for the $i$-{th} packet as $\qty(\nu_i^\prime, \ell_i^\prime)$.  A histogram plot \fredmargin{include plot} of the luminosities
+from a \tardis{} run indicates a strongly skewed distribution with its
+single mode close to the maximum luminosity $\lmax$, while there is a
+long tail for small $\ell$. These features can be accomodated by a
+$\GammaDist$ distribution if we transform the luminosities to
 \begin{align}
   \lleq{gmf}
   x_j \equiv 1- \frac{\ell_j}{\lmax} > 0
