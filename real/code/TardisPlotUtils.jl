@@ -1,4 +1,4 @@
-module TardisPaperPlots
+module TardisPlotUtils
 using Logging
 @Logging.configure(level=INFO)
 
