@@ -23,7 +23,7 @@
     \begin{minipage}{\textwidth} #2\end{minipage}}} %
 
 %% CHANGE THIS DATE AS YOU MODIFY THE FILE
-\newcommand{\vdate}{170221}
+\newcommand{\vdate}{170308}
 \pagestyle{myheadings}
 \markboth{Version \vdate} {Version \vdate}
 
@@ -68,7 +68,6 @@
 \newcommand{\lumtot}{q}
 \newcommand{\Lum}{L}
 \newcommand{\lum}{\ell}
-% \newcommand{\rmdx}[1]{\mbox{d} #1 \,} % differential
 \newcommand{\rmdx}[1]{\dd{#1}} % differential
 \newcommand{\firstDeriv}[1]{\frac{\partial}{\partial #1}}
 \newcommand{\secDeriv}[1]{\frac{\partial^2}{\partial #1^2}} % second partial derivative
@@ -86,56 +85,6 @@
 \end{center}
 
 \textbf{Abstract} TODO\\
-
-\section{What's left to do}
-
-\subsection{why asymptotic approx. has larger variance}
-\begin{enumerate}
-  \item For $\alpha=1.5, \beta=60, n=14000$ still get 50 \% larger uncertainty from asymptotic compared to summation over $N$. Is it due very asymmetric one-packet distribution? Try larger $\alpha$, for example $\alpha = 30$.
-  \item  Another option: $\int \rmdx{\alpha} \rmdx{\beta}$, use true values in simulation. Where does uncertainty come from? From $\lambda$ or $\mu, \sigma^2$?
-  \item Are finite number of terms in $\sum_N$ a problem? Check
-
-\end{enumerate}
-
-\subsection{Plots}
-
-\begin{enumerate}
-  \item generate a toy spectrum, take frequencies from actual tardis,
-  generate luminosities from a $\GammaDist(\alpha, \beta)$, no $\nu$
-  dependence of $\alpha, \beta$ for clarity , plot spectrum with
-  uncertainty bands, show it early in the paper, then describe where
-  it comes from
-  \item compare asymptotic and $\sum_N$ $p(\Lumtot \cond \bmy)$ on a
-  plot, add what happens if only $\sqrt{n}$ uncertainty is used: that
-  would neglect uncertainty on the single-packet distribution, show
-  case when parameters determined from a single bin with few samples,
-  should make large difference. Fix $\lambda$, what are the uncertainties now?
-  \item Statistics of replicas: again compare \refeq{spe} to \refeq{ral}. Teach a lesson: from a single data set, prediction will be centered there
-\end{enumerate}
-
-\subsection{Other issues that need to be resolved}
-
-\begin{enumerate}
-
-\item Clean up integrals using \verb=\rmdx= rather than $d$.
-
-\item Write everything in terms of frequency $\nu$ or wavelength
-  $\lambda$
-
-\item Now that we have removed direct analysis of \tardis\ from the
-  paper, there is no need to define an overall parameterization of the
-  Gamma parameters $\alpha(\nu_b) = \sum_k a_k \nu_b^k$ and
-  $\beta(\nu_b) = \sum_k b_k \nu_b^k$. However, the possibility of
-  linking the analyses of all the bins by this and similar methods
-  should be highlighted. Perhaps in the Conclusions?
-
-\item \textbf{\tardis} move tardis section into separate document in
-  this git repo. Better to keep it out of the paper. Cite tardis when
-  showing the toy spectrum. Mention that in reality $\alpha$ and
-  $\beta$ are $\nu$ dependent
-
-\end{enumerate}
-
 
 \section{Introduction (Wolfgang)}
 
@@ -170,7 +119,13 @@ Wolfgang's text
   \centering
   \includegraphics[width=0.48\textwidth]{spectrum_bin}
   \includegraphics[width=0.48\textwidth]{spectrum_all}
-  \caption{Spectrum with smallest 2 $\sigma$ credibility interval. Left: only packets from bin contribute. Right: a}
+  \caption{Spectrum with most likely value of $Q$ (dot) and smallest
+    2$\sigma$ credibility interval (blue band). Left: only packets
+    from single bin contribute to the single-packet luminosity
+    distribution in that bin. If $n<8$ packets observed, no reliable
+    prediction is available and bins are masked out (red band) Right:
+    Same packets as on the left but the single-packet luminosity
+    distribution is inferred from all packets. }
 \label{fig:spectrum}
 \end{figure}
 
@@ -271,18 +226,18 @@ total luminosity in bin $b$ is
 Within a given model $\hypo$, the data $\bmy$ are only one of many
 possible realisations of the corresponding random variables; for
 example, starting the simulation with a different seed would result in
-different output data. We denote the general random variables by the
-corresponding upper-case symbols,
+different output data. Following standard notation, we denote the
+general random variables by the corresponding upper-case symbols,
 \begin{align}
   \lleq{sdd}
   \bmL_b &= \{(\Lum_{b,j}): j = 1,\ldots,N_b\}\\
   \lleq{sde}
   \bmY &= \{(N_b, \bmL_b): b = 1,\ldots,B\},\\
   \lleq{sdf}
-  \Lumtot_b &= \sum_{j=1}^{N_b} \Lum_{b,j},
+  \Lumtot_b &= \sum_{j=1}^{N_b} \Lum_{b,j}.
 \end{align}
 Lower-case symbols such as $\bmy, n_b,\bml_b$ etc.\ are strictly
-reserved for the simulated data at hand.
+reserved for the realisations; i.e., the simulated data at hand.
 
 
 The goal of this paper is to illustrate how the single-simulation data
@@ -305,19 +260,17 @@ account the variability introduced by these features in a two-step
 process termed a \textit{compound process} in the statistics
 literature.
 %
-In the first step, the number of packets $N$ is modelled by means of a
-separate Poisson distribution $p(N\cond\lambda)$ for each bin, where
-the change in magnitude of $\lambda$ from bin to bin will capture most
-of the variability of the spectrum. Given $N$, the single-packet
+In the first step, the number of packets $N$ is modelled by a Poisson
+distribution $p(N\cond\lambda)$, separately for each bin, where the
+change in magnitude of $\lambda$ from bin to bin will capture most of
+the variability of the spectrum. Given $N$, the single-packet
 luminosity distribution is modelled in the second step by means of a
 packet likelihood for $\Lum_{b,j}$ with packet parameters, a packet
 prior and, of course, a packet parameter posterior. The single-packet
 distribution contains the crucial information which allows us to
-extend previous methods to cases where the number of packets in a bin
-is small.
-%%%%%%%%%%%%%%%%%%%
-\fred{Refs: Zech, maybe others, too}
-
+extend previous
+methods~\cite{bohm_comparison_2012,bohm_statistics_2014} to cases
+where the number of packets in a bin is small and even zero.
 
 We derive in this section the generic equations of the compound
 process, and then proceed to show in Sections \ref{sec:example} and
@@ -428,12 +381,10 @@ We use a prior
 \end{align}
 which is ``improper'', meaning that
 $\int_0^\infty \rmdx{\lambda}\,p(\lambda)$ is known only up to a
-constant $c$. An improper prior is not a problem because $c$ cancels
-out when calculating the posterior, provided that $n \ge 1$; i.e., at
-least one packet is observed in the bin.\footnote{For a uniform prior,
-  the case $a{=}0$, we require of course a parameter
-  $\lambda_{\rm max}$. As long as $\lambda_{\rm max}$ is large enough,
-  it would also cancel.}, The posterior is
+constant $c$.\footnote{For a uniform prior, the case $a{=}0$, we
+  additionally require an upper limit $\lambda_{\rm max}$. As long as
+  $\lambda_{\rm max}$ is large enough, it would also cancel.}, The
+posterior is
 \begin{align}
   \lleq{pms}
   p(\lambda\cond n)
@@ -448,15 +399,16 @@ rate parameter $\beta > 0$ is defined as
   \quad 0 \leq x < \infty.
 \end{align}
 The evidence is
-$p(n) =  \int_0^\infty \rmdx{\lambda}\, p(n\cond\lambda)\,p(\lambda) = c\,(n-a)!/n!$
+$p(n) =  \int_0^\infty \rmdx{\lambda}\, p(n\cond\lambda)\,p(\lambda) = c\,(n-a)!/n!$.
 % \begin{align}
 %   \lleq{pmg}
 %   p(n)
 %   &=  \int_0^\infty \rmdx{\lambda}\, p(n\cond\lambda)\,p(\lambda)
 %     \ =\ c\frac{(n-a)!}{n!} \,, \\
 % \end{align}
-and inserting Eqs.~(\ref{pmb}) and (\ref{pmc}), the prediction for $N$
-given $n$ is a negative binomial distribution
+Upon inserting Eqs.~(\ref{pmb}) and (\ref{pmc}), $c$ cancels out and
+the integral over $\lambda$ can be performed analytically resulting in
+a negative binomial distribution that is proper for any $n$
 \begin{align}
   \lleq{pmh}
   p(N\cond n) %
@@ -467,13 +419,14 @@ given $n$ is a negative binomial distribution
 A hyperparameter choice $a=0$ yields the uniform prior, $a=1/2$ gives
 the Jeffreys and reference prior, and $a=1$ is the
 transformation-group result advocated by
-Jaynes~\cite[Ch. 12]{jaynes2003probability}. The uniform prior has no
-solid information-theoretic foundation in this case reducing the
-choice to $a \in \{1/2, 1\}$. We examine the consequence for the
-extreme case that no packet is observed: $P(N=0 \cond n=0) =
-2^{a-1}$. For $a=1$, any $N>0$ is excluded which is undesirable unless
-we accept that repeating the simulation will never yield a packet in
-the current bin. Hence we are led to Jeffreys prior, $a=1/2$.
+Jaynes~\cite[Ch. 12]{jaynes2003probability}. To decide on $a$, we note
+that the uniform prior has no solid information-theoretic foundation
+in this case reducing the choice to $a \in \{1/2, 1\}$. We examine the
+consequence for the extreme case that no packet is observed:
+$P(N=0 \cond n=0) = 2^{a-1}$. For $a=1$, any $N>0$ is excluded which
+is undesirable unless we accept that repeating the simulation will
+never yield a packet in the current bin. Hence we settle on Jeffreys
+prior, $a=1/2$, for any numerical evaluation carried out below.
 
 With \refeq{pmh}, \refeq{sll} simplifies to
 \begin{align}
@@ -494,8 +447,8 @@ Next, we consider detailed modelling of $p(\bmL\cond N,\bmphi)$ which
 was written in Eq.~(\ref{slk}) as a product of single-packet
 distributions $p(L_j\cond \bmphi)$, meaning that single packets are
 assumed to be mutually independent and to follow the same distribution
-independent of $N$.
-% 
+independent of $N$ and the exact frequency within the bin under consideration.
+%
 Which specific probability function to choose for $p(L_j\cond\bmphi)$
 depends, of course, on the specific simulation data. In this section,
 we choose it to be the same Gamma distribution for all $L_j$
@@ -504,21 +457,32 @@ with parameters $\bmphi = (\alpha,\beta)$,
   \lleq{spc}
   p(L_j\cond \bmphi) &= \GammaDist(L_j\cond \alpha,\beta)
 \end{align}
-which has the nice property that the convolution (\ref{slm}) results
-in another Gamma distribution,
+which has the nice property that the convolution \refeq{slm} for
+$N > 0$ results in another Gamma distribution,
 \begin{align}
   \lleq{spd}
   \int \rmdx{\bmL}\; p(Q\cond N,\bmL)\; p(\bmL\cond N,\bmphi)
-  &= \GammaDist(Q\cond N\alpha, \beta),
+  &= \GammaDist(Q\cond N\alpha, \beta).
 \end{align}
-and so Eq.~(\ref{gmh}) becomes in this example
+For the special case $N=0$, there is no luminosity because there is no
+packet, so we define
+\begin{align}
+  \lleq{spl}
+   p(Q\cond N, \alpha, \beta) &\equiv
+   \begin{cases}
+     \delta(Q),     &N=0,\\
+     \GammaDist(Q\cond N\alpha, \beta), & N > 0 \, ,
+   \end{cases}
+ \end{align}
+ with the Dirac $\delta$ function and so \refeq{gmh} simplifies to
 \begin{align}
   \lleq{spe}
   p(Q\cond n,\bml)
   &= \sum_{N=0}^\infty \;
     p(N\cond n)\;
     \int \rmdx{\alpha}\,\rmdx{\beta}\;
-    \GammaDist(Q\cond N\alpha, \beta)\;
+    p(Q\cond N, \alpha, \beta)\;
+    % \GammaDist(Q\cond N\alpha, \beta)\;
     p(\alpha,\beta\cond n,\bml).
 \end{align}
 The posterior for the parameters is calculated by yet another
@@ -539,226 +503,49 @@ Gamma likelihood as $(N,\bmL)$, i.e.\
 with the data summarized by the sufficient statistics $n$,
 $q \equiv \sum_{j=1}^n \ell_j$, and $r \equiv \prod_{j=1}^n \ell_j$.
 
-\fred{Here and above, $n$ does not have to be the same in
-  $P(N \cond n)$ and $p(n,\bml\cond \alpha,\beta)$. We can use packets
-  from other bins if we assume $\alpha, \beta$ are the same in those bins.}
-\hans{Please explain more fully; not clear.}
-
-It only remains to explicitly evaluate the prior $p(\alpha,\beta)$
-appearing in \refeq{spf}.
+It only remains to specify the prior $p(\alpha,\beta)$ appearing in
+\refeq{spf}.
 %
 The authors of \cite{moala2013bayesian} present an overview of
 possible choices indicating that their \emph{modified MDIP} prior
 performed best in the few examples considered there. We do not follow
 their recommendation because their modification is not well motivated
-and it seems to accidentally perform better because of the particular
-examples considered. The other conclusion they have is that the
-Jeffreys, reference, and other noninformative priors with similarly
-solid motivation have comparable performance. They all exhibit the
-standard form for a scale or rate parameter $\propto 1/\beta$ and only
-differ in the $\alpha$ dependence. We disregard the reference prior as
-it forces us to identify either $\alpha$ or $\beta$ as \emph{the}
-nuisance parameter but we consider \emph{both} as nuisance
-parameters. Hence we select the Jeffreys prior
-\hans{What is $\Psi$?}
+and it seems to only accidentally perform better because of the
+particular examples they considered. The other conclusion they have is
+that the Jeffreys, reference, and other noninformative priors with
+similarly solid motivation have comparable performance. They all
+exhibit the standard form for a scale or rate parameter
+$\propto 1/\beta$ and only differ in the $\alpha$ dependence. We
+disregard the reference prior as it forces us to identify either
+$\alpha$ or $\beta$ as \emph{the} nuisance parameter but we consider
+\emph{both} as nuisance parameters. Hence we select the Jeffreys prior
 \begin{align}
   \lleq{sph}
   p(\alpha,\beta)
-  &=  C \frac{\sqrt{\alpha \Psi'(\alpha)-1}}{\beta} \, .
-  % \frac{1}{(\alpha_{\rm max}{-}1)\beta_{\rm max}}
-  % \qquad 1 < \alpha < \alpha_{\rm max},\; 0 < \beta < \beta_{\rm max}.
+  &=  C \frac{\sqrt{\alpha \Psi'(\alpha)-1}}{\beta} \, ,
 \end{align}
-% since $\alpha_{\rm max}$ and $\beta_{\rm max}$ cancel in (\ref{spf}).
-With these choices, the posterior normalization is %
-\hans{``Posterior normalization'' = Evidence? With improper priors,
-  should the upper limits not be $\infty$ below?}
+where $\Psi$ is the digamma function. With these choices, the
+posterior is nondegenerate for $n \geq 2$ and the evidence is
 \begin{align}
   \lleq{spj}
-  p(n, \bml) &= C \int_0^{\alpha_{\rm max}} d\alpha \int_0^{\beta_{\rm max}} d\beta\;
-  \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n},
+  p(n, \bml) &= C \int_0^{\infty} \rmdx{\alpha} \int_0^{\infty} \rmdx{\beta}\;
+  \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n}\;
+  \frac{\sqrt{\alpha \Psi'(\alpha)-1}}{\beta}.
 \end{align}
-where the upper integration limits
-$(\alpha_{\rm max}, \beta_{\rm max})$ should formally extend to
-$\infty$ but in practice have to be chosen by trial and error to be
-large enough to contain the relevant contribution to the integral.
 The prior's constant of proportionality $C$ cancels in the final
 result and we may set $C\equiv 1$ to obtain
 \begin{align}
   \lleq{spk}
   p(Q\cond n,\bml)
   &= \frac{1}{p(n, \bml)}
-    \sum_{N=0}^\infty \;
+    \sum_{N=1}^\infty \;
     p(N\cond n)\;
     \int \rmdx{\alpha}\,\rmdx{\beta}\;
     \GammaDist(Q\cond N\alpha, \beta)\;
-    \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n} \frac{\sqrt{\alpha \Psi'(\alpha)-1}}{\beta}.
+    \frac{\beta^{n\alpha} r^{\alpha-1}\,e^{-\beta q}}{[\Gamma(\alpha)]^n} \frac{\sqrt{\alpha \Psi'(\alpha)-1}}{\beta}
 \end{align}
-
-\subsection{Preprocessing simulation output } \label{sec:tardis}
-
-\fred{I removed a lot of cruft and swapped the symbols
-  $x \to \ell, \ell \to \ell^\prime$ so it's in line with the previous section}
-
-\hans{This and the next section interrupt the actual calculation of
-  exact results in Sections
-  \ref{sec:multiplicity}--\ref{sec:single-packet} and the asymptotic
-  ones in Section \ref{sec:asymptotic}, so I would suggest moving them
-  to the end just before the conclusions. }
-
-In this section, we use \tardis{} as an example to demonstrate both how
-transforming the output of a simulation helps in predictions, and what
-further complications may arise in practice.
-
-\tardis{} can output two kinds of packets, real and virtual. Here we
-focus on the real packets and denote the raw output of \tardis{} by
-primed symbols, for example for the $i$-{th} packet
-$\qty(\nu_i^\prime, \ell_i^\prime)$.  A histogram plot
-\fredmargin{include plot} of the luminosities from a \tardis{} run
-indicates a strongly skewed distribution with its single mode close to
-the maximum luminosity $\lmax^\prime$, while there is a long tail for
-small $\ell$. These features can be accommodated by a $\GammaDist$
-distribution as in \refsec{single-packet} if we transform the
-luminosities to
-\begin{align}
-  \lleq{gmf}
-  \ell_i \equiv 1- \frac{\ell_i^\prime}{\lmax^\prime} > 0
-\end{align}
-and similarly $L_i \equiv 1 - (L_i^\prime/\lmax^\prime)$. We assume
-the total number of samples across all bins is large, so that the effect
-of considering $\lmax^\prime$ a constant independent of the data is
-negligible. We checked that leaving $\lmax^\prime$ as a free parameter
-in a fit gave equivalent results.
-%
-Numerically, we take the largest luminosity of all \tardis{} packets
-across the entire frequency range and increase it slightly to avoid
-numerical difficulties at the end point
-\begin{align}
-  \lleq{gme}
-  \lmax^\prime \equiv (1+\epsilon) \times \max_i \ell_i^\prime,
-\end{align}
-where $ \epsilon=10^{-6}$. We carry out all calculations with
-$p(\Lumtot \cond n,\bml)$ and only in the end transform back to a
-probability density in the raw coordinates via
-\begin{align}
-  \lleq{gmg}
-  p(\Lumtot^\prime  \cond n, \bml^\prime)
-  &= p(\Lumtot  \cond n, \bml) \frac{1}{\lmax^\prime} \,.
-\end{align}
-While we also rescale the frequencies by a constant from
-$\mathcal{O}(10^{15})$ to $\mathcal{O}(1)$, the most important
-numerical simplification arises because of the transformation of the
-luminosities. Rewriting \refeq{sll} formally as
-\begin{align}
-  \lleq{gmhb}
-  p(Q  \cond n,\bml)
-  & = \sum_{N} p(N \cond n)\; p(Q \cond N, n, \bml),
-\end{align}
-we see that the right-hand side is a mixture density. In the \tardis{}
-application, the distribution of a single-packet luminosity,
-$p\qty(\ell_i' \cond \bmphi)$ is narrow in the sense that the standard
-deviation relative to the mean is at the percent level. This implies
-that each $p(Q^\prime \cond N, n, \bml^\prime)$ contributes one narrow
-peak and all peaks are clearly separated in the superposition
-$ p(Q^\prime \cond n,\bml^\prime)$. The transformation
-$\ell^\prime \to \ell$ effects a strong overlap between the
-distributions $p(\Lumtot \cond N, n, \bml)$ with similar $N$, so
-$p(\Lumtot \cond n, \bml)$ can be well approximated by a unimodal
-distribution and thus $\Lumtot$ rather than $\Lumtot^\prime$ is the
-preferred coordinate basis.
-%
-\fredmargin{show hedgehog plot}
-
-\subsection{Towards an unbinned analysis} \label{sec:unbinned}
-
-The parameters $\qty(\alpha, \beta)$ of the single-packet distribution
-$\GammaDist(\ell_i \cond \alpha, \beta)$ may, of course, depend on the
-frequency. % $\nu_i$
-This effect could be modelled, for example, by a functional
-parametrization $\alpha = \alpha(\nu \cond \bmphi)$ and
-$\beta = \beta(\nu \cond \bmphi)$ in dependence on the frequency $\nu$
-and on hyperparameters $\bmphi$ such that integrals over
-$\alpha, \beta$ would turn into integrals over $\bmphi$. For the
-sake of clarity, let rather us consider only the simplest case where
-$\alpha, \beta$ are the same in every bin such that \refeq{spk}
-becomes
-\begin{align}
-  \lleq{gmi}
-  p(Q\cond \npack,\bmy)
-  &=     \sum_{N=0}^\infty \;
-    p(N\cond n)\;
-    \int \rmdx{\alpha}\,\rmdx{\beta}\;
-    \GammaDist(Q\cond N\alpha, \beta)\;
-    p(\alpha, \beta \cond \npack, \bmy) \, .
-\end{align}
-In words, the posterior $ p(\alpha, \beta \cond \npack, \bmy)$ uses
-all packets to essentially fix $\alpha, \beta$ if $\npack \gg 1$ and
-allows meaningful predictions of $\Lumtot$ even in bins where
-\emph{no} packet is observed; i.e., $n=0$. The only binning left is
-performed to count $n$ the number of packets that fall into a given
-frequency bin. This strategy is applicable, for example, when
-absorption or emission lines in the spectrum abruptly alter the number
-of packets for nearby frequencies but the luminosities are unaffected
-by those line features. Note that if the dependence on $\bmphi$ can be
-modeled with few parameters, the total number of parameters may be
-drastically reduced: instead of determining $\alpha, \beta$ separately for
-each of a few thousand bins, there are potentially only a handful of
-elements in $\bmphi$ for the entire spectrum. In that case, the
-integral in \refeq{gmi} does not depend on the bin but only on $N$ so
-its value may be cached to speed up the simultaneous evaluation across
-all bins.
-
-Let's consider the extreme case $\npack \gg 1$ so we can neglect the
-uncertainty on $\alpha, \beta$ and
-$p(\alpha, \beta \cond \npack, \bmy) =
-\delta(\alpha-\alpha_0)\delta(\beta - \beta_0)$ such that
-\begin{align}
-  \lleq{gmj}
-  p(Q\cond \npack,\bmy)
-  &=     \sum_{N=0}^\infty p(N\cond n) \GammaDist(Q\cond N\alpha_0, \beta_0)\\
-  &=     \sum_{N=0}^\infty p(N\cond n) p(Q\cond N, \alpha_0, \beta_0) \, .
-\end{align}
-The case $N=0$ deserves special attention. To preserve the
-normalization of $p(Q\cond \npack,\bmy)$, we need to define
-\begin{align}
-  \lleq{gmk}
-   p(Q\cond N, \alpha, \beta) &\equiv
-   \begin{cases}
-     \delta(Q),     &N=0;\\
-     \GammaDist(Q\cond N\alpha, \beta), & N > 0 \, .
-   \end{cases}
- \end{align}
- %
-\hans{I'm ok with this now.}
- \fred{Notation is sloppy before, it has nothing to do with unbinned
-   stuff or $\npack \gg 1$. This is just where it became apparent to
-   me.}
- %
- Intuitively, we can only observe $Q=0$ for $N=0$ packets but
- mathematically, $\GammaDist(Q\cond \alpha=0, \beta) = 0$ which,
- without the extra contribution from the Dirac $\delta$ function,
- would imply
- $p(Q\cond \npack,\bmy) = \sum_{N>0}^\infty p(N \cond n) < 1$. Higher
- moments of $p(Q \cond N, \alpha, \beta)$ are unaffected by this
- subtlety.
-
- In \reffig{comp-unc}, we illustrate the impact of the uncertainty due
- to $\lambda$ or $\alpha, \beta$ for $n=2$ packets and continue to use
- the true values $\alpha_0 = 1.5, \beta_0 = 60$. The standard error
- increases from 0.042 ($\lambda, \alpha, \beta$ fixed) over 0.059
- ($\alpha, \beta$ fixed) to 0.11 (nothing fixed). The case where all
- parameters are known is usually not attainable in practice and only
- shown for comparison. But the case $\alpha, \beta$ fixed can be
- reached easily if packets from other bins are used. Note that $n=2$
- is the minimum number of packets to perform the binned analysis.
-
- \begin{figure}[ht]
-  \centering
-  \includegraphics[width=0.44\textwidth]{comp_unc_0}
-  \includegraphics[width=0.44\textwidth]{comp_unc_2}
-  \caption{Prediction considering $\lambda, \alpha, \beta$ fixed (green), $\alpha, \beta$ fixed (red), or nothing fixed (blue).}
-\label{fig:comp-unc}
-\end{figure}
-
+for $Q > 0$ and for $Q=0$ there is the additional contribution from
+$N=0$ through the $\delta$ function from \refeq{spl}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Large packet number approximations} \label{sec:asymptotic}
@@ -809,7 +596,7 @@ of $L$ by
   \expect{Q} = \lambda \mu, \qquad
   \variance{Q} = \lambda \mu_2 = \lambda (\mu^2 + \sigma^2) \,.
 \end{align}
-for any probability $p(L\cond\bmphi)$.
+for any density $p(L\cond\bmphi)$.
 %
 Higher-order quantities such as the skewness and kurtosis\footnote{
   The variance is the second so-called \textit{cumulant}. The relation
@@ -822,11 +609,10 @@ are suppressed by powers of $\lambda^{-1/2}$.
 %%%%%%%%%%%
 \hans{H comment (not for text): The magnitude of the correction to
   Eq.~(\ref{rab}) due to $\kappa_3$ and higher orders is unclear.}
-\fred{These guys \href{http://stats.stackexchange.com/questions/83069/what-is-the-maximum-entropy-probability-density-function-for-a-positive-continuo}{claim} that our truncated Gauss is the max-ent distribution for our prior information. I'm not sure they are right, they are not convinced themselves. We have to check.}
 %%%%%%%%%%%
 From Theorem 4.3.1 of Ref.~\cite{bening2002generalized}, we conclude
 that the asymptotic distribution of $\Lumtot$ when
-$\lambda \to \infty$, given the first and second moment of $\Lum$, is
+$\lambda \to \infty$, given the finite first and second moment of $\Lum$, is
 a Gaussian or normal distribution,
 \begin{align}
   \lleq{rab}
@@ -834,31 +620,32 @@ a Gaussian or normal distribution,
   &= \GaussianDist \left( \Lumtot \cond \expect{Q}, \variance{Q} \right) %
     = \GaussianDist \left( \Lumtot \cond \lambda \mu, \lambda (\mu^2 {+} \sigma^2) \right).
 \end{align}
-This drastic simplification eliminates both the sum over $N$ and the
-integral over $\bmL$ in \refeq{asd}.
-
-It remains to find the integrals over $\lambda$ and $\bmphi$ in
-\refeq{asc}. As before, the posterior for $\lambda$ is the Gamma
-distribution of \refeq{pms}. %
+It is remarkable that this result eliminates both the sum over $N$ and
+the integral over $\bmL$ in \refeq{asd}.  What remains is to find the
+integrals over $\lambda$ and $\bmphi$ in \refeq{asc}. As before, we
+assume the posterior for $\lambda$ is the Gamma distribution of
+\refeq{pms} since this is independent of $p(L\cond\bmphi)$.
 %
 To determine $p(\bmphi\cond n,\bml)$, we note that the result
 (\ref{rab}) also simplifies the calculation of the parameter posterior
 $p(\bmphi\cond n,\bml)$ since, independently of the actual functional
 model for $p(L\cond\bmphi)$ the only relevant information is contained
-in the first moment $\mu$ and variance $\sigma^2$.  As set out in
-Jaynes~\cite[Ch. 7.10]{jaynes2003probability}, knowledge of $\mu$ and
-$\sigma^2$ implies that we can assign a Gaussian distribution to
-$p(L\cond\bmphi)$
+in the first moment $\mu$ and variance $\sigma^2$. The maximum-entropy
+distribution for $\Lum$ given knowledge of only $\mu$ and $\sigma^2$
+is a Gaussian distribution, and its parameters are just $\mu$ and
+$\sigma^2$ if the contribution from $\Lum < 0$ is negligible,
+which we
+may safely assume in the asymptotic regime, so we set
+%
+\fred{I checked this myself and clarified \href{http://stats.stackexchange.com/questions/83069/what-is-the-maximum-entropy-probability-density-function-for-a-positive-continuo/265763}{this unclear answer} on stats.stackexchange }
+%
 \begin{align}
   \lleq{rae}
   p(\Lum \cond \bmphi) =
   p(\Lum \cond \mu, \sigma^2 ) &= \GaussianDist(\Lum \cond \mu, \sigma^2)
 \end{align}
-even though the actual data histograms may not be Gaussian. The reason
-is that a Gaussian represents our state of knowledge \emph{before}
-data $\bmy$ is observed. With this assignment,
-$\bmphi =(\mu,\sigma^2)$ and the posterior becomes, using Bayes'
-Theorem,
+and $\bmphi =(\mu,\sigma^2)$ and the posterior
+becomes, using Bayes' Theorem,
 \begin{align}
   \lleq{rac}
   p(\mu,\sigma^2\cond n,\bml)
@@ -984,9 +771,175 @@ of a single term for fixed $N$ in \refeq{spk} requires 1000s of
 function evaluations, and the number of terms grows like $\sqrt{n}$
 for a given accuracy of $P(Q \cond n, \bml)$.
 
+\section{Practical considerations} \label{sec:prac-consid}
+
+In this section, we use \tardis{} as an example to demonstrate both how
+transforming the output of a simulation helps in predictions, and what
+further complications may arise in practice.
+
+\subsection{Preprocessing simulation output } \label{sec:tardis}
+
+\tardis{} can output two kinds of packets, real and virtual. Here we
+focus on the real packets and denote the raw output of \tardis{} by
+primed symbols, for example for the $i$-{th} packet
+$\qty(\nu_i^\prime, \ell_i^\prime)$.  A histogram plot of the
+luminosities from a \tardis{} run indicates a strongly skewed
+distribution with its single mode close to the maximum luminosity
+$\lmax^\prime$, while there is a long tail for small $\ell$; see
+\reffig{tardis}. These features can be accommodated by a $\GammaDist$
+distribution as in \refsec{single-packet} if we transform the
+luminosities to
+\begin{align}
+  \lleq{gmf}
+  \ell_i \equiv 1- \frac{\ell_i^\prime}{\lmax^\prime} > 0
+\end{align}
+and similarly $L_i \equiv 1 - (L_i^\prime/\lmax^\prime)$. We assume
+the total number of samples across all bins is large, so that the effect
+of considering $\lmax^\prime$ a constant independent of the data is
+negligible. We checked that leaving $\lmax^\prime$ as a free parameter
+in a fit gave equivalent results.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.7\textwidth]{tardis_input_trafo}
+  \caption{Histogram of 1000 packet luminosities in one frequency bin
+    from \tardis{} before (left) and after (right) transforming. The
+    maximum-likelihood fit of $\GammaDist(\alpha, \beta)$ is overlaid.}
+\label{fig:tardis}
+\end{figure}
+
+Numerically, we take the largest luminosity of all \tardis{} packets
+across the entire frequency range and increase it slightly to avoid
+numerical difficulties at the end point
+\begin{align}
+  \lleq{gme}
+  \lmax^\prime \equiv (1+\epsilon) \times \max_i \ell_i^\prime,
+\end{align}
+where $ \epsilon=10^{-6}$. We carry out all calculations with
+$p(\Lumtot \cond n,\bml)$ and only in the end transform back to a
+probability density in the raw coordinates via
+\begin{align}
+  \lleq{gmg}
+  p(\Lumtot^\prime  \cond n, \bml^\prime)
+  &= p(\Lumtot  \cond n, \bml) \frac{1}{\lmax^\prime} \,.
+\end{align}
+While we also rescale the frequencies by a constant from
+$\mathcal{O}(10^{15})$ to $\mathcal{O}(1)$, the most important
+numerical simplification arises because of the transformation of the
+luminosities. Rewriting \refeq{sll} formally as
+\begin{align}
+  \lleq{gmhb}
+  p(Q  \cond n,\bml)
+  & = \sum_{N} p(N \cond n)\; p(Q \cond N, n, \bml),
+\end{align}
+we see that the right-hand side is a mixture density. In the \tardis{}
+application, the distribution of a single-packet luminosity,
+$p\qty(\ell_i' \cond \bmphi)$ is narrow in the sense that the standard
+deviation relative to the mean is at the percent level. This implies
+that each $p(Q^\prime \cond N, n, \bml^\prime)$ contributes one narrow
+peak and all peaks are clearly separated in the superposition
+$ p(Q^\prime \cond n,\bml^\prime)$. The transformation
+$\ell^\prime \to \ell$ effects a strong overlap between the
+distributions $p(\Lumtot \cond N, n, \bml)$ with similar $N$, so
+$p(\Lumtot \cond n, \bml)$ can be well approximated by a unimodal
+distribution and thus $\Lumtot$ rather than $\Lumtot^\prime$ is the
+preferred coordinate basis.
+
+\subsection{Towards an unbinned analysis} \label{sec:unbinned}
+
+The parameters $\qty(\alpha, \beta)$ of the single-packet distribution
+$\GammaDist(\ell_i \cond \alpha, \beta)$ may, of course, depend on the
+frequency. % $\nu_i$
+This effect could be modelled, for example, by a functional
+parametrization $\alpha = \alpha(\nu \cond \bmphi)$ and
+$\beta = \beta(\nu \cond \bmphi)$ in dependence on the frequency $\nu$
+and on hyperparameters $\bmphi$ such that integrals over
+$\alpha, \beta$ would turn into integrals over $\bmphi$. For the sake
+of clarity, let us consider only the simplest case where
+$\alpha, \beta$ are the same in every bin such that \refeq{spe}
+becomes
+\begin{align}
+  \lleq{gmi}
+  p(Q\cond \npack,\bml)
+  &=     \sum_{N=0}^\infty \;
+  p(N\cond n)\;
+  \int \rmdx{\alpha}\,\rmdx{\beta}\;
+  p(\Lumtot \cond N, \alpha, \beta)\;
+  p(\alpha, \beta \cond \npack, \bmy) \, .
+\end{align}
+%   If it assumed that $p(L_j\cond \bmphi)$ does not change across
+% \emph{different} bins, we may include packets from \emph{all} bins to
+% further constrain $\alpha, \beta$ and the only required change is to
+% set $n \to \npack$ in \refeq{spg}. Note that we would still keep $n$
+% as before in $p(N \cond n)$ or else we would squash the entire
+% spectrum into one bin.
+
+
+In words, the posterior $ p(\alpha, \beta \cond \npack, \bmy)$ uses
+all $\npack$ rather than $n$ packets to determine $\alpha, \beta$. For
+$\npack \gg 1$, this allows meaningful predictions of $\Lumtot$ even
+in bins where \emph{no} packet is observed; i.e., $n=0$. The only
+binning left is performed to count $n$ the number of packets that fall
+into a given frequency bin. This strategy is applicable, for example,
+when absorption or emission lines in the spectrum abruptly alter the
+number of packets for nearby frequencies but the luminosities are
+unaffected by those line features. Note that if the dependence on
+$\bmphi$ can be modeled with few parameters, the total number of
+parameters may be drastically reduced: instead of determining
+$\alpha, \beta$ separately for each of a few thousand bins, there are
+potentially only a handful of elements in $\bmphi$ for the entire
+spectrum. In that case, the integral in \refeq{gmi} does not depend on
+the bin but only on $N$ so its value may be cached to speed up the
+simultaneous evaluation across all bins.
+
+Let's consider the extreme case $\npack \to \infty$ so we can neglect
+the uncertainty on $\alpha, \beta$ and
+$p(\alpha, \beta \cond \npack, \bml) =
+\delta(\alpha-\alpha_0)\delta(\beta - \beta_0)$ such that
+\begin{align}
+  \lleq{gmj}
+  p(Q\cond n,\bml)
+  &=     \sum_{N=0}^\infty p(N\cond n) p(Q\cond N, \alpha_0, \beta_0) \, .
+\end{align}
+For illustration only, let us consider the Poisson rate $\lambda$ were
+known. Then learning $n$ would not improve our knowledge of $\lambda$
+and we would have
+\begin{align}
+  \lleq{gmk}
+  p(Q\cond \lambda,\bml)
+  &=     \sum_{N=0}^\infty p(N\cond \lambda) p(Q\cond N, \alpha_0, \beta_0) \, ,
+\end{align}
+where $p(N \cond \lambda)$ is the Poisson distribution \refeq{pmb}.
+In \reffig{comp-unc}, we illustrate the impact of the uncertainty due
+to $\lambda$ or $\alpha, \beta$ for $n=2$ packets and continue to use
+as true values $\alpha_0 = 1.5, \beta_0 = 60$. The standard error
+increases from 0.042 ($\lambda, \alpha, \beta$ fixed) over 0.059
+($\alpha, \beta$ fixed) to 0.11 (nothing fixed).
+%
+\fred{I guess this is for $n=2$? To what is $\lambda$ fixed? Redo the
+  numbers for the actual prior. Add a plot for larger $n$ to show that
+  the Poisson completely dominates}
+%
+The case where all
+parameters are known is not attainable in practice and only shown for
+comparison. But the case where $\alpha, \beta$ are fixed can be reached easily
+if many packets from other bins can be combined. Note that $n=2$ is the
+minimum number of packets to perform the binned analysis.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.44\textwidth]{comp_unc_0}
+  \includegraphics[width=0.44\textwidth]{comp_unc_2}
+  \caption{Prediction considering $\lambda, \alpha, \beta$ fixed (green), $\alpha, \beta$ fixed (red), or nothing fixed (blue).}
+  \label{fig:comp-unc}
+\end{figure}
+
 \section{Conclusion} \label{sec:conclusion}
 
-TODO
+\begin{enumerate}
+  \item Poisson uncertainty dominates
+  \item can predict reliably for small $n$
+\end{enumerate}
 
 \section{Appendix} \label{sec:appendix}
 
