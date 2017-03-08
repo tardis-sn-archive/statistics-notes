@@ -162,11 +162,15 @@ function cuba_vs_laplace(res)
     savepdf("cuba_vs_laplace")
 end
 
-"Fixed seed for reproducible spectra"
-function prepare_frame(seed=1612)
+function tardis_raw_data()
     # read in normalized sp
     raw_data = Tardis.readdata()
     frame = Tardis.filter_positive(raw_data...)
+end
+
+"Fixed seed for reproducible spectra"
+function prepare_frame(seed=1612)
+    frame = tardis_raw_data()
     Tardis.transform_data!(frame)
 
     srand(seed)
@@ -443,6 +447,39 @@ function prepare_compare_uncertainties(kwargs...)
     res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, λ=3.465736e-01, kwargs...)
     plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb)
     savepdf("comp_unc_$nb")
+end
+
+function plot_tardis_samples()
+    # first plot the raw data but sort so we have the same samples in both plots
+    frame = tardis_raw_data()
+    sort!(frame, cols=:nus)
+
+    imin = 50050
+    imax = imin + 1000
+    nbins = 60
+
+    layout = (1,2)
+
+    Plots.histogram(frame[:energies][imin:imax]/1e38, nbins=nbins, yticks=nothing,
+                    xlabel=L"\ell^\prime/10^{38}", normed=true, layout=layout)
+
+    # now the transformed data, sorted again but that doesn't change anything
+    Tardis.transform_data!(frame)
+
+    samples = frame[:energies][imin:imax]
+    dist_fit = Distributions.fit_mle(Gamma, samples)
+    α = shape(dist_fit)
+    β = 1/scale(dist_fit)
+    println("α = $α, β = $β")
+
+    Plots.histogram!(samples, xlabel=L"\ell", normed=true, nbins=nbins,
+                    lab="", layout=layout, subplot=2)
+    Plots.plot!(dist_fit, label=@sprintf("Gamma(%.2f, %.1f)", α, β), leg=true,
+                layout=layout, subplot=2, yticks=nothing, xticks=[0.0, 0.05, 0.1])
+    # no tick labels
+    # yticks!([])
+
+    savepdf("tardis_input_trafo")
 end
 
 end # module
