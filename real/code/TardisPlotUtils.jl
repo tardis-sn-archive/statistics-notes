@@ -1,6 +1,6 @@
 module TardisPlotUtils
 using Logging
-@Logging.configure(level=INFO)
+@Logging.configure(level=DEBUG)
 
 import TardisPaper.GammaIntegrand, TardisPaper.Predict, TardisPaper.Integrate, TardisPaper.Moments, TardisPaper.SmallestInterval
 import Tardis
@@ -420,33 +420,42 @@ function compare_uncertainties(Qs;nb=2, λ=nb, n=nb, α=1.5, β=60.0, a=1/2, ε=
     res, resαβ, resλαβ
 end
 
-function plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=2)
+function plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=2, kwargs...)
     # plot(Qs, res, xlabel="Q", ylabel="P(Q | n=2)", leg=true, label=L"p(N | n=2) \int d \alpha d \beta p(Q| N, \alpha, \beta) p(\alpha, \beta | n, y)")
     # plot!(Qs, resαβ, label=L"p(N | n=2) p(Q | N, \alpha_0, \beta_0)")
     # plot!(Qs, resλαβ, label=L"p(N | \lambda=2) p(Q | N, \alpha_0, \beta_0)")
 
-    plot(Qs, resλαβ, label=L"\lambda, \alpha, \beta fixed", xlabel="Q", ylabel="P(Q | n=$nb)", leg=true)
-    plot!(Qs, resαβ, label=L"\alpha, \beta fixed")
-    (res[end] > 0) && plot!(Qs, res, label=L"nothing fixed")
-    plot!()
+    plot!(Qs, resλαβ; label=L"\lambda, \alpha, \beta fixed", xlabel="Q",
+          leg=true, kwargs...)
+    plot!(Qs, resαβ; label=L"\alpha, \beta fixed", kwargs...)
+    (res[end] > 0) && plot!(Qs, res; label=L"nothing fixed", kwargs...)
+    # plot!(title="n=$nb")
 end
 
 function prepare_compare_uncertainties(kwargs...)
-    K = 150
+    # clean canvas with two plots next to each other
+    plot_kwargs = Dict(:layout=>(1,2), :subplot=>2)
+    plot(;plot_kwargs...)
 
-    Qs = linspace(0.001, 0.8, K)
+    # K = 150
+    # Qs = linspace(0.001, 0.8, K)
+    K = 10
+    Qs = linspace(0.001, 0.1, K)
     nb = 2
     res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, seed=61, kwargs...)
-    plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb)
-    savepdf("comp_unc_$nb")
+    plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
+    annotate!([(0.08, 3.2, text(L"n=0", :center))]; plot_kwargs...)
 
+    plot_kwargs[:subplot] = 1
     Qs = linspace(0.001, 0.21, K)
     nb = 0
     # compute λ to give same δ contribution
     # Optim.optimize(x -> abs(exp(TardisPaper.GammaIntegrand.log_poisson(0, x)) - 1/sqrt(2)), 0.3, 0.4, show_trace=true)
     res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, λ=3.465736e-01, kwargs...)
-    plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb)
-    savepdf("comp_unc_$nb")
+    plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
+    annotate!([(0.08, 3.2, text(L"n=0", :center))]; plot_kwargs...)
+
+    savepdf("comp_unc")
 end
 
 function plot_tardis_samples()
@@ -476,8 +485,6 @@ function plot_tardis_samples()
                     lab="", layout=layout, subplot=2)
     Plots.plot!(dist_fit, label=@sprintf("Gamma(%.2f, %.1f)", α, β), leg=true,
                 layout=layout, subplot=2, yticks=nothing, xticks=[0.0, 0.05, 0.1])
-    # no tick labels
-    # yticks!([])
 
     savepdf("tardis_input_trafo")
 end

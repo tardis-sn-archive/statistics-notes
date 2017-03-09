@@ -129,6 +129,7 @@ Arguments
 
 function by_cubature(Q, a, n, q, logr, nb=n; αmin=1e-2, αmax=5, βmin=1e-5, βmax=100,
                      Ninit=0, ε=1e-3, reltol=1e-5)
+    debug("Predicting for Q=$Q")
     # to avoid overflow in Cubature, evaluate target at mode and subtract it. The
     # value within a few order of magnitude of
     fit_dist = Distributions.fit_mle(Distributions.Gamma, Distributions.GammaStats(q, logr, n))
@@ -146,7 +147,7 @@ function by_cubature(Q, a, n, q, logr, nb=n; αmin=1e-2, αmax=5, βmin=1e-5, β
     upper = [αmax, βmax]
 
     Z, σ, ncalls = Integrate.by_cubature(make_log_posterior(n, q, logr, logf_mode), lower, upper; reltol=reltol)
-    debug("cubature: $(logf_mode), $Z, $σ, $ncalls")
+    debug("cubature evidence: $(logf_mode), $Z, $σ, $ncalls")
 
     # actual evidence larger by logf because we already subtracted it
     # in log_posterior. We need evidence on log scale
