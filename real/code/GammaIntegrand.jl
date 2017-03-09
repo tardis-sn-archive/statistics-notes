@@ -17,7 +17,8 @@ log_prior(α::Real, β::Real) = 1/2 * log(α*Ψ′(α)-1) - log(β)
 
 """ posterior p(α, β | n, q, r) for the parameters of the Gamma
 distribution given the sufficient statistics of the samples. (spg)"""
-log_posterior(α::Real, β::Real, n::Real, q::Real, logr::Real, evidence=0.0) = n*(α*log(β)-lgamma(α)) + (α-1)*logr - β*q - evidence # + log_prior(α, β)
+log_posterior(α::Real, β::Real, n::Real, q::Real, logr::Real, evidence=0.0) = n*(α*log(β)-lgamma(α)) + (α-1)*logr - β*q - evidence + log_prior(α, β)
+
 function make_log_posterior(n::Real, q::Real, logr::Real, evidence=0.0)
     function (θ::Vector)
         α, β = θ
