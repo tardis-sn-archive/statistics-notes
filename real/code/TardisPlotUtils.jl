@@ -1,12 +1,14 @@
 module TardisPlotUtils
 using Logging
-@Logging.configure(level=DEBUG)
+# @Logging.configure(level=DEBUG)
+@Logging.configure(level=INFO)
 
 import TardisPaper.GammaIntegrand, TardisPaper.Predict, TardisPaper.Integrate, TardisPaper.Moments, TardisPaper.SmallestInterval
 import Tardis
 using DataFrames, Distributions, LaTeXStrings, Plots, StatPlots, StatsBase
 
-const font = Plots.font("TeX Gyre Heros")
+# const font = Plots.font("TeX Gyre Heros") # Arial sans serif
+const font = Plots.font("cmr10") # computer modern roman (LaTeX default)
 Plots.pyplot(guidefont=font, xtickfont=font, ytickfont=font, legendfont=font)
 Plots.PyPlotBackend()
 # Plots.gr()
@@ -420,40 +422,56 @@ function compare_uncertainties(Qs;nb=2, λ=nb, n=nb, α=1.5, β=60.0, a=1/2, ε=
     res, resαβ, resλαβ
 end
 
-function plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=2, kwargs...)
-    # plot(Qs, res, xlabel="Q", ylabel="P(Q | n=2)", leg=true, label=L"p(N | n=2) \int d \alpha d \beta p(Q| N, \alpha, \beta) p(\alpha, \beta | n, y)")
-    # plot!(Qs, resαβ, label=L"p(N | n=2) p(Q | N, \alpha_0, \beta_0)")
-    # plot!(Qs, resλαβ, label=L"p(N | \lambda=2) p(Q | N, \alpha_0, \beta_0)")
+function plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=2, upscale=200, kwargs...)
+    if upscale > 0
+        Qsscaled, resλαβ = SmallestInterval.upscale(Qs, resλαβ, upscale)
+        _, resαβ = SmallestInterval.upscale(Qs, resαβ, upscale)
+        if res[end] > 0
+            _, res = SmallestInterval.upscale(Qs, res, upscale)
+        end
+        # avoid ArgumentError: The length of the range in dimension 1 (1000) did not equal the size of the interpolation object in that direction (5)
+        Qs = Qsscaled
+    end
 
-    plot!(Qs, resλαβ; label=L"\lambda, \alpha, \beta fixed", xlabel="Q",
-          leg=true, kwargs...)
-    plot!(Qs, resαβ; label=L"\alpha, \beta fixed", kwargs...)
-    (res[end] > 0) && plot!(Qs, res; label=L"nothing fixed", kwargs...)
-    # plot!(title="n=$nb")
+    plot!(Qs, resλαβ; label="\$\\lambda, \\alpha, \\beta\$ fixed", xlabel="Q", kwargs...)
+    plot!(Qs, resαβ; label="\$\\alpha, \\beta\$ fixed", kwargs...)
+    (res[end] > 0) && plot!(Qs, res; label="nothing fixed", kwargs...)
 end
 
 function prepare_compare_uncertainties(kwargs...)
     # clean canvas with two plots next to each other
-    plot_kwargs = Dict(:layout=>(1,2), :subplot=>2)
+    plot_kwargs = Dict(:layout=>(1,3), :size=>(900, 300), :legend=>false,
+                       :yticks=>nothing, :grid=>false)
     plot(;plot_kwargs...)
 
-    # K = 150
-    # Qs = linspace(0.001, 0.8, K)
-    K = 10
-    Qs = linspace(0.001, 0.1, K)
-    nb = 2
-    res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, seed=61, kwargs...)
-    plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
-    annotate!([(0.08, 3.2, text(L"n=0", :center))]; plot_kwargs...)
+    seed = 61
+    K = 70
+    Qmin = 0.001
 
     plot_kwargs[:subplot] = 1
-    Qs = linspace(0.001, 0.21, K)
     nb = 0
+    Qs = linspace(Qmin, 0.21, K)
     # compute λ to give same δ contribution
     # Optim.optimize(x -> abs(exp(TardisPaper.GammaIntegrand.log_poisson(0, x)) - 1/sqrt(2)), 0.3, 0.4, show_trace=true)
     res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, λ=3.465736e-01, kwargs...)
     plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
-    annotate!([(0.08, 3.2, text(L"n=0", :center))]; plot_kwargs...)
+    annotate!([(0.08, 2.0, text(L"n=0", :center))]; plot_kwargs...)
+
+    plot_kwargs[:subplot] = 2
+    plot_kwargs[:legend] = true
+    Qs = linspace(Qmin, 0.5, K)
+    nb = 2
+    res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, seed=seed, kwargs...)
+    plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
+    annotate!([(0.35, 2.8, text(L"n=2", :center))]; plot_kwargs...)
+    plot_kwargs[:legend] = false
+
+    plot_kwargs[:subplot] = 3
+    nb = 20
+    Qs = linspace(Qmin, 1.5, K)
+    res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, seed=seed, kwargs...)
+    plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
+    annotate!([(1.1, 1.2, text(L"n=20", :center))]; plot_kwargs...)
 
     savepdf("comp_unc")
 end
