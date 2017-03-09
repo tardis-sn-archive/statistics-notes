@@ -898,7 +898,7 @@ $p(\alpha, \beta \cond \npack, \bml) =
 \delta(\alpha-\alpha_0)\delta(\beta - \beta_0)$ such that
 \begin{align}
   \lleq{gmj}
-  p(Q\cond n,\bml)
+  p(Q\cond n, \alpha_0, \beta_0)
   &=     \sum_{N=0}^\infty p(N\cond n) p(Q\cond N, \alpha_0, \beta_0) \, .
 \end{align}
 For illustration only, let us consider the Poisson rate $\lambda$ were
@@ -906,31 +906,46 @@ known. Then learning $n$ would not improve our knowledge of $\lambda$
 and we would have
 \begin{align}
   \lleq{gmk}
-  p(Q\cond \lambda,\bml)
+  p(Q\cond \lambda, \alpha_0, \beta_0)
   &=     \sum_{N=0}^\infty p(N\cond \lambda) p(Q\cond N, \alpha_0, \beta_0) \, ,
 \end{align}
 where $p(N \cond \lambda)$ is the Poisson distribution \refeq{pmb}.
 In \reffig{comp-unc}, we illustrate the impact of the uncertainty due
-to $\lambda$ or $\alpha, \beta$ for $n=2$ packets and continue to use
-as true values $\alpha_0 = 1.5, \beta_0 = 60$. The standard error
-increases from 0.042 ($\lambda, \alpha, \beta$ fixed) over 0.059
-($\alpha, \beta$ fixed) to 0.11 (nothing fixed).
-%
-\fred{I guess this is for $n=2$? To what is $\lambda$ fixed? Redo the
-  numbers for the actual prior. Add a plot for larger $n$ to show that
-  the Poisson completely dominates}
-%
-The case where all
-parameters are known is not attainable in practice and only shown for
-comparison. But the case where $\alpha, \beta$ are fixed can be reached easily
-if many packets from other bins can be combined. Note that $n=2$ is the
-minimum number of packets to perform the binned analysis.
+to $\lambda$ or $\alpha, \beta$ for $n=0,2, 20$ packets and continue
+to use as true values $\alpha_0 = 1.5, \beta_0 = 60$. For $n>0$, we
+set $\lambda=n$ and for $n=0$, we set $\lambda = 0.347$ by solving
+\begin{align}
+  \lleq{gml}
+  p(N=0 \cond \lambda) &= p(N=0 \cond n=0)
+\end{align}
+such that the contribution at $N=0$ is identical for the Poisson
+likelihood and Poisson posterior predictive distribution.
+
+It is interesting to note that the Jeffreys prior for $\alpha, \beta$
+leads to an extra mode at $\Lumtot = 0$ visible in the case $n=2$. We
+checked that this is true for every individual term in the
+\refeq{gmhb}, and the superposition of $p(\Lumtot \cond N, n, \bml)$
+for various $N$ further enhances this effect. The reason for the
+boundary mode is that $\GammaDist(\Lumtot \cond \alpha, \beta)$ peaks
+at the boundary for $\alpha<1$, and peaks away from $\Lumtot=0$ for
+$\alpha>1$. As $n$ increases, the likelihood concentrates around
+$\alpha=1.5$, hence the distribution becomes unimodal.
+
+Already for $n=20$, it becomes apparent in the right panel of
+\reffig{comp-unc} that the uncertainty for $\Lumtot$ is dominated by
+the Poisson uncertainty: both $p(Q \cond n, \alpha_0, \beta_0)$ and
+$p(Q \cond n, \bml)$ yield a standard error of $\approx 0.19$.
+
+The case where all parameters are known is not attainable in practice
+and only shown for comparison. But the case where $\alpha, \beta$ are
+fixed can be reached easily if many packets from other bins can be
+combined. Note that $n=2$ is the minimum number of packets to perform
+the binned analysis.
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.44\textwidth]{comp_unc_0}
-  \includegraphics[width=0.44\textwidth]{comp_unc_2}
-  \caption{Prediction considering $\lambda, \alpha, \beta$ fixed (green), $\alpha, \beta$ fixed (red), or nothing fixed (blue).}
+  \includegraphics[width=\textwidth]{comp_unc}
+  \caption{Prediction of $\Lumtot$ for $n=0,2,20$ considering $\lambda, \alpha, \beta$ fixed (green), $\alpha, \beta$ fixed (red), or nothing fixed (blue).}
   \label{fig:comp-unc}
 \end{figure}
 
