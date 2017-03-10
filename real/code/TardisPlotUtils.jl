@@ -433,20 +433,33 @@ function plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=2, upscale=2
         Qs = Qsscaled
     end
 
-    plot!(Qs, resλαβ; label="\$\\lambda, \\alpha, \\beta\$ fixed", xlabel="Q", kwargs...)
-    plot!(Qs, resαβ; label="\$\\alpha, \\beta\$ fixed", kwargs...)
-    (res[end] > 0) && plot!(Qs, res; label="nothing fixed", kwargs...)
+    plot!(Qs, resλαβ; label=L"p(Q | \lambda, \alpha_0, \beta_0)", xlabel=L"Q", kwargs...)
+    plot!(Qs, resαβ; label=L"p(Q | n, \alpha_0, \beta_0)", kwargs...)
+    # requires Latex for text in matplotlib, enable in ~/.config/matplotlib/matplotlibrc
+    (res[end] > 0) && plot!(Qs, res; label=L"p(Q | n, \bm{\ell})", kwargs...)
 end
 
 function prepare_compare_uncertainties(kwargs...)
     # clean canvas with two plots next to each other
     plot_kwargs = Dict(:layout=>(1,3), :size=>(900, 300), :legend=>false,
-                       :yticks=>nothing, :grid=>false)
+                       :yticks=>nothing,
+                       :grid=>false)
     plot(;plot_kwargs...)
 
     seed = 61
-    K = 70
+    K = 40
     Qmin = 0.001
+
+    # position of `n=?` label in relative coordinates
+    place_label(nb, subplot; xmax=0.0) = begin
+        # fix ranges after autoscaling
+        sub = Plots.plot!().subplots[subplot]
+        x = sub.attr[:xaxis][:extrema]
+        y = sub.attr[:yaxis][:extrema]
+        xmax = xmax > 0.0? xmax : x.emax
+
+        annotate!([(x.emin + 0.7*(xmax-x.emin), y.emin + 0.2*(y.emax-y.emin), text("\$n=$nb\$", :bottom))]; plot_kwargs...)
+    end
 
     plot_kwargs[:subplot] = 1
     nb = 0
@@ -455,15 +468,18 @@ function prepare_compare_uncertainties(kwargs...)
     # Optim.optimize(x -> abs(exp(TardisPaper.GammaIntegrand.log_poisson(0, x)) - 1/sqrt(2)), 0.3, 0.4, show_trace=true)
     res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, λ=3.465736e-01, kwargs...)
     plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
-    annotate!([(0.08, 2.0, text(L"n=0", :center))]; plot_kwargs...)
+    place_label(nb, plot_kwargs[:subplot])
 
     plot_kwargs[:subplot] = 2
     plot_kwargs[:legend] = true
-    Qs = linspace(Qmin, 0.5, K)
+    Qs = linspace(Qmin, 0.8, K)
     nb = 2
     res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, seed=seed, kwargs...)
     plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
-    annotate!([(0.35, 2.8, text(L"n=2", :center))]; plot_kwargs...)
+    # zoom in on x-axis to remove long tail but need to compute it for proper normalization
+    xmax = 0.6
+    xlims!(Qmin, xmax, subplot=2)
+    place_label(nb, plot_kwargs[:subplot]; xmax=xmax)
     plot_kwargs[:legend] = false
 
     plot_kwargs[:subplot] = 3
@@ -471,7 +487,7 @@ function prepare_compare_uncertainties(kwargs...)
     Qs = linspace(Qmin, 1.5, K)
     res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, seed=seed, kwargs...)
     plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
-    annotate!([(1.1, 1.2, text(L"n=20", :center))]; plot_kwargs...)
+    place_label(nb, plot_kwargs[:subplot])
 
     savepdf("comp_unc")
 end
