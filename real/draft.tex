@@ -898,7 +898,7 @@ $p(\alpha, \beta \cond \npack, \bml) =
 \delta(\alpha-\alpha_0)\delta(\beta - \beta_0)$ such that
 \begin{align}
   \lleq{gmj}
-  p(Q\cond n, \alpha_0, \beta_0)
+  p(\Lumtot \cond n, \alpha_0, \beta_0)
   &=     \sum_{N=0}^\infty p(N\cond n) p(Q\cond N, \alpha_0, \beta_0) \, .
 \end{align}
 For illustration only, let us consider the Poisson rate $\lambda$ were
@@ -906,7 +906,7 @@ known. Then learning $n$ would not improve our knowledge of $\lambda$
 and we would have
 \begin{align}
   \lleq{gmk}
-  p(Q\cond \lambda, \alpha_0, \beta_0)
+  p(\Lumtot \cond \lambda, \alpha_0, \beta_0)
   &=     \sum_{N=0}^\infty p(N\cond \lambda) p(Q\cond N, \alpha_0, \beta_0) \, ,
 \end{align}
 where $p(N \cond \lambda)$ is the Poisson distribution \refeq{pmb}.
@@ -926,32 +926,48 @@ It is interesting to note that the Jeffreys prior for $\alpha, \beta$
 leads to an extra mode at $\Lumtot = 0$ visible in the case $n=2$. We
 checked that this is true for every individual term in the
 \refeq{gmhb}, and the superposition of $p(\Lumtot \cond N, n, \bml)$
-for various $N$ further enhances this effect. The reason for the
-boundary mode is that $\GammaDist(\Lumtot \cond \alpha, \beta)$ peaks
-at the boundary for $\alpha<1$, and peaks away from $\Lumtot=0$ for
-$\alpha>1$. As $n$ increases, the likelihood concentrates around
-$\alpha=1.5$, hence the distribution becomes unimodal.
+for various $N$ further enhances this effect.  The peak of
+$\GammaDist(\Lumtot \cond \alpha, \beta)$ is at $\Lumtot=0$ for
+$\alpha<1$, and at $\Lumtot > 0$ for $\alpha>1$. The Jeffreys prior
+for $\alpha$ gives mass to both regions but as $n$ increases, the
+likelihood concentrates around $\alpha=1.5$, hence the distribution
+becomes unimodal.
 
-Already for $n=20$, it becomes apparent in the right panel of
-\reffig{comp-unc} that the uncertainty for $\Lumtot$ is dominated by
-the Poisson uncertainty: both $p(Q \cond n, \alpha_0, \beta_0)$ and
-$p(Q \cond n, \bml)$ yield a standard error of $\approx 0.19$. This is
-necessarily larger that the standard error of
-$p(\Lumtot \cond \lambda, \alpha_0, \beta_0)$ because the variance of
+For $n=20$, the right panel of \reffig{comp-unc} shows that
+$p(Q \cond n, \bml)$ and $p(Q \cond n, \alpha_0, \beta_0)$ are very
+similar so our reconstruction works correctly. While there is a small
+shift in location, the variances are very similar:
+$\variance{Q \cond n, \alpha_0, \beta_0}=0.036 \approx \variance{Q
+  \cond n, \bml} = 0.034$.  This implies that the uncertainty due to
+$\alpha, \beta$ is almost negligible compared to the effect of the
+Poisson process. The simple explanation is that there is only one
+observation to infer $\lambda$ but $n$ to infer $\alpha, \beta$ so for
+large $n$ the Poisson uncertainty is dominant.
 
-The case where all parameters are known is not attainable in practice
-and only shown for reference. But the case where $\alpha, \beta$ are
-fixed can be approximated easily if many packets from other bins can
-be combined.
-
-Note that $n=2$ is the minimum number of packets to perform
+If $\lambda$ is known, the variance is signficantly smaller because
+for the Poisson, $\variance{N \cond \lambda} = \lambda$, and for the
+Negative Binomial $\variance{N \cond n} = 2(n + a-1)$, so for large
+$n$, we have
+\begin{align}
+  \lleq{gmm}
+  \variance{N \cond n} \approx 2 \variance{N \cond \lambda} \, ,
+\end{align}
+and this roughly explains
+$\variance{Q \cond \lambda, \alpha_0, \beta_0 } = 0.021$.  The case
+where all parameters are known is not attainable in practice and only
+shown for comparison. But the case where $\alpha, \beta$ are fixed can
+be reached easily if many packets from other bins can be
+combined. Note that $n=2$ is the minimum number of packets to perform
 the binned analysis.
 \fred{I was playing around in mathematica and it seems even for $n=1$ the posterior has a well defined mode. I don't if it is proper, though. In any case it has huge variance.}
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth]{comp_unc}
-  \caption{Prediction of $\Lumtot$ for $n=0,2,20$ considering $\lambda, \alpha, \beta$ fixed (green), $\alpha, \beta$ fixed (red), or nothing fixed (blue).}
+  \caption{Prediction of $\Lumtot$ for $n=0,2,20$ considering
+    $\lambda, \alpha, \beta$ fixed (green), $\alpha, \beta$ fixed
+    (red), or nothing fixed (blue). All densities are properly
+    normalized to one.}
   \label{fig:comp-unc}
 \end{figure}
 
@@ -967,6 +983,7 @@ the binned analysis.
 \subsection{Moments of the luminosity prediction}\label{sec:predict-moments}
 \fred{Shouldn't we use $n, \bml$ instead of $\bmy$ to be consistent?
   $\bmy$ would mean we use all samples from all bins}
+\fred{We need a reference to the appendix in the main text.}
 
 While the integral in \refeq{ral} cannot be integrated analytically,
 the integrand is unimodal and strongly peaked, so that the Laplace or
