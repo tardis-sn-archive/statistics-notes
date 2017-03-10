@@ -913,7 +913,8 @@ where $p(N \cond \lambda)$ is the Poisson distribution \refeq{pmb}.
 In \reffig{comp-unc}, we illustrate the impact of the uncertainty due
 to $\lambda$ or $\alpha, \beta$ for $n=0,2, 20$ packets and continue
 to use as true values $\alpha_0 = 1.5, \beta_0 = 60$. For $n>0$, we
-set $\lambda=n$ and for $n=0$, we set $\lambda = 0.347$ by solving
+set $\lambda=n$ as the mode of the posterior $p(\lambda \cond n)$, and
+for $n=0$, we set $\lambda = 0.347$ by solving
 \begin{align}
   \lleq{gml}
   p(N=0 \cond \lambda) &= p(N=0 \cond n=0)
@@ -934,13 +935,18 @@ $\alpha=1.5$, hence the distribution becomes unimodal.
 Already for $n=20$, it becomes apparent in the right panel of
 \reffig{comp-unc} that the uncertainty for $\Lumtot$ is dominated by
 the Poisson uncertainty: both $p(Q \cond n, \alpha_0, \beta_0)$ and
-$p(Q \cond n, \bml)$ yield a standard error of $\approx 0.19$.
+$p(Q \cond n, \bml)$ yield a standard error of $\approx 0.19$. This is
+necessarily larger that the standard error of
+$p(\Lumtot \cond \lambda, \alpha_0, \beta_0)$ because the variance of
 
 The case where all parameters are known is not attainable in practice
-and only shown for comparison. But the case where $\alpha, \beta$ are
-fixed can be reached easily if many packets from other bins can be
-combined. Note that $n=2$ is the minimum number of packets to perform
+and only shown for reference. But the case where $\alpha, \beta$ are
+fixed can be approximated easily if many packets from other bins can
+be combined.
+
+Note that $n=2$ is the minimum number of packets to perform
 the binned analysis.
+\fred{I was playing around in mathematica and it seems even for $n=1$ the posterior has a well defined mode. I don't if it is proper, though. In any case it has huge variance.}
 
 \begin{figure}[ht]
   \centering
@@ -993,39 +999,7 @@ This implies that the mean and variance of $\Lumtot$ require an integral over th
   \expect{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond n) p( \mu, \sigma^2 \cond \bmy) \qty(-\eval{\dv{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0})\\
   \variance{\Lumtot} &= \int \rmdx{\lambda} \rmdx{\mu} \rmdx{\sigma^2} p(\lambda \cond n) p( \mu, \sigma^2 \cond \bmy) \qty{\eval{\dv[2]{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0} - \qty(\eval{\dv{f(t \cond  \lambda, \mu, \sigma^2)}{t}}_{t=0})^2} \, .
 \end{align}
-\fred{We need a plot, the one to compare predictions and 250 real replicas or 100 virtual replicas?} %
 \fred{Advantage of this approach: no need to store all packets anymore, sum and sum of squares can be accumulated online $\Rightarrow$ reduced computation and storage requirements}
-
-\section{Delendum}
-
-
-\subsection{Numerical implementation} \label{sec:numerical}
-
-\fred{Editing will be done by Fred}
-
-In our numerical implementation, the constants
-$(\alpha_{\rm max}, \beta_{\rm max})$ are chosen by trial and error to
-be large enough to contain the relevant region of
-$p(\ell\cond \alpha,\beta)$.
-%
-To perform the integrals over $(\alpha,\beta)$ to find $C$ and the
-Gamma-weighted numerator in (\ref{spe}), we used the fact that the
-posterior $p(\alpha,\beta \cond n,\bml)$ is approximately Gaussian in
-both $\alpha$ and $\beta$ for large $n$, so we can apply Laplace's
-method for both. This requires the Hessian at the mode and the
-gradient helps in locating the mode. The relevant analytic expressions
-are summarized in \refsec{appendix}.
-
-
-Regarding the sum over $N$, we start at
-$N = \lfloor n-a+1 \rfloor = \arg \max_N p(N|n)$ %
-\fred{Actually we should say $p(N \cond n, a)$} %
-and continue to larger and smaller values of $N$ until the
-contribution to $p(Q \cond n,\bml)$ becomes negligible. In case the
-relevant contribution is from large $N$ and $n$, we interpret $N$ as a
-continuous variable, replace factorials by $\Gamma$ function in
-\refeq{spj}, and apply Laplace's method to integrate over $N$ also.
-
 
 \bibliographystyle{plain}
 \bibliography{references}
