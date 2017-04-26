@@ -10,7 +10,7 @@ using DataFrames, Distributions, LaTeXStrings, Plots, StatPlots, StatsBase
 # const font = Plots.font("TeX Gyre Heros") # Arial sans serif
 const font = Plots.font("cmr10") # computer modern roman (LaTeX default)
 Plots.pyplot(guidefont=font, xtickfont=font, ytickfont=font, legendfont=font)
-Plots.PyPlotBackend()
+# Plots.PyPlotBackend()
 # Plots.gr()
 
 "save and replot"
@@ -39,15 +39,15 @@ type GammaStatistics{T<:Real}
     first::T
     second::T
     n::Int64
+end
 
-    function GammaStatistics(samples::Vector)
-        q = sum(samples)
-        logr = sum(log(samples))
-        n = length(samples)
-        first = q/n
-        second = mapreduce(x->x^2, +, samples)/n
-        new(q, logr, first, second, n)
-    end
+function GammaStatistics{T<:Real}(samples::Vector{T})
+    q = sum(samples)
+    logr = sum(log(samples))
+    n = length(samples)
+    first = q/n
+    second = mapreduce(x->x^2, +, samples)/n
+    GammaStatistics{T}(q, logr, first, second, n)
 end
 
 function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, β=60.0, a=1/2, ε=1e-3, reltol=1e-3, seed=16142)
@@ -70,7 +70,8 @@ function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
 
     dist_fit = Distributions.fit_mle(Gamma, samples)
     res_mle = map(Q->Predict.by_sum(Q, shape(dist_fit), 1/scale(dist_fit), a, n;ε=ε)[1], Qs)
-    normalize!(Qs, res_mle, "max. likelihood")
+    normalize!(Qs, res_mle, "max. likelihood";
+               δcontrib=exp(GammaIntegrand.log_poisson_predict(0, n, a)))
 
     # first = q/n
     # second = mapreduce(x->x^2, +, samples)/n
@@ -78,20 +79,21 @@ function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
     normalize!(Qs, res_asym_laplace, "asympt. Laplace")
 
     res_laplace = map(Q->Predict.by_laplace(Q, a, n, gstats.q, gstats.logr; ε=ε)[1], Qs)
-    normalize!(Qs, res_laplace, "Laplace")
+    normalize!(Qs, res_laplace, "Laplace"; δcontrib=exp(GammaIntegrand.log_poisson_predict(0, n, a)))
 
     res_asym_cuba = map(Q->Predict.asymptotic_by_cubature(Q, a, n, gstats.first, gstats.second; reltol=reltol)[1], Qs)
     normalize!(Qs, res_asym_cuba, "asympt. cubature")
 
     res_cuba = map(Q->Predict.by_cubature(Q, a, n, gstats.q, gstats.logr; reltol=reltol, ε=ε)[1], Qs)
-    normalize!(Qs, res_cuba, "cubature")
+    normalize!(Qs, res_cuba, "cubature";
+               δcontrib=exp(GammaIntegrand.log_poisson_predict(0, n, a)))
 
     Qs, res_cuba, res_laplace, res_asym_cuba, res_asym_laplace, res_mle
 end
 
 function plot_asymptotic_single(Qs, res_cuba, res_asym_laplace; kwargs...)
     plot!(Qs, res_cuba; label=L"\sum_N", ls=:solid, leg=true, color=:red, kwargs...)
-    plot!(Qs, res_asym_laplace; label=L"\int dλ", ls=:dash, color=:blue, kwargs...)
+    plot!(Qs, res_asym_laplace; label=L"\int \dd{\lambda}", ls=:dash, color=:blue, kwargs...)
     xlabel!(L"Q")
     # ylabel!(latexstring("\$P(Q|n=$n, \\ell)\$"))
     ylabel!(L"P(Q|n,\ell)")
@@ -135,10 +137,11 @@ function plot_asymptotic_all(res)
     # plot the first set of curves with a label
     # but don't repeat the label on subsequent curves
     for (i, (n,x)) in enumerate(res)
+        Q, cuba, asym_laplace = x[1], x[2], x[5]
         if i == 1
-            plot_asymptotic_single(x...)
+            plot_asymptotic_single(Q, cuba, asym_laplace)
         else
-            plot_asymptotic_single(x...; label="")
+            plot_asymptotic_single(Q, cuba, asym_laplace; label="")
         end
     end
     annotate!([(0.58, 2.2, text(L"n=10", :center))])
@@ -435,7 +438,8 @@ function plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=2, upscale=2
 
     plot!(Qs, resλαβ; label=L"p(Q | \lambda, \alpha_0, \beta_0)", xlabel=L"Q", kwargs...)
     plot!(Qs, resαβ; label=L"p(Q | n, \alpha_0, \beta_0)", kwargs...)
-    # requires Latex for text in matplotlib, enable in ~/.config/matplotlib/matplotlibrc
+    # requires Latex for text in matplotlib and \usepackage{bm}, enable in
+    # ~/.config/matplotlib/matplotlibrc
     (res[end] > 0) && plot!(Qs, res; label=L"p(Q | n, \bm{\ell})", kwargs...)
 end
 

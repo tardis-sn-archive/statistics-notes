@@ -10,7 +10,7 @@ import ..Integrate
 
 using DiffBase, ForwardDiff, Optim
 
-Ψ′ = trigamma
+Ψ′(x) = polygamma(1, x)
 
 "P(α, β), (sph)"
 log_prior(α::Real, β::Real) = 1/2 * log(α*Ψ′(α)-1) - log(β)
@@ -47,8 +47,9 @@ end
 "Return Optimize.result struct"
 function optimize_integrand(target, lower, upper, initial)
     min_target = x -> -target(x)
-    # TODO couldn't get autodiff to work here. Probably because of the box constraints
-    res = optimize(DifferentiableFunction(min_target), initial,
+
+    # couldn't get autodiff to work here. Because of the box constraints?
+    res = optimize(OnceDifferentiable(min_target), initial,
                    lower, upper, Fminbox(), optimizer=LBFGS)
                    # optimizer_o=OptimizationOptions(autodiff=true))
     # get gradient and Hessian into one result
