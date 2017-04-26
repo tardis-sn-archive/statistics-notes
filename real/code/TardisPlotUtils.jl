@@ -5,7 +5,7 @@ using Logging
 
 import TardisPaper.GammaIntegrand, TardisPaper.Predict, TardisPaper.Integrate, TardisPaper.Moments, TardisPaper.SmallestInterval
 import Tardis
-using DataFrames, Distributions, LaTeXStrings, Plots, StatPlots, StatsBase
+using DataFrames, Distributions, LaTeXStrings, Plots, PyCall, StatPlots, StatsBase
 
 # const font = Plots.font("TeX Gyre Heros") # Arial sans serif
 const font = Plots.font("cmr10") # computer modern roman (LaTeX default)
@@ -394,9 +394,9 @@ end
 
 function compare_spectra(spectra=false)
     if spectra === false
-        # spectra = [TardisPaperPlots.analyze_spectrum(x; npackets=100, nbins=5) for x in (true, false)]
-        # spectra = [TardisPaperPlots.analyze_spectrum(x; a=0.5, npackets=500, nbins=15) for x in (false, true)]
-        spectra = [TardisPaperPlots.analyze_spectrum(x; a=0.5, nbins=500) for x in (false, true)]
+        # spectra = [TardisPlotUtils.analyze_spectrum(x; npackets=100, nbins=5) for x in (true, false)]
+        # spectra = [TardisPlotUtils.analyze_spectrum(x; a=0.5, npackets=500, nbins=15) for x in (false, true)]
+        spectra = [TardisPlotUtils.analyze_spectrum(x; a=0.5, nbins=500) for x in (false, true)]
     end
     maxQ = max(maximum(dropna(spectra[1][:twohi])), maximum(dropna(spectra[2][:twohi])))
     for (sp, name) in zip(spectra, ("all", "bin"))
@@ -525,6 +525,54 @@ function plot_tardis_samples()
                 layout=layout, subplot=2, yticks=nothing, xticks=[0.0, 0.05, 0.1])
 
     savepdf("tardis_input_trafo")
+end
+
+"Coordinates for a rectangle: (x0, y0) = lower left, (x1,y1) = offset from lower left to upper right corner "
+function rect(x0, y0, x1,y1)
+    x = [x0,x1,x1,x0,x0]
+    y = [y0,y0,y1,y1,y0]
+    x,y
+end
+
+"Expect `x`=frequency and `y`=luminosity. Plot spectrum + Savitzk-Golay smoothed
+spectrum and zoom in on a region in an inset"
+function spectrum_inset(x, y; sg_window=15, sg_order=5, nmult=5, xlim_zoom=(1.1,1.22))
+    # apply Savitzky-Golay smoothing
+    PyCall.@pyimport scipy.signal as sig
+    sy =  sig.savgol_filter(y, sg_window, sg_order)
+
+    # more points for smoother plotting
+    finex, finey = SmallestInterval.upscale(x, sy, nmult*length(x));
+
+    Plots.plot(x, y, leg=true, label="Monte Carlo")
+    Plots.plot!(finex, finey, label="truth")
+    Plots.xlabel!(L"\nu\,[10^{15} \, \mbox{Hz}]")
+    Plots.ylabel!(L"\mbox{Luminosity }\,[10^{38}\, \mbox{Erg}/\mbox{s}]")
+
+    # find min, max y in zoom box
+    r = searchsortedfirst(x, xlim_zoom[1]):searchsortedlast(x, xlim_zoom[2])
+    finerange = searchsortedfirst(finex, xlim_zoom[1]):searchsortedlast(finex, xlim_zoom[2])
+
+    minx = finex[finerange.start]
+    maxx = finex[finerange.stop]
+    miny = 0.97 * min(minimum(finey[finerange]), minimum(y[r]))
+    maxy = 1.03* max(maximum(finey[finerange]), maximum(y[r]))
+
+    # plot zoom box
+    style = Dict(:linestyle=>:dash, :color=>:black)
+
+    rectx, recty = rect(minx, miny, maxx, maxy)
+    Plots.plot!(rectx, recty; label="", style...)
+
+    # plot arrow from zoombox toward inset
+    Plots.plot!([maxx, 2.5], [ maxy, 9.2]; arrow=:arrow, label="", style...)
+
+    # now plot the inset
+    # Plots.bar!([x[r], finex[finerange]], [y[r], finey[finerange]],inset=(1, Plots.bbox(0.05, 0.25, 0.5, 0.25, :bottom, :right)), subplot=2, yticks=nothing)
+    Plots.bar!(x[r], y[r], inset=(1, Plots.bbox(0.05, 0.25, 0.5, 0.25, :bottom, :right)), subplot=2, ticks=nothing, fillalpha=0.3)
+    Plots.plot!( finex[finerange],  finey[finerange], subplot=2)
+
+    savepdf("spectrum_inset")
 end
 
 end # module

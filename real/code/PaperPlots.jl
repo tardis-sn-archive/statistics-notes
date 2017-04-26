@@ -1,6 +1,7 @@
 include("TardisPlotUtils.jl")
 
 # fig:simple_spectrum
+TardisPlotUtils.spectrum_inset()
 
 # fig:asymptotic
 res = TardisPlotUtils.compute_all_predictions()
