@@ -48,10 +48,16 @@ function connected(P::AbstractArray, α::Real=0.6827)
     end
 end
 
-function upscale(Qs::AbstractArray, P::AbstractArray, N::Integer=500)
+function upscale(Qs::Range, P::AbstractArray, N::Integer=500)
+    # why scale? Interpolations.jl assumes unit spacing between elements of P
     itp_cubic = scale(interpolate(P, BSpline(Cubic(Line())), OnGrid()), Qs)
     fineQs = linspace(Qs[1], Qs[end], N)
     fineQs, map(Q->itp_cubic[Q], fineQs);
+end
+
+function upscale(Qs::AbstractArray, P::AbstractArray, N::Integer=500)
+    warn("upscale: assuming regularly spaced input")
+    upscale(linspace(Qs[1], Qs[end], length(Qs)), P, N)
 end
 
 end # module
