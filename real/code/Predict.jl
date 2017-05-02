@@ -224,4 +224,8 @@ function asymptotic_by_cubature(Q, a, n, first, second, nb=n;
     Z
 end
 
+function asymptotic_by_MLE(Q, a, n, μ, σ², nb=n;
+                           λmin=0.0, λmax=0.0)
+end
+
 end #Predict
