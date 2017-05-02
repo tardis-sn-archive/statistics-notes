@@ -7,6 +7,7 @@ import TardisPaper.GammaIntegrand, TardisPaper.Predict, TardisPaper.Integrate, T
 import Tardis
 using DataFrames, Distributions, LaTeXStrings, Plots, PyCall, StatPlots, StatsBase
 
+Plots.default(grid=false)
 # const font = Plots.font("TeX Gyre Heros") # Arial sans serif
 const font = Plots.font("cmr10") # computer modern roman (LaTeX default)
 Plots.pyplot(guidefont=font, xtickfont=font, ytickfont=font, legendfont=font)
@@ -26,9 +27,9 @@ function normalize!(Qs, res, tag=""; δcontrib=0.0)
     # norm only useful from first call
     norm, _, _ = Integrate.simpson(Qs, res)
     norm += δcontrib
-    res ./= norm
+    # res ./= norm
     # but mean and σ are affected by norm
-    _, mean, stderr = Integrate.simpson(Qs, res)
+    _, mean, stderr = Integrate.simpson(Qs, res/norm)
     (tag != "") && info(tag, ": norm=$norm, Q=$(mean)±$(stderr)")
     norm, mean, stderr
 end
@@ -91,42 +92,48 @@ function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
     Qs, res_cuba, res_laplace, res_asym_cuba, res_asym_laplace, res_mle
 end
 
-function plot_asymptotic_single(Qs, res_cuba, res_asym_laplace; kwargs...)
-    plot!(Qs, res_cuba; label=L"\sum_N", ls=:solid, leg=true, color=:red, kwargs...)
-    plot!(Qs, res_asym_laplace; label=L"\int \dd{\lambda}", ls=:dash, color=:blue, kwargs...)
+function plot_asymptotic_single(res; kwargs...)
+    Qs, cuba, laplace, asym_cuba, asym_laplace, mle = res
+    plot!(Qs, cuba; label=L"\sum_N \mbox{cubature}", ls=:solid, linewidth=2, leg=true, color=:red, kwargs...)
+    plot!(Qs, laplace; label=L"\sum_N \mbox{Laplace}", ls=:dash, color=:red, kwargs...)
+    plot!(Qs, mle; label=L"\sum_N \mbox{MLE}", ls=:dot, color=:black, kwargs...)
+    plot!(Qs, asym_cuba; label=L"\int \dd{\lambda} \mbox{cubature}", ls=:solid, color=:blue, kwargs...)
+    plot!(Qs, asym_laplace; label=L"\int \dd{\lambda} \mbox{Laplace}", ls=:dash, color=:blue, kwargs...)
     xlabel!(L"Q")
     # ylabel!(latexstring("\$P(Q|n=$n, \\ell)\$"))
     ylabel!(L"P(Q|n,\ell)")
 end
 
 function compute_all_predictions()
+    N = 150
+
     n = 10
-    kwargs = Dict(:n=>n, :reltol=>1e-4, :Qs=>linspace(1e-2, 3.3, 100))
+    kwargs = Dict(:n=>n, :reltol=>1e-4, :Qs=>linspace(1e-2, 3.3, N))
     res = Dict(n=>compute_prediction(;kwargs...))
 
     n = 80
     kwargs[:n] = n
-    kwargs[:Qs] = linspace(0.5, 3.5, 100)
+    kwargs[:Qs] = linspace(0.5, 3.5, N)
     res[n] = compute_prediction(;kwargs...)
 
     # n = 200
     # kwargs[:n] = n
-    # kwargs[:Qs] = linspace(2.5, 8, 100)
+    # kwargs[:Qs] = linspace(2.5, 8, N)
     # res[n] = compute_prediction(;kwargs...)
 
     # n = 500
     # kwargs[:n] = n
-    # kwargs[:Qs] = linspace(8, 16, 100)
+    # kwargs[:Qs] = linspace(8, 16, N)
     # res[n] = compute_prediction(;kwargs...)
 
     # n = 1000
     # kwargs[:n] = n
-    # kwargs[:Qs] = linspace(19, 32, 100)
+    # kwargs[:Qs] = linspace(19, 32, N)
     # res[n] = compute_prediction(;kwargs...)
 
     # n = 2000
     # kwargs[:n] = n
-    # kwargs[:Qs] = linspace(42, 55, 100)
+    # kwargs[:Qs] = linspace(42, 55, N)
     # res[n] = compute_prediction(;kwargs...)
 
     return res
@@ -137,15 +144,14 @@ function plot_asymptotic_all(res)
     # plot the first set of curves with a label
     # but don't repeat the label on subsequent curves
     for (i, (n,x)) in enumerate(res)
-        Q, cuba, asym_laplace = x[1], x[2], x[5]
         if i == 1
-            plot_asymptotic_single(Q, cuba, asym_laplace)
+            plot_asymptotic_single(x)
         else
-            plot_asymptotic_single(Q, cuba, asym_laplace; label="")
+            plot_asymptotic_single(x; label="")
         end
     end
-    annotate!([(0.58, 2.2, text(L"n=10", :center))])
-    annotate!([(1.8, 1.25, text(L"n=80", :center))])
+    annotate!([(0.7, 1.9, text(L"n=10", :center))])
+    annotate!([(1.9, 1.25, text(L"n=80", :center))])
 
     savepdf("asymptotic")
 end
