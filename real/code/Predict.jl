@@ -231,7 +231,7 @@ function asymptotic_by_MLE(Q, a, nb, μ, σ²;
     # to avoid overflow in Cubature, evaluate target at approximate mode and
     # subtract it. The value within a few order of magnitude of
     logf_mode = f(nb)
-    info("nb = $nb, logf_mode = $(logf_mode)")
+    # info("nb = $nb, logf_mode = $(logf_mode)")
 
     target = x->f(x) - logf_mode
 
@@ -246,7 +246,7 @@ function asymptotic_by_MLE(Q, a, nb, μ, σ²;
 
     # now we have to undo max. subtraction
     Z *= exp(logf_mode)
-    info("asymptotic MLE cubature: $Z, $σ, $ncalls")
+    # info("asymptotic MLE cubature: $Z, $σ, $ncalls")
     Z
 end
 

@@ -198,7 +198,11 @@ end
 
 function make_asymptotic_mle(Q, nb, a, μ, σ²)
     λ -> begin
-        log_normal(Q, λ*μ, λ*(σ²+μ^2)) + log_gamma(λ,nb-a+1,1)
+        res = log_normal(Q, λ*μ, λ*(σ²+μ^2)) + log_gamma(λ,nb-a+1,1)
+        if isinf(res)
+            error("asymptotic_by_MLE ∞: ", (Q, λ, μ, σ², nb, a))
+        end
+        res
     end
 end
 

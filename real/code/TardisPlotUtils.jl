@@ -75,7 +75,7 @@ function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
     normalize!(Qs, res_mle, "max. likelihood";
                δcontrib=exp(GammaIntegrand.log_poisson_predict(0, n, a)))
 
-    mode = GammaIntegrand.triple_mode(n, gstats.q, gstats.logr)
+    mode = GammaIntegrand.triple_mode(n, gstats.first, gstats.second)
     res_asym_mle = map(Q->Predict.asymptotic_by_MLE(Q, a, n, mode[2], mode[3]; reltol=reltol)[1], Qs)
     normalize!(Qs, res_asym_mle, "asympt. MLE")
 
@@ -98,22 +98,22 @@ function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
 end
 
 function plot_asymptotic_single(res; kwargs...)
-    Qs, cuba, laplace, asym_cuba, asym_laplace, mle = res
-    plot!(Qs, cuba; label=L"\sum_N \mbox{cubature}", ls=:solid, linewidth=2, leg=true, color=:red, kwargs...)
-    plot!(Qs, laplace; label=L"\sum_N \mbox{Laplace}", ls=:dash, color=:red, kwargs...)
-    plot!(Qs, mle; label=L"\sum_N \mbox{MLE}", ls=:dot, color=:black, kwargs...)
-    plot!(Qs, asym_cuba; label=L"\int \dd{\lambda} \mbox{cubature}", ls=:solid, color=:blue, kwargs...)
+    Qs, cuba, laplace, asym_cuba, asym_laplace, mle, asym_mle = res
+    plot!(Qs, asym_mle; label=L"\int \dd{\lambda} \mbox{MLE}", ls=:dash, color=:green, kwargs...)
     plot!(Qs, asym_laplace; label=L"\int \dd{\lambda} \mbox{Laplace}", ls=:dash, color=:blue, kwargs...)
+    plot!(Qs, asym_cuba; label=L"\int \dd{\lambda} \mbox{cubature}", ls=:dash, color=:red, kwargs...)
+    plot!(Qs, mle; label=L"\sum_N \mbox{MLE}", ls=:solid, color=:green, kwargs...)
+    plot!(Qs, laplace; label=L"\sum_N \mbox{Laplace}", ls=:solid, color=:blue, kwargs...)
+    plot!(Qs, cuba; label=L"\sum_N \mbox{cubature}", ls=:solid, linewidth=2, linealpha=0.8, leg=true, color=:red, kwargs...)
     xlabel!(L"Q")
-    # ylabel!(latexstring("\$P(Q|n=$n, \\ell)\$"))
     ylabel!(L"P(Q|n,\ell)")
 end
 
 function compute_all_predictions()
-    N = 15
+    N = 150
 
     n = 10
-    kwargs = Dict(:n=>n, :reltol=>1e-4, :Qs=>linspace(1e-2, 3.3, N))
+    kwargs = Dict(:n=>n, :reltol=>1e-4, :Qs=>linspace(1e-2, 1.9, N))
     res = Dict(n=>compute_prediction(;kwargs...))
 
     n = 80
@@ -155,8 +155,14 @@ function plot_asymptotic_all(res)
             plot_asymptotic_single(x; label="")
         end
     end
-    annotate!([(0.7, 1.9, text(L"n=10", :center))])
+    annotate!([(0.66, 1.7, text(L"n=10", :center))])
     annotate!([(1.9, 1.25, text(L"n=80", :center))])
+
+    mode(n) = (n * 3/2 - 1) / 60
+    
+    # plot arrows at mode of predictive distribution with true α, β values
+    plot!([mode(10), mode(10)], [0, 0.5], arrow=:arrow, color=:black, label="")
+    plot!([mode(80), mode(80)], [0, 0.5], arrow=:arrow, color=:black, label="")
 
     savepdf("asymptotic")
 end
