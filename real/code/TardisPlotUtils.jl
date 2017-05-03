@@ -74,6 +74,10 @@ function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
     normalize!(Qs, res_mle, "max. likelihood";
                δcontrib=exp(GammaIntegrand.log_poisson_predict(0, n, a)))
 
+    mode = GammaIntegrand.triple_mode(n, gstats.q, gstats.logr)
+    res_asym_mle = map(Q->Predict.asymptotic_by_MLE(Q, a, n, mode[2], mode[3]; reltol=reltol)[1], Qs)
+    normalize!(Qs, res_asym_mle, "asympt. MLE")
+
     # first = q/n
     # second = mapreduce(x->x^2, +, samples)/n
     res_asym_laplace = map(Q->Predict.asymptotic_by_laplace(Q, a, n, gstats.first, gstats.second), Qs)
@@ -89,7 +93,7 @@ function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
     normalize!(Qs, res_cuba, "cubature";
                δcontrib=exp(GammaIntegrand.log_poisson_predict(0, n, a)))
 
-    Qs, res_cuba, res_laplace, res_asym_cuba, res_asym_laplace, res_mle
+    Qs, res_cuba, res_laplace, res_asym_cuba, res_asym_laplace, res_mle, res_asym_mle
 end
 
 function plot_asymptotic_single(res; kwargs...)
@@ -105,7 +109,7 @@ function plot_asymptotic_single(res; kwargs...)
 end
 
 function compute_all_predictions()
-    N = 150
+    N = 15
 
     n = 10
     kwargs = Dict(:n=>n, :reltol=>1e-4, :Qs=>linspace(1e-2, 3.3, N))

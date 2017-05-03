@@ -2,7 +2,7 @@
 module GammaIntegrand
 
 export heuristicN, log_gamma, log_gamma_predict, log_inv_gamma, log_normal, log_poisson, log_poisson_predict, log_posterior
-export make_asymptotic, make_log_posterior
+export make_asymptotic, make_asymptotic_mle, make_log_posterior
 export optimize_log_posterior, optimize_log_posterior_predict, optimize_integrand_λμσ²
 export triple_mode, triple_ranges
 
@@ -195,4 +195,11 @@ function triple_ranges(n, first, second, nb=n; k=5)
 
     lower, upper
 end
+
+function make_asymptotic_mle(Q, nb, a, μ, σ²)
+    λ -> begin
+        log_normal(Q, λ*μ, λ*(σ²+μ^2)) + log_gamma(λ,nb-a+1,1)
+    end
+end
+
 end # GammaIntegrand

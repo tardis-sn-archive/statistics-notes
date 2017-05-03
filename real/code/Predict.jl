@@ -224,8 +224,30 @@ function asymptotic_by_cubature(Q, a, n, first, second, nb=n;
     Z
 end
 
-function asymptotic_by_MLE(Q, a, n, μ, σ², nb=n;
-                           λmin=0.0, λmax=0.0)
+function asymptotic_by_MLE(Q, a, nb, μ, σ²;
+                           reltol=1e-5, λmin=0.0, λmax=0.0)
+    f = make_asymptotic_mle(Q, nb, a, μ, σ²)
+
+    # to avoid overflow in Cubature, evaluate target at approximate mode and
+    # subtract it. The value within a few order of magnitude of
+    logf_mode = f(nb)
+    info("nb = $nb, logf_mode = $(logf_mode)")
+
+    target = x->f(x) - logf_mode
+
+    # lower, upper = GammaIntegrand.triple_ranges(nb, μ, 2μ^2 + σ²)
+    Δ = 5*sqrt(nb)
+    lower = max(nb - Δ, 0.0)
+    upper = nb + Δ
+    (λmin > 0.0) && (lower = λmin)
+    (λmax > λmin && λmax > 0.0) && (upper = λmax)
+
+    Z, σ, ncalls = Integrate.by_cubature(target, lower, upper; reltol=reltol)
+
+    # now we have to undo max. subtraction
+    Z *= exp(logf_mode)
+    info("asymptotic MLE cubature: $Z, $σ, $ncalls")
+    Z
 end
 
 end #Predict
