@@ -13,6 +13,7 @@ const font = Plots.font("cmr10") # computer modern roman (LaTeX default)
 Plots.pyplot(guidefont=font, xtickfont=font, ytickfont=font, legendfont=font)
 # Plots.PyPlotBackend()
 # Plots.gr()
+fillalpha=0.3
 
 "save and replot"
 savepdf(fname) = begin Plots.pdf("../figures/$fname"); plot!() end
@@ -516,9 +517,10 @@ function plot_tardis_samples()
     nbins = 60
 
     layout = (1,2)
+    histstyle = Dict(:alpha=>fillalpha)
 
-    Plots.histogram(frame[:energies][imin:imax]/1e38, nbins=nbins, yticks=nothing,
-                    xlabel=L"\ell^\prime/10^{38}", normed=true, layout=layout)
+    Plots.histogram(frame[:energies][imin:imax]/1e38; nbins=nbins, yticks=nothing,
+                    xlabel=L"\ell^\prime/10^{38}", normed=true, layout=layout, histstyle...)
 
     # now the transformed data, sorted again but that doesn't change anything
     Tardis.transform_data!(frame)
@@ -529,15 +531,16 @@ function plot_tardis_samples()
     β = 1/scale(dist_fit)
     println("α = $α, β = $β")
 
-    Plots.histogram!(samples, xlabel=L"\ell", normed=true, nbins=nbins,
-                    lab="", layout=layout, subplot=2)
+    Plots.histogram!(samples, xlabel=L"\ell"; normed=true, nbins=nbins,
+                    lab="", layout=layout, subplot=2, histstyle...)
     Plots.plot!(dist_fit, label=@sprintf("Gamma(%.2f, %.1f)", α, β), leg=true,
+                linewidth=2, color=:red,
                 layout=layout, subplot=2, yticks=nothing, xticks=[0.0, 0.05, 0.1])
 
     savepdf("tardis_input_trafo")
 end
 
-"Coordinates for a rectangle: (x0, y0) = lower left, (x1,y1) = offset from lower left to upper right corner "
+"Coordinates for a rectangle: (x0, y0) = lower left, (x1,y1) = upper right corner "
 function rect(x0, y0, x1,y1)
     x = [x0,x1,x1,x0,x0]
     y = [y0,y0,y1,y1,y0]
@@ -579,7 +582,7 @@ function spectrum_inset(x, y; sg_window=15, sg_order=5, nmult=5, xlim_zoom=(1.1,
 
     # now plot the inset
     # Plots.bar!([x[r], finex[finerange]], [y[r], finey[finerange]],inset=(1, Plots.bbox(0.05, 0.25, 0.5, 0.25, :bottom, :right)), subplot=2, yticks=nothing)
-    Plots.bar!(x[r], y[r], inset=(1, Plots.bbox(0.05, 0.25, 0.5, 0.25, :bottom, :right)), subplot=2, ticks=nothing, fillalpha=0.3)
+    Plots.bar!(x[r], y[r], inset=(1, Plots.bbox(0.05, 0.25, 0.5, 0.25, :bottom, :right)), subplot=2, ticks=nothing, fillalpha=fillalpha)
     Plots.plot!( finex[finerange],  finey[finerange], subplot=2)
 
     savepdf("spectrum_inset")
