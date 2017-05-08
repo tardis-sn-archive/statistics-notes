@@ -47,9 +47,12 @@ end
 "Return Optimize.result struct"
 function optimize_integrand(target, lower, upper, initial)
     min_target = x -> -target(x)
+    # storage for the gradient
+    storage = copy(initial)
+    # ForwardDiff and Optim reverse order of `x` and `storage`
+    gf! = (x, storage) -> ForwardDiff.gradient!(storage, min_target, x)
 
-    # couldn't get autodiff to work here. Because of the box constraints?
-    res = optimize(OnceDifferentiable(min_target), initial,
+    res = optimize(OnceDifferentiable(min_target, gf!), initial,
                    lower, upper, Fminbox(), optimizer=LBFGS)
                    # optimizer_o=OptimizationOptions(autodiff=true))
     # get gradient and Hessian into one result
