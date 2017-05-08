@@ -11,5 +11,5 @@ TardisPlotUtils.plot_asymptotic_all(res)
 TardisPlotUtils.plot_tardis_samples()
 
 # fig:comp-unc
-TardisPlotUtils.prepare_compare_uncertainties()
+TardisPlotUtils.plot_compare_uncertainties()
 

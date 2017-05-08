@@ -24,11 +24,11 @@ savepdf(fname) = begin Plots.pdf("../figures/$fname"); plot!() end
 the normalization and thus mean and std. err
 
 """
-function normalize!(Qs, res, tag=""; δcontrib=0.0)
+function norm_mean_std(Qs, res, tag=""; δcontrib=0.0, mod=false)
     # norm only useful from first call
     norm, _, _ = Integrate.simpson(Qs, res)
     norm += δcontrib
-    # res ./= norm
+    if mod res ./= norm end
     # but mean and σ are affected by norm
     _, mean, stderr = Integrate.simpson(Qs, res/norm)
     (tag != "") && info(tag, ": norm=$norm, Q=$(mean)±$(stderr)")
@@ -68,36 +68,36 @@ function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
     end
 
     # res_known = map(Q->Predict.by_sum(Q, α, β, a, n;ε=ε)[1], Qs)
-    # normalize!(Qs, res_known, "known α, β")
+    # norm_mean_std(Qs, res_known, "known α, β")
 
     dist_fit = Distributions.fit_mle(Gamma, samples)
     res_mle = map(Q->Predict.by_sum(Q, shape(dist_fit), 1/scale(dist_fit), a, n;ε=ε)[1], Qs)
-    normalize!(Qs, res_mle, "max. likelihood";
+    norm_mean_std(Qs, res_mle, "max. likelihood";
                δcontrib=exp(GammaIntegrand.log_poisson_predict(0, n, a)))
 
     mode = GammaIntegrand.triple_mode(n, gstats.first, gstats.second)
     res_asym_mle = map(Q->Predict.asymptotic_by_MLE(Q, a, n, mode[2], mode[3]; reltol=reltol)[1], Qs)
-    normalize!(Qs, res_asym_mle, "asympt. MLE")
+    norm_mean_std(Qs, res_asym_mle, "asympt. MLE")
 
     # first = q/n
     # second = mapreduce(x->x^2, +, samples)/n
     res_asym_laplace = map(Q->Predict.asymptotic_by_laplace(Q, a, n, gstats.first, gstats.second), Qs)
-    normalize!(Qs, res_asym_laplace, "asympt. Laplace")
+    norm_mean_std(Qs, res_asym_laplace, "asympt. Laplace")
 
     res_laplace = map(Q->Predict.by_laplace(Q, a, n, gstats.q, gstats.logr; ε=ε)[1], Qs)
-    normalize!(Qs, res_laplace, "Laplace"; δcontrib=exp(GammaIntegrand.log_poisson_predict(0, n, a)))
+    norm_mean_std(Qs, res_laplace, "Laplace"; δcontrib=exp(GammaIntegrand.log_poisson_predict(0, n, a)))
 
     res_asym_scaled_poisson_laplace = map(Q->Predict.asymptotic_scaled_poisson_by_laplace(Q, a, n, gstats.first, gstats.second), Qs)
     norm_mean_std(Qs, res_asym_scaled_poisson_laplace, "asympt. scaled Poisson Laplace")
     
     res_asym_cuba = map(Q->Predict.asymptotic_by_cubature(Q, a, n, gstats.first, gstats.second; reltol=reltol)[1], Qs)
-    normalize!(Qs, res_asym_cuba, "asympt. cubature")
+    norm_mean_std(Qs, res_asym_cuba, "asympt. cubature")
 
     res_cuba = map(Q->Predict.by_cubature(Q, a, n, gstats.q, gstats.logr; reltol=reltol, ε=ε)[1], Qs)
-    normalize!(Qs, res_cuba, "cubature";
+    norm_mean_std(Qs, res_cuba, "cubature";
                δcontrib=exp(GammaIntegrand.log_poisson_predict(0, n, a)))
 
-    Qs, res_cuba, res_laplace, res_asym_cuba, res_asym_laplace, res_mle, res_asym_mle
+    Qs, res_cuba, res_laplace, res_asym_cuba, res_asym_laplace, res_mle, res_asym_mle,  res_asym_scaled_poisson_laplace
 end
 
 function plot_asymptotic_single(res; kwargs...)
@@ -105,12 +105,12 @@ function plot_asymptotic_single(res; kwargs...)
     plot!(Qs, asym_mle; label=L"\int \dd{\lambda} \mbox{MLE}", ls=:dash, color=:green, kwargs...)
     plot!(Qs, asym_laplace; label=L"\int \dd{\lambda} \mbox{Laplace}", ls=:dash, color=:blue, kwargs...)
     plot!(Qs, asym_cuba; label=L"\int \dd{\lambda} \mbox{cubature}", ls=:dash, color=:red, kwargs...)
-    plot!(Qs, asym_scaled; label=L"\int \dd{\lambda} \mbox{scaled}", ls=:dot, color=:purple, kwargs...)
+    # plot!(Qs, asym_scaled; label=L"\int \dd{\lambda} \mbox{scaled}", ls=:dot, color=:purple, kwargs...)
     plot!(Qs, mle; label=L"\sum_N \mbox{MLE}", ls=:solid, color=:green, kwargs...)
     plot!(Qs, laplace; label=L"\sum_N \mbox{Laplace}", ls=:solid, color=:blue, kwargs...)
     plot!(Qs, cuba; label=L"\sum_N \mbox{cubature}", ls=:solid, linewidth=2, linealpha=0.8, leg=true, color=:red, kwargs...)
     xlabel!(L"Q")
-    ylabel!(L"P(Q|n,\ell)")
+    ylabel!(L"P(Q|n,\bm{\ell})")
 end
 
 function compute_all_predictions()
@@ -315,7 +315,7 @@ end
 
 "Indices of 1σ and 2σ regions"
 function analyze_bin(Qs, res; δcontrib=0.0)
-    norm, mean, stderr = normalize!(Qs, res, "Analyze bin"; δcontrib=δcontrib)
+    norm, mean, stderr = norm_mean_std(Qs, res, "Analyze bin"; δcontrib=δcontrib)
     (0.98 < norm < 1.02) || warn("norm ($norm) outside of [0.98, 1.02]. Choose a better method or larger ranges for integration !?")
 
     one_sigma_region = SmallestInterval.connected(res, 1)
@@ -428,25 +428,25 @@ end
 
 function compare_uncertainties(Qs;nb=2, λ=nb, n=nb, α=1.5, β=60.0, a=1/2, ε=1e-3, reltol=1e-5, seed=61)
     resαβ = map(Q->Predict.by_sum(Q, α, β, a, nb;ε=ε)[1], Qs)
-    normalize!(Qs, resαβ, "α, β fixed"; δcontrib=exp(GammaIntegrand.log_poisson_predict(0, nb, a)))
+    norm_mean_std(Qs, resαβ, "α, β fixed"; δcontrib=exp(GammaIntegrand.log_poisson_predict(0, nb, a)), mod=true)
 
     resλαβ = map(Q->Predict.by_sum(Q, α, β, λ;ε=ε)[1], Qs)
-    normalize!(Qs, resλαβ, "λ, α, β fixed"; δcontrib=exp(GammaIntegrand.log_poisson(0, λ)))
+    norm_mean_std(Qs, resλαβ, "λ, α, β fixed"; δcontrib=exp(GammaIntegrand.log_poisson(0, λ)), mod=true)
 
     if nb >= 2
         dist = Gamma(α, 1/β)
         srand(seed)
         samples = rand(dist, nb)
-        gstats = GammaStatistics{Float64}(samples)
+        gstats = GammaStatistics(samples)
         res = map(Q->Predict.by_cubature(Q, a, n, gstats.q, gstats.logr, nb;ε=ε, reltol=reltol)[1], Qs)
-        normalize!(Qs, res, "nothing fixed"; δcontrib=exp(GammaIntegrand.log_poisson_predict(0, nb, a)))
+        norm_mean_std(Qs, res, "nothing fixed"; δcontrib=exp(GammaIntegrand.log_poisson_predict(0, nb, a)), mod=true)
     else
         res = zeros(Qs)
     end
     res, resαβ, resλαβ
 end
 
-function plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=2, upscale=200, kwargs...)
+function plot_compare_uncertainties_single(Qs, res, resαβ, resλαβ; nb=2, upscale=200, kwargs...)
     if upscale > 0
         Qsscaled, resλαβ = SmallestInterval.upscale(Qs, resλαβ, upscale)
         _, resαβ = SmallestInterval.upscale(Qs, resαβ, upscale)
@@ -457,14 +457,14 @@ function plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=2, upscale=2
         Qs = Qsscaled
     end
 
-    plot!(Qs, resλαβ; label=L"p(Q | \lambda, \alpha_0, \beta_0)", xlabel=L"Q", kwargs...)
-    plot!(Qs, resαβ; label=L"p(Q | n, \alpha_0, \beta_0)", kwargs...)
-    # requires Latex for text in matplotlib and \usepackage{bm}, enable in
+    plot!(Qs, resλαβ; label=L"p(Q | \lambda, \alpha_0, \beta_0)", xlabel=L"Q", ls=:dot, kwargs...)
+    plot!(Qs, resαβ; label=L"p(Q | n, \alpha_0, \beta_0)", ls=:dashdot, kwargs...)
+    # requires Latex for text in matplotlib and \usepackage{bm}, enable both in
     # ~/.config/matplotlib/matplotlibrc
     (res[end] > 0) && plot!(Qs, res; label=L"p(Q | n, \bm{\ell})", kwargs...)
 end
 
-function prepare_compare_uncertainties(kwargs...)
+function plot_compare_uncertainties(kwargs...)
     # clean canvas with two plots next to each other
     plot_kwargs = Dict(:layout=>(1,3), :size=>(900, 300), :legend=>false,
                        :yticks=>nothing,
@@ -492,7 +492,7 @@ function prepare_compare_uncertainties(kwargs...)
     # compute λ to give same δ contribution
     # Optim.optimize(x -> abs(exp(TardisPaper.GammaIntegrand.log_poisson(0, x)) - 1/sqrt(2)), 0.3, 0.4, show_trace=true)
     res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, λ=3.465736e-01, kwargs...)
-    plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
+    plot_compare_uncertainties_single(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
     place_label(nb, plot_kwargs[:subplot])
 
     plot_kwargs[:subplot] = 2
@@ -500,7 +500,7 @@ function prepare_compare_uncertainties(kwargs...)
     Qs = linspace(Qmin, 0.8, K)
     nb = 2
     res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, seed=seed, kwargs...)
-    plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
+    plot_compare_uncertainties_single(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
     # zoom in on x-axis to remove long tail but need to compute it for proper normalization
     xmax = 0.6
     xlims!(Qmin, xmax, subplot=2)
@@ -511,7 +511,7 @@ function prepare_compare_uncertainties(kwargs...)
     nb = 20
     Qs = linspace(Qmin, 1.5, K)
     res, resαβ, resλαβ = compare_uncertainties(Qs; nb=nb, seed=seed, kwargs...)
-    plot_compare_uncertainties(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
+    plot_compare_uncertainties_single(Qs, res, resαβ, resλαβ; nb=nb, plot_kwargs...)
     place_label(nb, plot_kwargs[:subplot])
 
     savepdf("comp_unc")
