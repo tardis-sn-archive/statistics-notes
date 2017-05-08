@@ -2,7 +2,7 @@
 module GammaIntegrand
 
 export heuristicN, log_gamma, log_gamma_predict, log_inv_gamma, log_normal, log_poisson, log_poisson_predict, log_posterior
-export make_asymptotic, make_asymptotic_mle, make_log_posterior
+export make_asymptotic, make_asymptotic_scaled_poisson, make_asymptotic_mle, make_log_posterior
 export optimize_log_posterior, optimize_log_posterior_predict, optimize_integrand_λμσ²
 export triple_mode, triple_ranges
 
@@ -142,8 +142,17 @@ log_normal(x, μ, σ²) = σ²<=0 ? -Inf : -0.5(log(2π*σ²) + (x-μ)^2/σ²)
 "Log pdf of InverseGamma distribution with shape parameter `a` and scale parameter `b`."
 log_inv_gamma(x, a, b) = x <= 0? -Inf : a*log(b) - lgamma(a) - (a+1)*log(x) - b/x
 
+"`a`: 1st moment, `b`: 2nd moment"
+log_scaled_poisson(x, λ, a, b) = begin
+    λ = λ*a^2/b
+    s = b/a
+    assert(x>0)
+    assert(s>0)
+    -λ + x/s*log(λ) - log(s) - lgamma(x/s+1)
+end
+
 """
-Integrand of (ral), negated for minimization.
+Integrand of (ral)
 
 # Arguments
 
@@ -164,6 +173,30 @@ function make_asymptotic(Q, n, a, first, second, nb=n; a₀=0, b₀=0)
         σₙ² = σ²/n
         # (ral)
         log_normal(Q, λ*μ, λ*(σ²+μ^2)) + log_gamma(λ,nb-a+1,1) + log_normal(μ, μₙ, σₙ²) + log_inv_gamma(σ², aₙ, bₙ)
+    end
+end
+
+"""
+Integrand of scaled Poisson approximation
+
+# Arguments
+
+* `first`: 1st sample moment
+* `second`: 2nd sample moment
+* `a₀`: hyperprior for inverse Gamma shape
+* `b₀`: hyperprior for inverse Gamma rate
+"""
+function make_asymptotic_scaled_poisson(Q, n, a, first, second, nb=n; a₀=0, b₀=0)
+    # (rbd)
+    μₙ = first
+    aₙ = a₀+n/2
+    bₙ = b₀+n/2*(second-first^2)
+
+    x -> begin
+        λ, μ, σ² = x
+        # (rbd)
+        σₙ² = σ²/n
+        log_scaled_poisson(Q, λ, μ, σ²+μ^2) + log_gamma(λ,nb-a+1,1) + log_normal(μ, μₙ, σₙ²) + log_inv_gamma(σ², aₙ, bₙ)
     end
 end
 

@@ -87,6 +87,9 @@ function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
     res_laplace = map(Q->Predict.by_laplace(Q, a, n, gstats.q, gstats.logr; ε=ε)[1], Qs)
     normalize!(Qs, res_laplace, "Laplace"; δcontrib=exp(GammaIntegrand.log_poisson_predict(0, n, a)))
 
+    res_asym_scaled_poisson_laplace = map(Q->Predict.asymptotic_scaled_poisson_by_laplace(Q, a, n, gstats.first, gstats.second), Qs)
+    norm_mean_std(Qs, res_asym_scaled_poisson_laplace, "asympt. scaled Poisson Laplace")
+    
     res_asym_cuba = map(Q->Predict.asymptotic_by_cubature(Q, a, n, gstats.first, gstats.second; reltol=reltol)[1], Qs)
     normalize!(Qs, res_asym_cuba, "asympt. cubature")
 
@@ -98,10 +101,11 @@ function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
 end
 
 function plot_asymptotic_single(res; kwargs...)
-    Qs, cuba, laplace, asym_cuba, asym_laplace, mle, asym_mle = res
+    Qs, cuba, laplace, asym_cuba, asym_laplace, mle, asym_mle, asym_scaled = res
     plot!(Qs, asym_mle; label=L"\int \dd{\lambda} \mbox{MLE}", ls=:dash, color=:green, kwargs...)
     plot!(Qs, asym_laplace; label=L"\int \dd{\lambda} \mbox{Laplace}", ls=:dash, color=:blue, kwargs...)
     plot!(Qs, asym_cuba; label=L"\int \dd{\lambda} \mbox{cubature}", ls=:dash, color=:red, kwargs...)
+    plot!(Qs, asym_scaled; label=L"\int \dd{\lambda} \mbox{scaled}", ls=:dot, color=:purple, kwargs...)
     plot!(Qs, mle; label=L"\sum_N \mbox{MLE}", ls=:solid, color=:green, kwargs...)
     plot!(Qs, laplace; label=L"\sum_N \mbox{Laplace}", ls=:solid, color=:blue, kwargs...)
     plot!(Qs, cuba; label=L"\sum_N \mbox{cubature}", ls=:solid, linewidth=2, linealpha=0.8, leg=true, color=:red, kwargs...)
