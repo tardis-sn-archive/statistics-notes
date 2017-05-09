@@ -13,7 +13,12 @@ const font = Plots.font("cmr10") # computer modern roman (LaTeX default)
 Plots.pyplot(guidefont=font, xtickfont=font, ytickfont=font, legendfont=font)
 # Plots.PyPlotBackend()
 # Plots.gr()
-fillalpha=0.3
+const fillalpha=0.3
+# reference color is red: signal color
+# color cycle from https://matplotlib.org/users/dflt_style_changes.html
+const mylines = Dict(:ref=>Dict(:color=>"#d62728", :linewidth=>2),
+                     :second=>Dict(:color=>"#bcbd22"),
+                     :third=>Dict(:color=>"#9467bd"))
 
 "save and replot"
 savepdf(fname) = begin Plots.pdf("../figures/$fname"); plot!() end
@@ -102,13 +107,13 @@ end
 
 function plot_asymptotic_single(res; kwargs...)
     Qs, cuba, laplace, asym_cuba, asym_laplace, mle, asym_mle, asym_scaled = res
-    plot!(Qs, asym_mle; label=L"\int \dd{\lambda} \mbox{MLE}", ls=:dash, color=:green, kwargs...)
-    plot!(Qs, asym_laplace; label=L"\int \dd{\lambda} \mbox{Laplace}", ls=:dash, color=:blue, kwargs...)
-    plot!(Qs, asym_cuba; label=L"\int \dd{\lambda} \mbox{cubature}", ls=:dash, color=:red, kwargs...)
+    plot!(Qs, asym_mle; label=L"\int \dd{\lambda} \mbox{MLE}", ls=:dash, mylines[:third]..., kwargs...)
+    plot!(Qs, asym_laplace; label=L"\int \dd{\lambda} \mbox{Laplace}", ls=:dash, mylines[:second]..., kwargs...)
+    plot!(Qs, asym_cuba; label=L"\int \dd{\lambda} \mbox{cubature}", ls=:dash, color=mylines[:ref][:color], kwargs...)
     # plot!(Qs, asym_scaled; label=L"\int \dd{\lambda} \mbox{scaled}", ls=:dot, color=:purple, kwargs...)
-    plot!(Qs, mle; label=L"\sum_N \mbox{MLE}", ls=:solid, color=:green, kwargs...)
-    plot!(Qs, laplace; label=L"\sum_N \mbox{Laplace}", ls=:solid, color=:blue, kwargs...)
-    plot!(Qs, cuba; label=L"\sum_N \mbox{cubature}", ls=:solid, linewidth=2, linealpha=0.8, leg=true, color=:red, kwargs...)
+    plot!(Qs, mle; label=L"\sum_N \mbox{MLE}", ls=:solid, mylines[:third]..., kwargs...)
+    plot!(Qs, laplace; label=L"\sum_N \mbox{Laplace}", ls=:solid, mylines[:second]..., kwargs...)
+    plot!(Qs, cuba; label=L"\sum_N \mbox{cubature}", linealpha=0.8, leg=true, mylines[:ref]..., kwargs...)
     xlabel!(L"Q")
     ylabel!(L"P(Q|n,\bm{\ell})")
 end
@@ -457,11 +462,11 @@ function plot_compare_uncertainties_single(Qs, res, resαβ, resλαβ; nb=2, up
         Qs = Qsscaled
     end
 
-    plot!(Qs, resλαβ; label=L"p(Q | \lambda, \alpha_0, \beta_0)", xlabel=L"Q", ls=:dot, kwargs...)
-    plot!(Qs, resαβ; label=L"p(Q | n, \alpha_0, \beta_0)", ls=:dashdot, kwargs...)
+    plot!(Qs, resλαβ; label=L"p(Q | \lambda, \alpha_0, \beta_0)", xlabel=L"Q", ls=:dot, mylines[:third]..., kwargs...)
+    plot!(Qs, resαβ; label=L"p(Q | n, \alpha_0, \beta_0)", ls=:dashdot, mylines[:second]..., kwargs...)
     # requires Latex for text in matplotlib and \usepackage{bm}, enable both in
     # ~/.config/matplotlib/matplotlibrc
-    (res[end] > 0) && plot!(Qs, res; label=L"p(Q | n, \bm{\ell})", kwargs...)
+    (res[end] > 0) && plot!(Qs, res; label=L"p(Q | n, \bm{\ell})", mylines[:ref]..., kwargs...)
 end
 
 function plot_compare_uncertainties(kwargs...)
@@ -544,7 +549,7 @@ function plot_tardis_samples()
     Plots.histogram!(samples, xlabel=L"\ell"; normed=true, nbins=nbins,
                     lab="", layout=layout, subplot=2, histstyle...)
     Plots.plot!(dist_fit, label=@sprintf("Gamma(%.2f, %.1f)", α, β), leg=true,
-                linewidth=2, color=:red,
+                mylines[:ref]...,
                 layout=layout, subplot=2, yticks=nothing, xticks=[0.0, 0.05, 0.1])
 
     savepdf("tardis_input_trafo")
