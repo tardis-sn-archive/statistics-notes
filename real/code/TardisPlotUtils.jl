@@ -94,7 +94,7 @@ function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
 
     res_asym_scaled_poisson_laplace = map(Q->Predict.asymptotic_scaled_poisson_by_laplace(Q, a, n, gstats.first, gstats.second), Qs)
     norm_mean_std(Qs, res_asym_scaled_poisson_laplace, "asympt. scaled Poisson Laplace")
-    
+
     res_asym_cuba = map(Q->Predict.asymptotic_by_cubature(Q, a, n, gstats.first, gstats.second; reltol=reltol)[1], Qs)
     norm_mean_std(Qs, res_asym_cuba, "asympt. cubature")
 
@@ -168,7 +168,7 @@ function plot_asymptotic_all(res)
     annotate!([(1.9, 1.25, text(L"n=80", :center))])
 
     mode(n) = (n * 3/2 - 1) / 60
-    
+
     # plot arrows at mode of predictive distribution with true α, β values
     plot!([mode(10), mode(10)], [0, 0.5], arrow=:arrow, color=:black, label="")
     plot!([mode(80), mode(80)], [0, 0.5], arrow=:arrow, color=:black, label="")
@@ -471,7 +471,7 @@ end
 
 function plot_compare_uncertainties(kwargs...)
     # clean canvas with two plots next to each other
-    plot_kwargs = Dict(:layout=>(1,3), :size=>(900, 300), :legend=>false,
+    plot_kwargs = Dict(:layout=>(1,3), :size=>(1200, 400), :legend=>false,
                        :yticks=>nothing,
                        :grid=>false)
     plot(;plot_kwargs...)
@@ -547,10 +547,12 @@ function plot_tardis_samples()
     println("α = $α, β = $β")
 
     Plots.histogram!(samples, xlabel=L"\ell"; normed=true, nbins=nbins,
-                    lab="", layout=layout, subplot=2, histstyle...)
-    Plots.plot!(dist_fit, label=@sprintf("Gamma(%.2f, %.1f)", α, β), leg=true,
+                     lab="", layout=layout, subplot=2, histstyle...)
+    Plots.plot!(linspace(0, 0.158, 500), x->Distributions.pdf(dist_fit, x);
+                label=@sprintf("Gamma(%.2f, %.1f)", α, β), leg=true,
                 mylines[:ref]...,
-                layout=layout, subplot=2, yticks=nothing, xticks=[0.0, 0.05, 0.1])
+                layout=layout, subplot=2, yticks=nothing, xticks=[0.0, 0.05, 0.1],
+                left_margin=10Plots.mm)
 
     savepdf("tardis_input_trafo")
 end
