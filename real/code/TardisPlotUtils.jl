@@ -21,7 +21,7 @@ const mylines = Dict(:ref=>Dict(:color=>"#d62728", :linewidth=>2),
                      :third=>Dict(:color=>"#9467bd"))
 
 "save and replot"
-savepdf(fname) = begin Plots.pdf("../figures/$fname"); plot!() end
+savepdf(fname) = begin Plots.savefig("../figures/$fname.ps"); plot!() end
 
 """# Arguments
 
