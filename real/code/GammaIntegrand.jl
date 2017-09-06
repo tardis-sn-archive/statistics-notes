@@ -3,6 +3,7 @@ module GammaIntegrand
 
 export heuristicN, log_gamma, log_gamma_predict, log_inv_gamma, log_normal, log_poisson, log_poisson_predict, log_posterior
 export make_asymptotic, make_asymptotic_scaled_poisson, make_asymptotic_mle, make_log_posterior
+export make_log_posterior_variance
 export optimize_log_posterior, optimize_log_posterior_predict, optimize_integrand_λμσ²
 export triple_mode, triple_ranges
 
@@ -239,6 +240,13 @@ function make_asymptotic_mle(Q, nb, a, μ, σ²)
             error("asymptotic_by_MLE ∞: ", (Q, λ, μ, σ², nb, a))
         end
         res
+    end
+end
+
+function make_log_posterior_variance(n, q, logr, evidence=0.0)
+    function (θ::Vector)
+        α, β = θ
+        log_posterior(α, β, n, q, logr, evidence) + log(α/β^2*(α+1))
     end
 end
 
