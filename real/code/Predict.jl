@@ -277,7 +277,6 @@ function asymptotic_scaled_poisson_by_laplace(Q, a, n, first, second, nb=n; a₀
 end
 
 function variance_by_cubature(a, n, q, logr; αmin=1e-2, αmax=5, βmin=1e-5, βmax=100, reltol=1e-5)
-    @Logging.configure(level=DEBUG)
     # to avoid overflow in Cubature, evaluate target at mode and subtract it. The
     # value within a few order of magnitude of
     fit_dist = Distributions.fit_mle(Distributions.Gamma, Distributions.GammaStats(q, logr, n))
@@ -301,8 +300,72 @@ function variance_by_cubature(a, n, q, logr; αmin=1e-2, αmax=5, βmin=1e-5, β
         # (α, β) -> log_posterior(α, β, n, q, logr, logZ) + log( α/(β*β) * (α+1))
     integral, σ, ncalls = Integrate.by_cubature(integrand, lower, upper; reltol=reltol)
     debug("integrand: $integral  $σ after $ncalls calls")
-    @Logging.configure(level=INFO)
     (n+a) * integral
 end
+
+function variance_by_laplace(a, n, q, logr)
+    fit_dist = Distributions.fit_mle(Distributions.Gamma, Distributions.GammaStats(q, logr, n))
+    α, β = Distributions.params(fit_dist)
+    # from scale to rate parameter
+    β = 1/β
+    kwargs = Dict(:αinit=>α, :βinit=>β)
+
+    # need evidence for normalized posterior
+    res, diffstore = GammaIntegrand.optimize_log_posterior(n, q, logr; kwargs...)
+    H = DiffBase.hessian(diffstore)
+    Z = Integrate.by_laplace(-Optim.minimum(res), H)
+
+    mode = Optim.minimizer(res)
+    invH = inv(H)
+    debug("mode ± std. err: α=" , mode[1], "±", invH[1,1], ", β=", mode[2], "±", invH[2,2])
+
+    # find initial N at posterior mode of α, β
+    α, β = Optim.minimizer(res)
+
+    # integrate by Laplace on log scale
+    kwargs = Dict(:αinit=>α, :βinit=>β)
+    try
+        res, diffstore = optimize_log_posterior_variance(n, q, logr, Z; kwargs...)
+    catch e
+        println(kwargs)
+        throw(e)
+    end
+    integral = Integrate.by_laplace(-Optim.minimum(res), DiffBase.hessian(diffstore))
+    (n+a)*exp(integral)
+end
+
+function true_by_cubature(Q0, a, n, q, logr;
+                          αmin=1e-2, αmax=5, βmin=1e-5, βmax=100, reltol=1e-5)
+
+    debug("Predicting for Q0=$Q0")
+    # to avoid overflow in Cubature, evaluate target at mode and subtract it. The
+    # value within a few order of magnitude of
+    fit_dist = Distributions.fit_mle(Distributions.Gamma, Distributions.GammaStats(q, logr, n))
+    α, β = Distributions.params(fit_dist)
+    # from scale to rate parameter
+    β = 1/β
+    debug("MLE estimates $α, $β")
+    logf_mode = log_posterior(α, β, n, q, logr)
+
+    # TODO take limits like 5*std. err. from Gaussian approximation
+    # problem: est. uncertainty in β is ok but way too small in α
+    # truth: 1.5, 60. With 1000 samples
+    # mode ± std. err: α=1.589259406326531±0.004222449140609555, β=65.64769067441536±9.916379800578136
+    lower = [αmin, βmin]
+    upper = [αmax, βmax]
+
+    Z, σ, ncalls = Integrate.by_cubature(make_log_posterior(n, q, logr, logf_mode), lower, upper; reltol=reltol)
+    debug("cubature evidence: $(logf_mode), $Z, $σ, $ncalls")
+
+    # actual evidence larger by logf because we already subtracted it
+    # in log_posterior. We need evidence on log scale
+    logZ = log(Z) + logf_mode
+
+    integrand = make_true_posterior(Q0, n, q, a, logr, logZ)
+    integral, σ, ncalls = Integrate.by_cubature(integrand, lower, upper; reltol=reltol)
+    debug("integrand: $integral  $σ after $ncalls calls")
+    integral
+end
+
 
 end #Predict

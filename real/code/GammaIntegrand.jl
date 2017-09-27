@@ -3,8 +3,9 @@ module GammaIntegrand
 
 export heuristicN, log_gamma, log_gamma_predict, log_inv_gamma, log_normal, log_poisson, log_poisson_predict, log_posterior
 export make_asymptotic, make_asymptotic_scaled_poisson, make_asymptotic_mle, make_log_posterior
-export make_log_posterior_variance
 export optimize_log_posterior, optimize_log_posterior_predict, optimize_integrand_λμσ²
+export make_log_posterior_variance, optimize_log_posterior_variance
+export make_true_posterior, optimize_true_posterior
 export triple_mode, triple_ranges
 
 import ..Integrate
@@ -250,4 +251,18 @@ function make_log_posterior_variance(n, q, logr, evidence=0.0)
     end
 end
 
+function optimize_log_posterior_variance(n::Real, q::Real, logr::Real, evidence=0.0; kwargs...)
+    optimize_integrand_αβ(make_log_posterior_variance(n, q, logr, evidence); kwargs...)
+end
+
+function make_true_posterior(Q0::Real, n::Real, a::Real, q::Real, logr::Real, evidence=0.0; kwargs...)
+    function (θ::Vector)
+        α, β = θ
+        log_posterior(α, β, n, q, logr, evidence) + log_gamma(Q0*β/α, n+a, 1)
+    end
+end
+
+function optimize_true_posterior(Q0::Real, n::Real, a::Real, q::Real, logr::Real, evidence=0.0; kwargs...)
+    optimize_integrand_αβ(make_true_posterior(Q0, n, a, q, logr, evidence); kwargs...)
+end
 end # GammaIntegrand
