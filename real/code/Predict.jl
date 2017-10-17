@@ -361,7 +361,7 @@ function true_by_cubature(Q0, a, n, q, logr;
     # in log_posterior. We need evidence on log scale
     logZ = log(Z) + logf_mode
 
-    integrand = make_true_posterior(Q0, n, q, a, logr, logZ)
+    integrand = make_true_posterior(Q0, n, a, q, logr, logZ)
     integral, σ, ncalls = Integrate.by_cubature(integrand, lower, upper; reltol=reltol)
     debug("integrand: $integral  $σ after $ncalls calls")
     integral

@@ -258,7 +258,8 @@ end
 function make_true_posterior(Q0::Real, n::Real, a::Real, q::Real, logr::Real, evidence=0.0; kwargs...)
     function (θ::Vector)
         α, β = θ
-        log_posterior(α, β, n, q, logr, evidence) + log_gamma(Q0*β/α, n+a, 1)
+        μ = α/β
+        log_posterior(α, β, n, q, logr, evidence) + log_gamma(Q0/μ, n+a, 1) - log(μ)
     end
 end
 
