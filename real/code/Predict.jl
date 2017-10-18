@@ -367,5 +367,13 @@ function true_by_cubature(Q0, a, n, q, logr;
     integral
 end
 
+function true_by_MLE(Q0, a, n, q, logr)
+    fit_dist = Distributions.fit_mle(Distributions.Gamma, Distributions.GammaStats(q, logr, n))
+    α, β = Distributions.params(fit_dist)
+    # from scale to rate parameter
+    β = 1/β
+    f = make_true_posterior_mle(Q0, n, a, q, logr)
+    exp(f([α, β]))
+end
 
 end #Predict

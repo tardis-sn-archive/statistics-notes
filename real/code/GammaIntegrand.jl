@@ -5,7 +5,7 @@ export heuristicN, log_gamma, log_gamma_predict, log_inv_gamma, log_normal, log_
 export make_asymptotic, make_asymptotic_scaled_poisson, make_asymptotic_mle, make_log_posterior
 export optimize_log_posterior, optimize_log_posterior_predict, optimize_integrand_λμσ²
 export make_log_posterior_variance, optimize_log_posterior_variance
-export make_true_posterior, optimize_true_posterior
+export make_true_posterior, make_true_posterior_mle, optimize_true_posterior
 export triple_mode, triple_ranges
 
 import ..Integrate
@@ -266,4 +266,13 @@ end
 function optimize_true_posterior(Q0::Real, n::Real, a::Real, q::Real, logr::Real, evidence=0.0; kwargs...)
     optimize_integrand_αβ(make_true_posterior(Q0, n, a, q, logr, evidence); kwargs...)
 end
+
+function make_true_posterior_mle(Q0, n, a, q, logr)
+    function (θ::Vector)
+        α, β = θ
+        μ = α/β
+        log_gamma(Q0/μ, n+a, 1) - log(μ)
+    end
+end
+
 end # GammaIntegrand
