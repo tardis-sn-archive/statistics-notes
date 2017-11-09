@@ -334,10 +334,7 @@ function variance_by_laplace(a, n, q, logr)
     (n+a)*exp(integral)
 end
 
-function true_by_cubature(Q0, a, n, q, logr;
-                          αmin=1e-2, αmax=5, βmin=1e-5, βmax=100, reltol=1e-5)
-
-    debug("Predicting for Q0=$Q0")
+function evidence_by_cubature(n, q, logr, αmin=1e-2, αmax=5, βmin=1e-5, βmax=100, reltol=1e-5)
     # to avoid overflow in Cubature, evaluate target at mode and subtract it. The
     # value within a few order of magnitude of
     fit_dist = Distributions.fit_mle(Distributions.Gamma, Distributions.GammaStats(q, logr, n))
@@ -347,10 +344,6 @@ function true_by_cubature(Q0, a, n, q, logr;
     debug("MLE estimates $α, $β")
     logf_mode = log_posterior(α, β, n, q, logr)
 
-    # TODO take limits like 5*std. err. from Gaussian approximation
-    # problem: est. uncertainty in β is ok but way too small in α
-    # truth: 1.5, 60. With 1000 samples
-    # mode ± std. err: α=1.589259406326531±0.004222449140609555, β=65.64769067441536±9.916379800578136
     lower = [αmin, βmin]
     upper = [αmax, βmax]
 
@@ -359,9 +352,42 @@ function true_by_cubature(Q0, a, n, q, logr;
 
     # actual evidence larger by logf because we already subtracted it
     # in log_posterior. We need evidence on log scale
-    logZ = log(Z) + logf_mode
+    log(Z) + logf_mode
+end
+
+function true_by_cubature(Q0, a, n, q, logr;
+                          αmin=1e-2, αmax=5, βmin=1e-5, βmax=100, reltol=1e-5,
+                          logZ=0.0)
+    debug("Predicting for Q0=$Q0")
+    if logZ <= 0.0
+        logZ = evidence_by_cubature(n, q, logr, αmin, αmax, βmin, βmax, reltol)
+    end
+
+    lower = [αmin, βmin]
+    upper = [αmax, βmax]
 
     integrand = make_true_posterior(Q0, n, a, q, logr, logZ)
+    integral, σ, ncalls = Integrate.by_cubature(integrand, lower, upper; reltol=reltol)
+    debug("integrand: $integral  $σ after $ncalls calls")
+    integral
+end
+
+function true_gauss_by_cubature(Q0, a, n, k, meanℓ, varℓ;
+                                reltol=1e-5,
+                                μmin=0.0, μmax=0.0, σ2min=0.0, σ2max=0.0)
+    if μmax <= 0.0 || σ2max <= 0.0
+        Δ = 5*sqrt(varℓ/k)
+        μmin = max(0.0, meanℓ - Δ)
+        μmax = meanℓ + Δ
+        a = k/2
+        b = k/2*varℓ
+        Δ = 5*sqrt(b^2/((a-1)^2 * (a-2)))
+        σ2min = max(0.0, b/(a-1) - Δ)
+        σ2max = b/(a-1) + Δ
+    end
+    lower = [μmin, μmax]
+    upper = [σ2min, σ2max]
+    integrand = GaussIntegrand.make_true_posterior(Q0, n, a, k, meanℓ, varℓ)
     integral, σ, ncalls = Integrate.by_cubature(integrand, lower, upper; reltol=reltol)
     debug("integrand: $integral  $σ after $ncalls calls")
     integral
