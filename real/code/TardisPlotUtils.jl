@@ -1,7 +1,7 @@
 module TardisPlotUtils
 using Logging
 # @Logging.configure(level=DEBUG)
-@Logging.configure(level=INFO)
+# @Logging.configure(level=INFO)
 
 import TardisPaper.GammaIntegrand, TardisPaper.Predict, TardisPaper.Integrate, TardisPaper.Moments, TardisPaper.SmallestInterval
 import Tardis
@@ -79,6 +79,12 @@ function compute_prediction(;n=400, Qs=false, Qmin=1e-3, Qmax=2, nQ=50, α=1.5, 
     res_mle = map(Q->Predict.by_sum(Q, shape(dist_fit), 1/scale(dist_fit), a, n;ε=ε)[1], Qs)
     norm_mean_std(Qs, res_mle, "max. likelihood";
                δcontrib=exp(GammaIntegrand.log_poisson_predict(0, n, a)))
+
+    res_true = map(Q->Predict.true_by_cubature(Q, a, n, gstats.q, gstats.logr; reltol=reltol), Qs)
+    norm_mean_std(Qs, res_true, "true")
+
+    res_true_mle = map(Q->Predict.true_by_MLE(Q, a, n, gstats.q, gstats.logr), Qs)
+    norm_mean_std(Qs, res_true, "true_mle")
 
     mode = GammaIntegrand.triple_mode(n, gstats.first, gstats.second)
     res_asym_mle = map(Q->Predict.asymptotic_by_MLE(Q, a, n, mode[2], mode[3]; reltol=reltol)[1], Qs)

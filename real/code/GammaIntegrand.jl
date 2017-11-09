@@ -259,7 +259,7 @@ function make_true_posterior(Q0::Real, n::Real, a::Real, q::Real, logr::Real, ev
     function (θ::Vector)
         α, β = θ
         μ = α/β
-        log_posterior(α, β, n, q, logr, evidence) + log_gamma(Q0/μ, n+a, 1) - log(μ)
+        log_posterior(α, β, n, q, logr, evidence) + log_gamma(Q0/μ, n-a+1, 1) - log(μ)
     end
 end
 
@@ -271,7 +271,7 @@ function make_true_posterior_mle(Q0, n, a, q, logr)
     function (θ::Vector)
         α, β = θ
         μ = α/β
-        log_gamma(Q0/μ, n+a, 1) - log(μ)
+        log_gamma(Q0/μ, n-a+1, 1) - log(μ)
     end
 end
 
