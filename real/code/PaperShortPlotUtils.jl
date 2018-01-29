@@ -19,7 +19,7 @@ savepdf(fname) = begin Plots.pdf("../figures/$fname"); plot!() end
 const a = 1/2
 
 function decorate()
-    plot(; xlabel=L"Q_{\infty}", ylabel=L"p(Q_{\infty} | n, \langle\ell\rangle)",
+    plot(; xlabel=L"L_{\infty}", ylabel=L"p(L_{\infty} | n, \langle\ell\rangle)",
          yticks=nothing, grid=false, legend=true)
 end
 
