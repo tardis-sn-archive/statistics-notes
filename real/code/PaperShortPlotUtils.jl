@@ -1,5 +1,6 @@
 module PaperShortPlotUtils
 
+using Integrate
 using Plots
 using Distributions
 using LaTeXStrings
@@ -21,6 +22,36 @@ const a = 1/2
 function decorate()
     plot(; xlabel=L"L_{\infty}", ylabel=L"p(L_{\infty} | n, \langle\ell\rangle)",
          yticks=nothing, grid=false, legend=true)
+end
+
+function plot_convolution()
+
+    plot(; xlabel=L"L_{\infty}",
+         yticks=nothing, grid=false, legend=true)
+    meanℓ = 0.2
+    n = 6
+    Lmin = 1e-7; Lmax = 9
+    Lrange = linspace(Lmin, Lmax, 400)
+    f(Q0) = pdf(Gamma(n-a+1, 1), Q0/meanℓ)/meanℓ
+    plot!(Lrange, f; label=L"p(L_{\infty} | \bm{\theta})", mylines[3]...)
+
+    Lobs = 1.8
+    g(Q0, Q=Lobs) = pdf(Normal(Q, 0.3), Q0)
+    plot!(Lrange, g; label=L"\mathcal{N}(L_{\rm obs} | L_{\infty}, \sigma^2_{\rm obs})",  mylines[2]...)
+    vline!([Lobs]; ls=:dash, label="", mylines[2]...)
+
+    # print(Integrate.by_cubature(Q0 -> log(f(Q0)) + log(g(Q0, 3)), Lmin, Lmax))
+    pl = map(Q -> Integrate.by_cubature(Q0 -> log(f(Q0)) + log(g(Q, Q0)), Lmin, Lmax)[1], Lrange)
+    norm, mean, std = Integrate.simpson(Lrange, pl)
+    print("normalization: ", norm, ", mean: ", mean, ", std: " , std)
+    plot!(Lrange, pl;
+          label=L"p(L_{\rm obs} | \bm{\theta})", linewidth=2, mylines[1]...)
+
+    xlims!(Lmin, 4)
+
+    savepdf("convolution")
+
+    nothing
 end
 
 # asumme phi fixed
