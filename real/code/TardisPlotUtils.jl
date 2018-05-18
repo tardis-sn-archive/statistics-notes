@@ -1,5 +1,5 @@
 module TardisPlotUtils
-using Logging
+# using Logging
 # @Logging.configure(level=DEBUG)
 # @Logging.configure(level=INFO)
 
@@ -539,8 +539,10 @@ function plot_tardis_samples()
 
     layout = (1,2)
     histstyle = Dict(:alpha=>fillalpha)
+    raw_samples = frame[:energies][imin:imax]/1e38
+    println("Raw lbar = $(mean(raw_samples)), raw sig2bar = $(var(raw_samples, corrected=false))")
 
-    Plots.histogram(frame[:energies][imin:imax]/1e38; nbins=nbins, yticks=nothing,
+    Plots.histogram(raw_samples; nbins=nbins, yticks=nothing,
                     xlabel=L"\ell^\prime/10^{38}", normed=true, layout=layout, histstyle...)
 
     # now the transformed data, sorted again but that doesn't change anything
@@ -550,7 +552,7 @@ function plot_tardis_samples()
     dist_fit = Distributions.fit_mle(Gamma, samples)
     α = shape(dist_fit)
     β = 1/scale(dist_fit)
-    println("α = $α, β = $β")
+    println("α = $α, β = $β, lbar = $(mean(samples)), sig2bar = $(var(samples, corrected=false)), l2bar = $(sum(samples .^2) / size(samples,1))")
 
     Plots.histogram!(samples, xlabel=L"\ell"; normed=true, nbins=nbins,
                      lab="", layout=layout, subplot=2, histstyle...)

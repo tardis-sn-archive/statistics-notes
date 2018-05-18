@@ -4,7 +4,7 @@ module Predict
 using ..GammaIntegrand, ..Integrate
 import DiffBase, Distributions, Optim
 
-using Logging
+# using Logging
 
 """ Find initial value of N that will likely give the largest
 contribution to (gmhb). It's only approximate but should be a good
